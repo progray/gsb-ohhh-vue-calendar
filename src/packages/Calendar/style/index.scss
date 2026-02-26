@@ -75,10 +75,14 @@
 .ohhh-calendar-day {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
+  align-items: stretch;
   height: var(--calendar-row-height);
   cursor: pointer;
+  padding: 4px;
+  box-sizing: border-box;
+}
+.ohhh-calendar-day.is-drag-over {
+  background: var(--calendar-theme-color-light);
 }
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-label {
@@ -137,4 +141,86 @@
 .ohhh-calendar-footer--icon svg {
   width: var(--calendar-footer-icon-size);
   height: var(--calendar-footer-icon-size);
+}
+
+.ohhh-calendar-day--header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+  margin-bottom: 2px;
+}
+
+.ohhh-calendar-day--events {
+  display: flex;
+  flex-direction: column;
+  gap: var(--calendar-event-gap);
+  overflow: hidden;
+  flex: 1;
+}
+
+.ohhh-calendar-event {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: var(--calendar-event-height);
+  padding: var(--calendar-event-padding);
+  border-radius: var(--calendar-event-radius);
+  background: var(--event-color);
+  font-size: var(--calendar-event-font-size);
+  color: var(--calendar-event-text-color);
+  cursor: grab;
+  overflow: hidden;
+  transition: opacity 0.2s, transform 0.2s;
+  user-select: none;
+}
+.ohhh-calendar-event:hover {
+  opacity: 0.9;
+  transform: scale(1.02);
+}
+.ohhh-calendar-event.is-dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+.ohhh-calendar-event.has-conflict {
+  border: 1px dashed var(--calendar-event-conflict-color);
+}
+.ohhh-calendar-event--title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.ohhh-calendar-event--time {
+  font-size: 8px;
+  opacity: 0.9;
+  flex-shrink: 0;
+}
+.ohhh-calendar-event--conflict-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--calendar-event-conflict-color);
+  font-size: 8px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+.ohhh-calendar-event--more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--calendar-event-height);
+  padding: var(--calendar-event-padding);
+  border-radius: var(--calendar-event-radius);
+  background: rgba(0, 0, 0, 0.05);
+  font-size: var(--calendar-event-font-size);
+  color: var(--calendar-text-color-level-3);
+  cursor: pointer;
+}
+.ohhh-calendar-event--more:hover {
+  background: rgba(0, 0, 0, 0.1);
 }

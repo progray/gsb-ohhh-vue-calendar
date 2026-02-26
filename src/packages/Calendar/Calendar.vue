@@ -8,7 +8,6 @@
       '--transition-duration': transitionDuration
     }"
   >
-    <!-- 顶部工具栏 -->
     <div v-if="showToolbar" class="ohhh-calendar-toolbar">
       <slot name="toolbar" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
         <div v-html="icons.arrowDoubleLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-year')" />
@@ -19,14 +18,12 @@
       </slot>
     </div>
 
-    <!-- 星期栏 -->
     <div v-if="showWeekdays" class="ohhh-calendar-weekdays">
       <div v-for="(day, index) in weekdays" :key="day" class="ohhh-calendar-weekdays--weekday">
         <slot name="weekday" :weekday="day" :index="(index + weekStart) % 7">{{ day }}</slot>
       </div>
     </div>
 
-    <!-- 日历主体 -->
     <div ref="swp" class="ohhh-calendar-wrapper">
       <div
         v-for="(item, index) in allRenderDates"
@@ -42,14 +39,38 @@
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'is-drag-over': dragOverDate && isSameDay(dateObj.date, dragOverDate)
           }"
           @click="changeSelectedDate(dateObj.date)"
+          @dragover.prevent="onDragOver($event, dateObj.date)"
+          @dragleave="onDragLeave"
+          @drop.prevent="onDrop($event, dateObj.date)"
         >
-          <div class="ohhh-calendar-day--inner">
-            <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
-            <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
-              <slot name="day-label" :date="dateObj.date" />
+          <div class="ohhh-calendar-day--header">
+            <div class="ohhh-calendar-day--inner">
+              <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
+              <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
+                <slot name="day-label" :date="dateObj.date" />
+              </div>
+            </div>
+          </div>
+          <div class="ohhh-calendar-day--events" v-if="showEvents">
+            <EventItem
+              v-for="event in getVisibleEvents(dateObj.date)"
+              :key="event.id"
+              :event="event"
+              :has-conflict="hasConflict(event)"
+              @event-click="onEventClick"
+              @event-drag-start="onEventDragStart"
+              @event-drag-end="onEventDragEnd"
+            />
+            <div
+              v-if="getHiddenEventsCount(dateObj.date) > 0"
+              class="ohhh-calendar-event--more"
+              @click.stop="showAllEvents(dateObj.date)"
+            >
+              +{{ getHiddenEventsCount(dateObj.date) }} 更多
             </div>
           </div>
           <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
@@ -57,7 +78,6 @@
       </div>
     </div>
 
-    <!-- 底部工具栏 -->
     <div v-if="showFooter" class="ohhh-calendar-footer">
       <slot name="footer" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
         <div
@@ -71,60 +91,67 @@
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
+import { useEvents } from './hooks/useEvents.js'
 import { isSameDay, createWeekdays } from './utils'
 import { icons } from './utils/icons.js'
+import { findConflicts } from './utils/eventUtils.js'
+import EventItem from './components/EventItem.vue'
 
 const swipeRef = useTemplateRef('swp')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'event-add', 'event-update', 'event-delete', 'event-click'])
 
 const props = defineProps({
-  // 初始选中的日期
   initialSelectedDate: {
     type: Date,
     default: () => new Date()
   },
-  // 初始视图模式
   initialViewMode: {
     type: String,
-    default: 'month' // month or week
+    default: 'month'
   },
-  // 以周几作为每周的起始
   weekStart: {
     type: Number,
-    default: 0 // 0: Sunday, 1: Monday, etc.
+    default: 0
   },
-  // 标记的日期
   markerDates: {
     type: Array,
     default: () => []
   },
-  // 是否显示顶部工具栏
   showToolbar: {
     type: Boolean,
     default: true
   },
-  // 是否显示底部工具栏
   showFooter: {
     type: Boolean,
     default: true
   },
-  // 是否显示weekdays栏
   showWeekdays: {
     type: Boolean,
     default: true
   },
-  // 过渡动画时长
   duration: {
     type: String,
     default: '0.3s'
+  },
+  events: {
+    type: Array,
+    default: () => []
+  },
+  showEvents: {
+    type: Boolean,
+    default: true
+  },
+  maxVisibleEvents: {
+    type: Number,
+    default: 3
   }
 })
 
-const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration } = toRefs(props)
+const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration, events, showEvents, maxVisibleEvents } = toRefs(props)
 
 const {
   selected,
@@ -143,11 +170,19 @@ const {
   toggleViewMode
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
 
-// 顶部工具栏标题
+const {
+  events: normalizedEvents,
+  getEventsByDate,
+  addEvent,
+  updateEvent,
+  deleteEvent,
+  getEventById,
+  moveEvent,
+  checkConflicts
+} = useEvents({ events }, emit)
+
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
-// 星期栏
 const weekdays = createWeekdays(weekStart.value)
-// 标记日期
 const markerDateList = computed(() =>
   markerDates.value.map(item => ({
     date: new Date(typeof item === 'object' && item.date ? item.date : item),
@@ -155,16 +190,16 @@ const markerDateList = computed(() =>
   }))
 )
 
-// 监听滑动事件
+const dragOverDate = ref(null)
+const draggingEvent = ref(null)
+const dragStartDate = ref(null)
+
 const { lengthX } = useSwipe(swipeRef, {
-  // 滑动阈值
   threshold: 0,
-  // 手指滑动过程中
   onSwipe: () => {
     if (isInTransition.value) return
     transformDistance.value = -lengthX.value + 'px'
   },
-  // 手指抬起滑动结束，开始滑动动画
   onSwipeEnd: (_, direction) => {
     if (isInTransition.value) return
     if (direction === 'left') {
@@ -172,14 +207,11 @@ const { lengthX } = useSwipe(swipeRef, {
     } else if (direction === 'right') {
       changePageTo('prev-page')
     } else {
-      // 如果方向不是左右，则将页面复位
       startTransitionAnimation(direction)
     }
   }
 })
 
-// 归一化参数
-// 支持 'prev-page', 'next-page', 'prev-year', 'next-year', 以及合法的日期
 function _normalize(param) {
   if (!param) {
     throw new Error('参数不能为空')
@@ -215,13 +247,11 @@ function _normalize(param) {
   throw new Error('日期不合法')
 }
 
-// 切换日历页面
 function changePageTo(param) {
   const targetDate = _normalize(param)
   switchPageToTargetDate(targetDate)
 }
 
-// 切换选中的日期
 function changeSelectedDate(date) {
   changePageTo(date)
   if (!isSameDay(new Date(date), selected.value)) {
@@ -230,17 +260,79 @@ function changeSelectedDate(date) {
   }
 }
 
-// 获取 marker 颜色
 function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
+function getVisibleEvents(date) {
+  const dayEvents = getEventsByDate(date)
+  return dayEvents.slice(0, maxVisibleEvents.value)
+}
+
+function getHiddenEventsCount(date) {
+  const dayEvents = getEventsByDate(date)
+  return Math.max(0, dayEvents.length - maxVisibleEvents.value)
+}
+
+function hasConflict(event) {
+  const conflicts = findConflicts(event, normalizedEvents.value)
+  return conflicts.length > 0
+}
+
+function showAllEvents(date) {
+  emit('event-click', { type: 'show-all', date, events: getEventsByDate(date) })
+}
+
+function onEventClick({ event }) {
+  emit('event-click', { type: 'click', event })
+}
+
+function onDragOver(e, date) {
+  if (!draggingEvent.value) return
+  e.dataTransfer.dropEffect = 'move'
+  dragOverDate.value = date
+}
+
+function onDragLeave() {
+  dragOverDate.value = null
+}
+
+function onDrop(e, targetDate) {
+  dragOverDate.value = null
+  if (!draggingEvent.value) return
+
+  const originalDate = dragStartDate.value
+  const newDate = new Date(targetDate)
+  
+  if (originalDate && !isSameDay(originalDate, newDate)) {
+    moveEvent(draggingEvent.value.id, newDate)
+  }
+  
+  draggingEvent.value = null
+  dragStartDate.value = null
+}
+
+function onEventDragStart({ event }) {
+  draggingEvent.value = event
+  dragStartDate.value = event.date instanceof Date ? event.date : new Date(event.date)
+}
+
+function onEventDragEnd() {
+  draggingEvent.value = null
+  dragOverDate.value = null
+  dragStartDate.value = null
+}
+
 defineExpose({
-  // 切换周/月视图
   toggleViewMode,
-  // 切换日历页
   changePageTo,
-  // 切换选中日期
-  changeSelectedDate
+  changeSelectedDate,
+  addEvent,
+  updateEvent,
+  deleteEvent,
+  getEventById,
+  getEventsByDate,
+  moveEvent,
+  checkConflicts
 })
 </script>
