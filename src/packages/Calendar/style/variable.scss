@@ -49,4 +49,13 @@
   --calendar-days-marker-top-gap: 4px;
   --calendar-days-marker-size: 4px;
   --calendar-days-marker-color: var(--calendar-theme-color);
+
+  --calendar-event-font-size: 10px;
+  --calendar-event-height: 16px;
+  --calendar-event-gap: 2px;
+  --calendar-event-padding: 2px 4px;
+  --calendar-event-radius: 3px;
+  --calendar-event-text-color: #fff;
+  --calendar-event-bg-opacity: 0.85;
+  --calendar-event-conflict-color: #f56c6c;
 }
