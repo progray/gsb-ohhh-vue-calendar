@@ -65,3 +65,32 @@ export function createWeekDates(date, index) {
   }
   return dates
 }
+
+// 将日期格式化为 YYYY-MM-DD 字符串
+export function formatDate(date) {
+  if (typeof date === 'string') {
+    // 如果已经是字符串，尝试解析并重新格式化
+    const parsed = new Date(date)
+    if (!isNaN(parsed.getTime())) {
+      date = parsed
+    } else {
+      return date
+    }
+  }
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+// 解析日期字符串为 Date 对象
+export function parseDate(dateStr) {
+  if (dateStr instanceof Date) {
+    return dateStr
+  }
+  const date = new Date(dateStr)
+  if (isNaN(date.getTime())) {
+    return null
+  }
+  return date
+}

@@ -75,10 +75,18 @@
 .ohhh-calendar-day {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: var(--calendar-row-height);
+  align-items: stretch;
+  min-height: var(--calendar-row-height);
   cursor: pointer;
+  padding: 4px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  transition: border-color 0.2s ease;
+  overflow: hidden;
+}
+.ohhh-calendar-day.drag-over {
+  border-color: var(--calendar-theme-color);
+  background: var(--calendar-theme-color-light);
 }
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-label {
@@ -99,6 +107,16 @@
   color: var(--calendar-days-selected-color);
 }
 
+// 日期头部区域
+.ohhh-calendar-day--header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
 .ohhh-calendar-day--inner {
   display: flex;
   flex-direction: column;
@@ -109,6 +127,7 @@
   padding: var(--calendar-days-inner-padding);
   border-radius: var(--calendar-days-inner-radius);
   background: var(--calendar-days-inner-background);
+  flex-shrink: 0;
 }
 .ohhh-calendar-day--inner-value {
   font-size: var(--calendar-days-value-font-size);
@@ -118,12 +137,166 @@
   font-size: var(--calendar-days-label-font-size);
   color: var(--calendar-days-label-color);
 }
+
+// 事件列表样式
+.ohhh-calendar-day--events {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.ohhh-calendar-event {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: grab;
+  background: var(--calendar-event-bg, #e3f2fd);
+  color: var(--calendar-event-color, #1976d2);
+  border-left: 3px solid var(--calendar-event-border, #1976d2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.2s ease;
+  user-select: none;
+  flex-shrink: 0;
+  min-height: 20px;
+  line-height: 1.4;
+}
+
+.ohhh-calendar-event:hover {
+  opacity: 0.85;
+  transform: translateX(2px);
+}
+
+.ohhh-calendar-event.is-dragging {
+  opacity: 0.3;
+}
+
+.ohhh-calendar-event.is-conflict {
+  background: var(--calendar-event-conflict-bg, #ffebee);
+  color: var(--calendar-event-conflict-color, #c62828);
+  border-left-color: var(--calendar-event-conflict-border, #c62828);
+}
+
+.ohhh-calendar-event--title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ohhh-calendar-event--time {
+  font-size: 10px;
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+// 更多事件提示
+.ohhh-calendar-event-more {
+  padding: 2px 6px;
+  font-size: 10px;
+  color: var(--calendar-text-color-level-3);
+  text-align: center;
+  background: #f5f5f5;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  min-height: 18px;
+  line-height: 1.4;
+}
+
+.ohhh-calendar-event-more:hover {
+  background: #e8e8e8;
+  color: var(--calendar-theme-color);
+}
+
+// 事件颜色分类
+.ohhh-calendar-event.event-color-default {
+  --calendar-event-bg: #e3f2fd;
+  --calendar-event-color: #1976d2;
+  --calendar-event-border: #1976d2;
+}
+
+.ohhh-calendar-event.event-color-red {
+  --calendar-event-bg: #ffebee;
+  --calendar-event-color: #c62828;
+  --calendar-event-border: #c62828;
+}
+
+.ohhh-calendar-event.event-color-orange {
+  --calendar-event-bg: #fff3e0;
+  --calendar-event-color: #ef6c00;
+  --calendar-event-border: #ef6c00;
+}
+
+.ohhh-calendar-event.event-color-green {
+  --calendar-event-bg: #e8f5e9;
+  --calendar-event-color: #2e7d32;
+  --calendar-event-border: #2e7d32;
+}
+
+.ohhh-calendar-event.event-color-cyan {
+  --calendar-event-bg: #e0f7fa;
+  --calendar-event-color: #00838f;
+  --calendar-event-border: #00838f;
+}
+
+.ohhh-calendar-event.event-color-blue {
+  --calendar-event-bg: #e3f2fd;
+  --calendar-event-color: #1565c0;
+  --calendar-event-border: #1565c0;
+}
+
+.ohhh-calendar-event.event-color-purple {
+  --calendar-event-bg: #f3e5f5;
+  --calendar-event-color: #6a1b9a;
+  --calendar-event-border: #6a1b9a;
+}
+
+.ohhh-calendar-event.event-color-pink {
+  --calendar-event-bg: #fce4ec;
+  --calendar-event-color: #ad1457;
+  --calendar-event-border: #ad1457;
+}
+
+// 添加按钮
+.ohhh-calendar-day--add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--calendar-text-color-level-4);
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.ohhh-calendar-day:hover .ohhh-calendar-day--add {
+  opacity: 1;
+}
+
+.ohhh-calendar-day--add:hover {
+  background: var(--calendar-theme-color-light);
+  color: var(--calendar-theme-color);
+}
+
 .ohhh-calendar-day--marker {
   flex: none;
   margin-top: var(--calendar-days-marker-top-gap);
   width: var(--calendar-days-marker-size);
   height: var(--calendar-days-marker-size);
   border-radius: 50%;
+  align-self: center;
 }
 
 .ohhh-calendar-footer {
@@ -137,4 +310,270 @@
 .ohhh-calendar-footer--icon svg {
   width: var(--calendar-footer-icon-size);
   height: var(--calendar-footer-icon-size);
+}
+
+// 弹窗样式
+.ohhh-calendar-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.ohhh-calendar-modal {
+  background: #fff;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 420px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.ohhh-calendar-modal--header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e8e8e8;
+  flex-shrink: 0;
+}
+
+.ohhh-calendar-modal--header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.ohhh-calendar-modal--close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #8c8c8c;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.ohhh-calendar-modal--close:hover {
+  background: #f5f5f5;
+  color: #262626;
+}
+
+.ohhh-calendar-modal--body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.ohhh-calendar-modal--footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid #e8e8e8;
+  flex-shrink: 0;
+}
+
+// 表单样式
+.ohhh-calendar-form-group {
+  margin-bottom: 16px;
+}
+
+.ohhh-calendar-form-group:last-child {
+  margin-bottom: 0;
+}
+
+.ohhh-calendar-form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #262626;
+}
+
+.ohhh-calendar-form-group label .required {
+  color: #ff4d4f;
+  margin-left: 4px;
+}
+
+.ohhh-calendar-form-group input,
+.ohhh-calendar-form-group textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #262626;
+  background: #fff;
+  box-sizing: border-box;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.ohhh-calendar-form-group input:focus,
+.ohhh-calendar-form-group textarea:focus {
+  outline: none;
+  border-color: var(--calendar-theme-color);
+  box-shadow: 0 0 0 2px var(--calendar-theme-color-light);
+}
+
+.ohhh-calendar-form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+// 表单行布局
+.ohhh-calendar-form-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 12px;
+}
+
+.ohhh-calendar-form-row .ohhh-calendar-form-group {
+  margin-bottom: 0;
+}
+
+// 日期时间选择器包装
+.ohhh-calendar-date-picker,
+.ohhh-calendar-time-picker {
+  position: relative;
+}
+
+.ohhh-calendar-date-picker input[type="date"],
+.ohhh-calendar-time-picker input[type="time"] {
+  cursor: pointer;
+  min-height: 38px;
+}
+
+// 颜色选择器
+.ohhh-calendar-color-picker {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ohhh-calendar-color-option {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.ohhh-calendar-color-option:hover {
+  transform: scale(1.1);
+}
+
+.ohhh-calendar-color-option.is-selected {
+  border-color: #262626;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--calendar-theme-color);
+}
+
+// 冲突警告
+.ohhh-calendar-conflict-warning {
+  padding: 10px 12px;
+  background: #fff2f0;
+  border: 1px solid #ffccc7;
+  border-radius: 6px;
+  color: #cf1322;
+  font-size: 13px;
+}
+
+// 按钮样式
+.ohhh-calendar-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.ohhh-calendar-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ohhh-calendar-btn--default {
+  background: #fff;
+  border-color: #d9d9d9;
+  color: #262626;
+}
+
+.ohhh-calendar-btn--default:hover {
+  border-color: var(--calendar-theme-color);
+  color: var(--calendar-theme-color);
+}
+
+.ohhh-calendar-btn--primary {
+  background: var(--calendar-theme-color);
+  color: #fff;
+}
+
+.ohhh-calendar-btn--primary:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.ohhh-calendar-btn--danger {
+  background: #fff;
+  border-color: #ff4d4f;
+  color: #ff4d4f;
+  margin-right: auto;
+}
+
+.ohhh-calendar-btn--danger:hover {
+  background: #ff4d4f;
+  color: #fff;
+}
+
+// 拖拽幽灵元素
+.ohhh-calendar-drag-ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  background: var(--calendar-event-bg, #e3f2fd);
+  color: var(--calendar-event-color, #1976d2);
+  border-left: 4px solid var(--calendar-event-border, #1976d2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ohhh-calendar-drag-ghost--title {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ohhh-calendar-drag-ghost--time {
+  font-size: 11px;
+  opacity: 0.8;
+  flex-shrink: 0;
 }

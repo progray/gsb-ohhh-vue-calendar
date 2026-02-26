@@ -1,7 +1,7 @@
 @use '../index.scss';
 
 .ohhh-calendar-container {
-  --calendar-row-height: 120px;
+  --calendar-row-height: 160px;
 
   --calendar-icon-size: 40px;
 
@@ -17,9 +17,95 @@
   --calendar-days-value-font-size: 28px;
   --calendar-days-label-font-size: 20px;
 
-  --calendar-days-inner-size: 68px;
+  --calendar-days-inner-size: 52px;
   --calendar-days-inner-padding: 4px;
 
-  --calendar-days-marker-top-gap: 8px;
-  --calendar-days-marker-size: 8px;
+  --calendar-days-marker-top-gap: 6px;
+  --calendar-days-marker-size: 6px;
+}
+
+// 移动端事件样式适配
+.ohhh-calendar-event {
+  padding: 4px 8px;
+  font-size: 13px;
+  border-radius: 6px;
+  min-height: 26px;
+}
+
+.ohhh-calendar-event--time {
+  font-size: 11px;
+}
+
+.ohhh-calendar-event-more {
+  padding: 3px 8px;
+  font-size: 11px;
+  min-height: 22px;
+}
+
+.ohhh-calendar-day--add {
+  width: 24px;
+  height: 24px;
+  font-size: 16px;
+}
+
+// 移动端弹窗适配
+.ohhh-calendar-modal {
+  max-width: 90vw;
+  max-height: 85vh;
+}
+
+.ohhh-calendar-modal--header {
+  padding: 20px 24px;
+}
+
+.ohhh-calendar-modal--header h3 {
+  font-size: 20px;
+}
+
+.ohhh-calendar-modal--body {
+  padding: 24px;
+}
+
+.ohhh-calendar-modal--footer {
+  padding: 20px 24px;
+}
+
+.ohhh-calendar-form-group {
+  margin-bottom: 20px;
+}
+
+.ohhh-calendar-form-group label {
+  font-size: 15px;
+  margin-bottom: 10px;
+}
+
+.ohhh-calendar-form-group input,
+.ohhh-calendar-form-group textarea {
+  padding: 12px 14px;
+  font-size: 15px;
+}
+
+.ohhh-calendar-form-row {
+  gap: 16px;
+}
+
+.ohhh-calendar-btn {
+  padding: 10px 20px;
+  font-size: 15px;
+}
+
+.ohhh-calendar-color-option {
+  width: 36px;
+  height: 36px;
+}
+
+// 拖拽幽灵元素移动端
+.ohhh-calendar-drag-ghost {
+  padding: 8px 14px;
+  font-size: 14px;
+  max-width: 240px;
+}
+
+.ohhh-calendar-drag-ghost--time {
+  font-size: 12px;
 }
