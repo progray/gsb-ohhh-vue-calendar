@@ -9,12 +9,12 @@
 ***
 
 月视图：  
-<img src="https://raw.githubusercontent.com/ohhhhTest/ohhh-vue-calendar/refs/heads/master/src/images/month-view.png" alt="month-view" />
+<img src="https://github.com/progray/gsb-ohhh-vue-calendar/blob/main/src/images/month-view.png" alt="month-view" />
 
 <br />
 
 周视图：  
-<img src="https://raw.githubusercontent.com/ohhhhTest/ohhh-vue-calendar/refs/heads/master/src/images/week-view.png" alt="week-view" />
+<img src="https://github.com/progray/gsb-ohhh-vue-calendar/blob/main/src/images//week-view.png" alt="week-view" />
 
 <br />
 
