@@ -5,7 +5,8 @@
       '--calendar-rows': renderRows,
       '--calendar-transition-duration': duration,
       '--translate-distance': transformDistance,
-      '--transition-duration': transitionDuration
+      '--transition-duration': transitionDuration,
+      '--calendar-event-max-show': maxVisibleEvents
     }"
   >
     <!-- 顶部工具栏 -->
@@ -42,9 +43,15 @@
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'is-drag-over': dragOverDate && isSameDay(dateObj.date, dragOverDate)
           }"
-          @click="changeSelectedDate(dateObj.date)"
+          :data-date="dateObj.key"
+          @click="handleDayClick(dateObj.date)"
+          @dblclick="handleDayDoubleClick(dateObj.date)"
+          @dragover.prevent="onDragOver($event, dateObj.date)"
+          @dragleave="onDragLeave"
+          @drop="onDrop($event, dateObj.date)"
         >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
@@ -53,6 +60,25 @@
             </div>
           </div>
           <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+          <div class="ohhh-calendar-day--events">
+            <component
+              v-for="(evt, evtIndex) in getEventsForDate(dateObj.date).slice(0, maxVisibleEvents)"
+              :key="evt.id || evtIndex"
+              :is="'CalendarEvent'"
+              :event="evt"
+              :draggable="enableDragDrop"
+              @click="handleEventClick(evt, $event)"
+              @drag-start="onEventDragStart"
+              @drag-end="onEventDragEnd"
+            />
+            <div
+              v-if="getEventsForDate(dateObj.date).length > maxVisibleEvents"
+              class="ohhh-calendar-day--events-more"
+              @click.stop="showMoreEvents(dateObj.date)"
+            >
+              +{{ getEventsForDate(dateObj.date).length - maxVisibleEvents }} 更多
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -67,60 +93,117 @@
         />
       </slot>
     </div>
+
+    <!-- 事件编辑弹窗 -->
+    <EventDialog
+      v-if="enableEventDialog"
+      :visible="showEventDialog"
+      :event="editingEvent"
+      :initial-date="dialogInitialDate"
+      :conflicts="currentConflicts"
+      @close="closeEventDialog"
+      @confirm="handleEventConfirm"
+      @delete="handleEventDelete"
+    />
+
+    <!-- 更多事件弹窗 -->
+    <Teleport to="body">
+      <div v-if="showMoreDialog" class="ohhh-events-more-dialog-overlay" @click.self="closeMoreDialog">
+        <div class="ohhh-events-more-dialog">
+          <div class="ohhh-events-more-dialog--header">
+            <span>{{ formatMoreDialogDate }}</span>
+            <button class="ohhh-events-more-dialog--close" @click="closeMoreDialog">&times;</button>
+          </div>
+          <div class="ohhh-events-more-dialog--body">
+            <div
+              v-for="evt in moreEvents"
+              :key="evt.id"
+              class="ohhh-events-more-dialog--item"
+              :style="{ '--event-color': evt.color || '#3B82F6' }"
+              @click="handleEventClick(evt)"
+            >
+              <span class="item-dot"></span>
+              <span class="item-time">{{ formatEventTime(evt) }}</span>
+              <span class="item-title">{{ evt.title || '无标题' }}</span>
+            </div>
+          </div>
+          <div class="ohhh-events-more-dialog--footer">
+            <button class="btn btn-add" @click="addEventFromMoreDialog">添加事件</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { ref, computed, useTemplateRef, toRefs, markRaw } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
+import { useEvents } from './hooks/useEvents.js'
 import { isSameDay, createWeekdays } from './utils'
 import { icons } from './utils/icons.js'
+import CalendarEvent from './CalendarEvent.vue'
+import EventDialog from './EventDialog.vue'
+
+markRaw(CalendarEvent)
 
 const swipeRef = useTemplateRef('swp')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'event-add', 'event-update', 'event-delete'])
 
 const props = defineProps({
-  // 初始选中的日期
   initialSelectedDate: {
     type: Date,
     default: () => new Date()
   },
-  // 初始视图模式
   initialViewMode: {
     type: String,
-    default: 'month' // month or week
+    default: 'month'
   },
-  // 以周几作为每周的起始
   weekStart: {
     type: Number,
-    default: 0 // 0: Sunday, 1: Monday, etc.
+    default: 0
   },
-  // 标记的日期
   markerDates: {
     type: Array,
     default: () => []
   },
-  // 是否显示顶部工具栏
   showToolbar: {
     type: Boolean,
     default: true
   },
-  // 是否显示底部工具栏
   showFooter: {
     type: Boolean,
     default: true
   },
-  // 是否显示weekdays栏
   showWeekdays: {
     type: Boolean,
     default: true
   },
-  // 过渡动画时长
   duration: {
     type: String,
     default: '0.3s'
+  },
+  events: {
+    type: Array,
+    default: () => []
+  },
+  enableDragDrop: {
+    type: Boolean,
+    default: true
+  },
+  enableConflictDetection: {
+    type: Boolean,
+    default: true
+  },
+  enableEventDialog: {
+    type: Boolean,
+    default: true
+  },
+  maxVisibleEvents: {
+    type: Number,
+    default: 3
   }
 })
 
@@ -143,11 +226,29 @@ const {
   toggleViewMode
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
 
-// 顶部工具栏标题
+const {
+  getEventsForDate,
+  addEvent,
+  updateEvent,
+  deleteEvent,
+  moveEvent,
+  detectConflicts,
+  findEventById,
+  searchEvents,
+  getAllEvents
+} = useEvents(props, emit)
+
+const showEventDialog = ref(false)
+const editingEvent = ref(null)
+const dialogInitialDate = ref(null)
+const dragOverDate = ref(null)
+const draggingEventId = ref(null)
+const currentConflicts = ref([])
+const showMoreDialog = ref(false)
+const moreEventsDate = ref(null)
+
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
-// 星期栏
 const weekdays = createWeekdays(weekStart.value)
-// 标记日期
 const markerDateList = computed(() =>
   markerDates.value.map(item => ({
     date: new Date(typeof item === 'object' && item.date ? item.date : item),
@@ -155,16 +256,23 @@ const markerDateList = computed(() =>
   }))
 )
 
-// 监听滑动事件
+const moreEvents = computed(() => {
+  if (!moreEventsDate.value) return []
+  return getEventsForDate(moreEventsDate.value)
+})
+
+const formatMoreDialogDate = computed(() => {
+  if (!moreEventsDate.value) return ''
+  const d = new Date(moreEventsDate.value)
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
+})
+
 const { lengthX } = useSwipe(swipeRef, {
-  // 滑动阈值
   threshold: 0,
-  // 手指滑动过程中
   onSwipe: () => {
     if (isInTransition.value) return
     transformDistance.value = -lengthX.value + 'px'
   },
-  // 手指抬起滑动结束，开始滑动动画
   onSwipeEnd: (_, direction) => {
     if (isInTransition.value) return
     if (direction === 'left') {
@@ -172,14 +280,11 @@ const { lengthX } = useSwipe(swipeRef, {
     } else if (direction === 'right') {
       changePageTo('prev-page')
     } else {
-      // 如果方向不是左右，则将页面复位
       startTransitionAnimation(direction)
     }
   }
 })
 
-// 归一化参数
-// 支持 'prev-page', 'next-page', 'prev-year', 'next-year', 以及合法的日期
 function _normalize(param) {
   if (!param) {
     throw new Error('参数不能为空')
@@ -215,13 +320,11 @@ function _normalize(param) {
   throw new Error('日期不合法')
 }
 
-// 切换日历页面
 function changePageTo(param) {
   const targetDate = _normalize(param)
   switchPageToTargetDate(targetDate)
 }
 
-// 切换选中的日期
 function changeSelectedDate(date) {
   changePageTo(date)
   if (!isSameDay(new Date(date), selected.value)) {
@@ -230,17 +333,112 @@ function changeSelectedDate(date) {
   }
 }
 
-// 获取 marker 颜色
 function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
+function handleDayClick(date) {
+  changeSelectedDate(date)
+}
+
+function handleDayDoubleClick(date) {
+  if (!props.enableEventDialog) return
+  openEventDialog(null, date)
+}
+
+function handleEventClick(evt, e) {
+  if (e) e.stopPropagation()
+  openEventDialog(evt)
+}
+
+function openEventDialog(event, initialDate) {
+  editingEvent.value = event
+  dialogInitialDate.value = initialDate || (event ? new Date(event.start) : new Date())
+  currentConflicts.value = event && props.enableConflictDetection ? detectConflicts(event) : []
+  showEventDialog.value = true
+}
+
+function closeEventDialog() {
+  showEventDialog.value = false
+  editingEvent.value = null
+  dialogInitialDate.value = null
+  currentConflicts.value = []
+}
+
+function handleEventConfirm(eventData) {
+  if (!eventData.id) {
+    addEvent(eventData)
+  } else {
+    updateEvent(eventData)
+  }
+  closeEventDialog()
+}
+
+function handleEventDelete(eventId) {
+  deleteEvent(eventId)
+  closeEventDialog()
+}
+
+function onEventDragStart(event) {
+  if (!props.enableDragDrop) return
+  draggingEventId.value = event.id
+}
+
+function onEventDragEnd() {
+  draggingEventId.value = null
+  dragOverDate.value = null
+}
+
+function onDragOver(e, date) {
+  if (!props.enableDragDrop || !draggingEventId.value) return
+  e.preventDefault()
+  dragOverDate.value = date
+}
+
+function onDragLeave() {
+  dragOverDate.value = null
+}
+
+function onDrop(e, date) {
+  if (!props.enableDragDrop || !draggingEventId.value) return
+  e.preventDefault()
+  const existingEvent = findEventById(draggingEventId.value)
+  if (existingEvent) {
+    moveEvent(draggingEventId.value, date)
+  }
+  draggingEventId.value = null
+  dragOverDate.value = null
+}
+
+function showMoreEvents(date) {
+  moreEventsDate.value = date
+  showMoreDialog.value = true
+}
+
+function closeMoreDialog() {
+  showMoreDialog.value = false
+  moreEventsDate.value = null
+}
+
+function addEventFromMoreDialog() {
+  closeMoreDialog()
+  openEventDialog(null, moreEventsDate.value)
+}
+
+function formatEventTime(evt) {
+  if (!evt.start) return ''
+  const d = new Date(evt.start)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 defineExpose({
-  // 切换周/月视图
   toggleViewMode,
-  // 切换日历页
   changePageTo,
-  // 切换选中日期
-  changeSelectedDate
+  changeSelectedDate,
+  openEventDialog,
+  getEventsForDate,
+  searchEvents,
+  getAllEvents
 })
 </script>
