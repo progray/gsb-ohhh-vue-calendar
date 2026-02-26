@@ -1,0 +1,48 @@
+{
+  "name": "ohhh-vue-calendar",
+  "version": "0.1.1",
+  "description": "vue3的简单日历组件",
+  "author": "ohhhhTest",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "main": "dist/ohhh-vue-calendar.es.js",
+  "module": "dist/ohhh-vue-calendar.es.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "vue",
+    "vue3",
+    "calendar",
+    "ohhh-vue-calendar"
+  ],
+  "homepage": "https://github.com/ohhhhTest/ohhh-vue-calendar?tab=readme-ov-file#ohhh-vue-calendar",
+  "bugs": {
+    "url": "https://github.com/ohhhhTest/ohhh-vue-calendar/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ohhhhTest/ohhh-vue-calendar"
+  },
+  "scripts": {
+    "dev": "vite --host --port 80",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.0"
+  },
+  "dependencies": {
+    "@vueuse/core": "^14.2.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "6.0.4",
+    "postcss-px-to-viewport-8-plugin": "1.2.5",
+    "prettier": "3.8.1",
+    "sass": "1.97.3",
+    "vite": "7.3.1",
+    "vite-plugin-dts": "4.5.4"
+  }
+}
