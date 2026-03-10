@@ -49,4 +49,9 @@
   --calendar-days-marker-top-gap: 4px;
   --calendar-days-marker-size: 4px;
   --calendar-days-marker-color: var(--calendar-theme-color);
+
+  // 事件相关变量
+  --calendar-event-font-size: 11px;
+  --calendar-event-color: var(--calendar-text-color-level-1);
+  --calendar-event-height: 18px;
 }
