@@ -24,6 +24,18 @@ export function isSameDay(date1, date2) {
   )
 }
 
+export function getDayOfWeek(date) {
+  return date.getDay()
+}
+
+export function getDaysDiff(date1, date2) {
+  const d1 = new Date(date1)
+  const d2 = new Date(date2)
+  d1.setHours(0, 0, 0, 0)
+  d2.setHours(0, 0, 0, 0)
+  return Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24))
+}
+
 export function createMonthDates(date, index) {
   const year = date.getFullYear()
   const month = date.getMonth()
