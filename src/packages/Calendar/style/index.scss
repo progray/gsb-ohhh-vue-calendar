@@ -64,21 +64,62 @@
   transition: height var(--calendar-transition-duration) ease;
 }
 .ohhh-calendar-days {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  display: flex;
+  flex-direction: column;
   position: absolute;
   inset: 0;
   width: 100%;
   transform: translate3d(var(--translate-distance), 0, 0);
   transition: transform var(--transition-duration) ease;
 }
+
+.ohhh-calendar-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  flex: 1;
+  position: relative;
+  min-height: var(--calendar-row-height);
+}
 .ohhh-calendar-day {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: var(--calendar-row-height);
+  justify-content: flex-start;
+  align-items: stretch;
+  height: 100%;
+  min-height: var(--calendar-row-height);
   cursor: pointer;
+  position: relative;
+  box-sizing: border-box;
+  border-right: 1px solid var(--calendar-border-color);
+  border-bottom: 1px solid var(--calendar-border-color);
+}
+
+.ohhh-calendar-week:first-child .ohhh-calendar-day {
+  border-top: 1px solid var(--calendar-border-color);
+}
+
+.ohhh-calendar-day:first-child {
+  border-left: 1px solid var(--calendar-border-color);
+}
+
+.ohhh-calendar-week-events {
+  position: absolute;
+  top: 28px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  max-height: calc(22px * 3 + 4px);
+  overflow: hidden;
+}
+
+.ohhh-calendar-week-event {
+  position: absolute;
+  height: 20px;
+  pointer-events: auto;
+  z-index: 10;
+  padding: 0 4px;
+  box-sizing: border-box;
 }
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-label {
