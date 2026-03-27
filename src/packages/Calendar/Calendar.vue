@@ -70,12 +70,13 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, useTemplateRef, toRefs } from 'vue'
 import { useSwipe } from '@vueuse/core'
-import { useCalendar } from './hooks/useCalendar.js'
+import { useCalendar } from './hooks/useCalendar'
 import { isSameDay, createWeekdays } from './utils'
-import { icons } from './utils/icons.js'
+import { icons } from './utils/icons'
+import type { ICalendarDate } from './utils/types'
 
 const swipeRef = useTemplateRef('swp')
 
