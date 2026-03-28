@@ -52,7 +52,7 @@
               <slot name="day-label" :date="dateObj.date" />
             </div>
           </div>
-          <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+          <div class="ohhh-calendar-day--marker" :style="_getMarkerStyle(dateObj.date)" :data-type="_getMarker(dateObj.date)?.type" :data-value="_getMarker(dateObj.date)?.value" />
         </div>
       </div>
     </div>
@@ -151,7 +151,9 @@ const weekdays = createWeekdays(weekStart.value)
 const markerDateList = computed(() =>
   markerDates.value.map(item => ({
     date: new Date(typeof item === 'object' && item.date ? item.date : item),
-    color: typeof item === 'object' && item.color ? item.color : 'var(--calendar-theme-color)'
+    color: typeof item === 'object' && item.color ? item.color : 'var(--calendar-theme-color)',
+    value: typeof item === 'object' && typeof item.value === 'number' ? Math.max(0, Math.min(100, item.value)) : 50,
+    type: typeof item === 'object' && item.type ? item.type : 'circle'
   }))
 )
 
@@ -230,9 +232,39 @@ function changeSelectedDate(date) {
   }
 }
 
-// 获取 marker 颜色
-function _getMarkerColor(date) {
-  return markerDateList.value.find(d => isSameDay(d.date, date))?.color
+// 获取指定日期的 marker
+function _getMarker(date) {
+  return markerDateList.value.find(d => isSameDay(d.date, date))
+}
+
+// 获取 marker 完整样式
+function _getMarkerStyle(date) {
+  const marker = _getMarker(date)
+  if (!marker) return {}
+  
+  const size = 6 + (marker.value / 100) * 14
+  const style = {
+    background: marker.color,
+    width: `${size}px`,
+    height: `${size}px`,
+    '--marker-color': marker.color,
+    '--marker-size': `${size}px`,
+    transition: 'all 0.3s ease'
+  }
+  
+  switch (marker.type) {
+    case 'square':
+      style.borderRadius = '2px'
+      break
+    case 'triangle':
+      style.borderRadius = '0'
+      style.clipPath = 'polygon(50% 0%, 0% 100%, 100% 100%)'
+      break
+    default:
+      style.borderRadius = '50%'
+  }
+  
+  return style
 }
 
 defineExpose({
@@ -244,3 +276,66 @@ defineExpose({
   changeSelectedDate
 })
 </script>
+
+<style scoped>
+.ohhh-calendar-day--marker {
+  position: relative;
+  cursor: pointer;
+  transform-origin: center;
+}
+
+.ohhh-calendar-day--marker:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 12px var(--marker-color, var(--calendar-theme-color)), 0 0 20px var(--marker-color, var(--calendar-theme-color));
+  animation: breathe 2s ease-in-out infinite;
+}
+
+.ohhh-calendar-day--marker::before {
+  content: 'Type: ' attr(data-type) ', Value: ' attr(data-value);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  font-size: 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.ohhh-calendar-day--marker::after {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: rgba(0, 0, 0, 0.85) transparent transparent transparent;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.ohhh-calendar-day--marker:hover::before,
+.ohhh-calendar-day--marker:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+@keyframes breathe {
+  0%, 100% {
+    box-shadow: 0 0 12px var(--marker-color, var(--calendar-theme-color)), 0 0 20px var(--marker-color, var(--calendar-theme-color));
+  }
+  50% {
+    box-shadow: 0 0 18px var(--marker-color, var(--calendar-theme-color)), 0 0 30px var(--marker-color, var(--calendar-theme-color));
+  }
+}
+</style>
