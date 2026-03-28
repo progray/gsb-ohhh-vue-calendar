@@ -52,7 +52,12 @@
               <slot name="day-label" :date="dateObj.date" />
             </div>
           </div>
-          <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+          <div 
+            class="ohhh-calendar-day--marker" 
+            :style="_getMarkerData(dateObj.date).style"
+            :data-type="_getMarkerData(dateObj.date).attrs['data-type']"
+            :data-value="_getMarkerData(dateObj.date).attrs['data-value']"
+          />
         </div>
       </div>
     </div>
@@ -149,10 +154,15 @@ const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value 
 const weekdays = createWeekdays(weekStart.value)
 // 标记日期
 const markerDateList = computed(() =>
-  markerDates.value.map(item => ({
-    date: new Date(typeof item === 'object' && item.date ? item.date : item),
-    color: typeof item === 'object' && item.color ? item.color : 'var(--calendar-theme-color)'
-  }))
+  markerDates.value.map(item => {
+    const isObject = typeof item === 'object' && item.date
+    return {
+      date: new Date(isObject ? item.date : item),
+      color: isObject && item.color ? item.color : 'var(--calendar-theme-color)',
+      value: isObject && typeof item.value === 'number' ? Math.max(0, Math.min(100, item.value)) : 50,
+      type: isObject && item.type ? item.type : 'circle'
+    }
+  })
 )
 
 // 监听滑动事件
@@ -230,9 +240,43 @@ function changeSelectedDate(date) {
   }
 }
 
-// 获取 marker 颜色
-function _getMarkerColor(date) {
-  return markerDateList.value.find(d => isSameDay(d.date, date))?.color
+// 获取 marker 样式和数据属性
+function _getMarkerData(date) {
+  const marker = markerDateList.value.find(d => isSameDay(d.date, date))
+  if (!marker) return { style: {}, attrs: {} }
+  
+  const { value, type, color } = marker
+  
+  // 计算尺寸：从 6px (value=0) 到 20px (value=100)
+  const size = 6 + (value / 100) * 14
+  
+  // 构建样式对象
+  const style = {
+    background: color,
+    width: `${size}px`,
+    height: `${size}px`
+  }
+  
+  // 根据 type 设置形状
+  switch (type) {
+    case 'square':
+      style.borderRadius = '2px'
+      break
+    case 'triangle':
+      style.clipPath = 'polygon(50% 0%, 0% 100%, 100% 100%)'
+      style.borderRadius = '0'
+      break
+    default: // circle
+      style.borderRadius = '50%'
+  }
+  
+  return {
+    style,
+    attrs: {
+      'data-type': type,
+      'data-value': value
+    }
+  }
 }
 
 defineExpose({
