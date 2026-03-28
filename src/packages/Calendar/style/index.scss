@@ -118,12 +118,75 @@
   font-size: var(--calendar-days-label-font-size);
   color: var(--calendar-days-label-color);
 }
+// 呼吸阴影效果
+@keyframes breathe {
+  0% {
+    box-shadow: 0 0 8px 2px rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 12px 4px rgba(0, 0, 0, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 8px 2px rgba(0, 0, 0, 0.3);
+  }
+}
+
 .ohhh-calendar-day--marker {
   flex: none;
   margin-top: var(--calendar-days-marker-top-gap);
   width: var(--calendar-days-marker-size);
   height: var(--calendar-days-marker-size);
   border-radius: 50%;
+  transition: all 0.2s ease;
+  position: relative;
+  cursor: pointer;
+  
+  // 悬停动效
+  &:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 8px 2px rgba(0, 0, 0, 0.3);
+    animation: breathe 1.5s ease-in-out infinite;
+  }
+  
+  // 悬停提示层
+  &[data-type]:hover::after {
+    content: 'Type: ' attr(data-type) ', Value: ' attr(data-value);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 8px;
+    background: #303133;
+    color: #fff;
+    font-size: 12px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 100;
+    opacity: 1;
+    transition: opacity 0.2s ease;
+    margin-bottom: 4px;
+  }
+  
+  // 提示层小箭头
+  &[data-type]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: #303133;
+    margin-bottom: -1px;
+  }
+  
+  // 三角形特殊处理 - 调整悬停提示位置
+  &[data-type="triangle"]:hover::after {
+    bottom: calc(100% + 4px);
+  }
+  
+  &[data-type="triangle"]:hover::before {
+    bottom: calc(100% + 4px);
+  }
 }
 
 .ohhh-calendar-footer {
