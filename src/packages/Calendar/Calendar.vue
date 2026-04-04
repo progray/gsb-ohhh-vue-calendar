@@ -9,53 +9,13 @@
     }"
   >
     <!-- 顶部工具栏 -->
-    <div v-if="showToolbar" class="ohhh-calendar-toolbar">
-      <slot name="toolbar" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
-        <div v-html="icons.arrowDoubleLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-year')" />
-        <div v-html="icons.arrowLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-page')" />
-        <div class="ohhh-calendar-toolbar--text">{{ headerLabel }}</div>
-        <div v-html="icons.arrowRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-page')" />
-        <div v-html="icons.arrowDoubleRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-year')" />
-      </slot>
-    </div>
+    <Toolbar v-if="showToolbar" />
 
     <!-- 星期栏 -->
-    <div v-if="showWeekdays" class="ohhh-calendar-weekdays">
-      <div v-for="(day, index) in weekdays" :key="day" class="ohhh-calendar-weekdays--weekday">
-        <slot name="weekday" :weekday="day" :index="(index + weekStart) % 7">{{ day }}</slot>
-      </div>
-    </div>
+    <Weekdays v-if="showWeekdays" />
 
     <!-- 日历主体 -->
-    <div ref="swp" class="ohhh-calendar-wrapper">
-      <div
-        v-for="(item, index) in allRenderDates"
-        :key="index"
-        :style="{ left: 100 * (index - 1) + '%' }"
-        class="ohhh-calendar-days"
-        @transitionend="onTransitionEnd"
-      >
-        <div
-          v-for="dateObj in item"
-          :key="dateObj.key"
-          class="ohhh-calendar-day"
-          :class="{
-            'is-selected': isSameDay(dateObj.date, selected),
-            'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
-          }"
-          @click="changeSelectedDate(dateObj.date)"
-        >
-          <div class="ohhh-calendar-day--inner">
-            <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
-            <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
-              <slot name="day-label" :date="dateObj.date" />
-            </div>
-          </div>
-          <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
-        </div>
-      </div>
-    </div>
+    <MonthGrid />
 
     <!-- 底部工具栏 -->
     <div v-if="showFooter" class="ohhh-calendar-footer">
@@ -71,13 +31,13 @@
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
-import { useSwipe } from '@vueuse/core'
+import { computed, toRefs, provide } from 'vue'
 import { useCalendar } from './hooks/useCalendar.js'
-import { isSameDay, createWeekdays } from './utils'
+import { isSameDay } from './utils'
 import { icons } from './utils/icons.js'
-
-const swipeRef = useTemplateRef('swp')
+import Toolbar from './components/Toolbar.vue'
+import Weekdays from './components/Weekdays.vue'
+import MonthGrid from './components/MonthGrid.vue'
 
 const emit = defineEmits(['select-change', 'view-change'])
 
@@ -143,10 +103,6 @@ const {
   toggleViewMode
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
 
-// 顶部工具栏标题
-const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
-// 星期栏
-const weekdays = createWeekdays(weekStart.value)
 // 标记日期
 const markerDateList = computed(() =>
   markerDates.value.map(item => ({
@@ -154,29 +110,6 @@ const markerDateList = computed(() =>
     color: typeof item === 'object' && item.color ? item.color : 'var(--calendar-theme-color)'
   }))
 )
-
-// 监听滑动事件
-const { lengthX } = useSwipe(swipeRef, {
-  // 滑动阈值
-  threshold: 0,
-  // 手指滑动过程中
-  onSwipe: () => {
-    if (isInTransition.value) return
-    transformDistance.value = -lengthX.value + 'px'
-  },
-  // 手指抬起滑动结束，开始滑动动画
-  onSwipeEnd: (_, direction) => {
-    if (isInTransition.value) return
-    if (direction === 'left') {
-      changePageTo('next-page')
-    } else if (direction === 'right') {
-      changePageTo('prev-page')
-    } else {
-      // 如果方向不是左右，则将页面复位
-      startTransitionAnimation(direction)
-    }
-  }
-})
 
 // 归一化参数
 // 支持 'prev-page', 'next-page', 'prev-year', 'next-year', 以及合法的日期
@@ -230,10 +163,25 @@ function changeSelectedDate(date) {
   }
 }
 
-// 获取 marker 颜色
-function _getMarkerColor(date) {
-  return markerDateList.value.find(d => isSameDay(d.date, date))?.color
-}
+// 提供上下文状态
+provide('calendarContext', {
+  selected,
+  viewMode,
+  currentYear,
+  currentMonth,
+  currentRenderDates,
+  allRenderDates,
+  transformDistance,
+  transitionDuration,
+  isInTransition,
+  renderRows,
+  weekStart,
+  changePageTo,
+  changeSelectedDate,
+  startTransitionAnimation,
+  onTransitionEnd,
+  markerDateList
+})
 
 defineExpose({
   // 切换周/月视图
