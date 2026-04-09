@@ -184,35 +184,59 @@ function _normalize(param) {
   if (!param) {
     throw new Error('参数不能为空')
   }
-  if (param === 'prev-page') {
-    if (viewMode.value === 'week') {
-      return new Date(
-        new Date(currentRenderDates.value[0].date).setDate(currentRenderDates.value[0].date.getDate() - 1)
-      )
-    } else if (viewMode.value === 'month') {
-      return new Date(currentYear.value, currentMonth.value - 1)
+
+  // 策略对象，处理不同类型的参数
+  const strategies = {
+    'prev-page': () => {
+      if (viewMode.value === 'week') {
+        return new Date(
+          new Date(currentRenderDates.value[0].date).setDate(currentRenderDates.value[0].date.getDate() - 1)
+        )
+      } else if (viewMode.value === 'month') {
+        return new Date(currentYear.value, currentMonth.value - 1)
+      }
+    },
+    'next-page': () => {
+      if (viewMode.value === 'week') {
+        return new Date(
+          new Date(currentRenderDates.value[6].date).setDate(currentRenderDates.value[6].date.getDate() + 1)
+        )
+      } else if (viewMode.value === 'month') {
+        return new Date(currentYear.value, currentMonth.value + 1)
+      }
+    },
+    'prev-year': () => {
+      return new Date(currentYear.value - 1, currentMonth.value)
+    },
+    'next-year': () => {
+      return new Date(currentYear.value + 1, currentMonth.value)
     }
   }
-  if (param === 'next-page') {
-    if (viewMode.value === 'week') {
-      return new Date(
-        new Date(currentRenderDates.value[6].date).setDate(currentRenderDates.value[6].date.getDate() + 1)
-      )
-    } else if (viewMode.value === 'month') {
-      return new Date(currentYear.value, currentMonth.value + 1)
-    }
+
+  // 检查是否是特殊字符串参数
+  if (typeof param === 'string' && strategies[param]) {
+    return strategies[param]()
   }
-  if (param === 'prev-year') {
-    return new Date(currentYear.value - 1, currentMonth.value)
+
+  // 处理日期类型参数
+  let targetDate
+  if (param instanceof Date) {
+    targetDate = new Date(param)
+  } else if (typeof param === 'string' || typeof param === 'number') {
+    targetDate = new Date(param)
+  } else if (typeof param === 'object') {
+    // 处理可能的日期对象
+    targetDate = new Date(param)
+  } else {
+    throw new Error(`不支持的参数类型: ${typeof param}`)
   }
-  if (param === 'next-year') {
-    return new Date(currentYear.value + 1, currentMonth.value)
+
+  // 检查日期是否有效
+  if (Number.isNaN(targetDate.getTime())) {
+    throw new Error(`日期不合法: ${param}`)
   }
-  const targetDate = new Date(param)
-  if (!Number.isNaN(targetDate.getTime())) {
-    return targetDate
-  }
-  throw new Error('日期不合法')
+
+  return targetDate
 }
 
 // 切换日历页面
