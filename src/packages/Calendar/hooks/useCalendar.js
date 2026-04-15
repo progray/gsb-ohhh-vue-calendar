@@ -1,9 +1,15 @@
 import { ref, computed, nextTick } from 'vue'
-import { createMonthDates, createWeekDates, isSameDay } from '../utils/index.js'
+import { createMonthDates, createWeekDates, isSameDay, isBeforeDay, isAfterDay, isInRange } from '../utils/index.js'
 
-export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit) {
+export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration, selectionMode }, emit) {
   // 选中的日期
   const selected = ref(initialSelectedDate.value)
+  // 区间选择模式下的起始日期
+  const rangeStart = ref(null)
+  // 区间选择模式下的结束日期
+  const rangeEnd = ref(null)
+  // 是否正在选择区间（已选起始日期，等待选择结束日期）
+  const isSelectingRange = ref(false)
   // 当前渲染页年份
   const currentYear = ref(initialSelectedDate.value.getFullYear())
   // 当前渲染页月份(索引)
@@ -221,6 +227,66 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     isInTransition.value = false
   }
 
+  // 清除区间选择
+  function clearRangeSelection() {
+    rangeStart.value = null
+    rangeEnd.value = null
+    isSelectingRange.value = false
+  }
+
+  // 区间选择模式下选择日期
+  function selectRangeDate(date) {
+    if (!isSelectingRange.value) {
+      // 第一次点击：选择起始日期
+      rangeStart.value = new Date(date)
+      rangeEnd.value = null
+      isSelectingRange.value = true
+      emit('range-change', { start: rangeStart.value, end: null })
+    } else {
+      // 第二次点击：选择结束日期
+      if (isSameDay(date, rangeStart.value)) {
+        // 点击同一天，取消选择
+        clearRangeSelection()
+        emit('range-change', { start: null, end: null })
+      } else if (isBeforeDay(date, rangeStart.value)) {
+        // 结束日期早于起始日期，交换
+        rangeEnd.value = new Date(rangeStart.value)
+        rangeStart.value = new Date(date)
+        isSelectingRange.value = false
+        emit('range-change', { start: rangeStart.value, end: rangeEnd.value })
+      } else {
+        // 正常选择结束日期
+        rangeEnd.value = new Date(date)
+        isSelectingRange.value = false
+        emit('range-change', { start: rangeStart.value, end: rangeEnd.value })
+      }
+    }
+  }
+
+  // 判断日期是否是区间起始日期
+  function isRangeStart(date) {
+    if (!rangeStart.value) return false
+    return isSameDay(date, rangeStart.value)
+  }
+
+  // 判断日期是否是区间结束日期
+  function isRangeEnd(date) {
+    if (!rangeEnd.value) return false
+    return isSameDay(date, rangeEnd.value)
+  }
+
+  // 判断日期是否在区间内（不包含起止日期）
+  function isDateInRange(date) {
+    if (!rangeStart.value || !rangeEnd.value) return false
+    return isInRange(date, rangeStart.value, rangeEnd.value)
+  }
+
+  // 判断日期是否在选择中的区间内（用于悬停预览）
+  function isInSelectingRange(date) {
+    if (!isSelectingRange.value || !rangeStart.value) return false
+    return false
+  }
+
   return {
     selected,
     viewMode,
@@ -235,6 +301,16 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     switchPageToTargetDate,
     startTransitionAnimation,
     onTransitionEnd,
-    toggleViewMode
+    toggleViewMode,
+    // 区间选择相关
+    rangeStart,
+    rangeEnd,
+    isSelectingRange,
+    selectRangeDate,
+    clearRangeSelection,
+    isRangeStart,
+    isRangeEnd,
+    isDateInRange,
+    isInSelectingRange
   }
 }
