@@ -109,6 +109,7 @@
 
 .ohhh-calendar-day.is-range-start .ohhh-calendar-day--inner {
   background: var(--calendar-days-range-start-background);
+  border-radius: var(--calendar-days-range-inner-radius);
 }
 .ohhh-calendar-day.is-range-start .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.is-range-start .ohhh-calendar-day--inner-label {
@@ -117,6 +118,7 @@
 
 .ohhh-calendar-day.is-range-end .ohhh-calendar-day--inner {
   background: var(--calendar-days-range-end-background);
+  border-radius: var(--calendar-days-range-inner-radius);
 }
 .ohhh-calendar-day.is-range-end .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.is-range-end .ohhh-calendar-day--inner-label {

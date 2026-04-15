@@ -1,16 +1,33 @@
 <template>
   <div class="app-container">
-    <h3>单日期选择模式 (默认)</h3>
-    <ohhh-vue-calendar ref="calendarRef" :week-start="1" :markerDates @select-change="onSelectChange" />
-    
-    <h3 style="margin-top: 40px;">区间选择模式</h3>
+    <div class="mode-switch">
+      <button 
+        :class="{ active: selectionMode === 'single' }"
+        @click="selectionMode = 'single'"
+      >
+        单日期选择
+      </button>
+      <button 
+        :class="{ active: selectionMode === 'range' }"
+        @click="selectionMode = 'range'"
+      >
+        区间选择
+      </button>
+    </div>
+
     <ohhh-vue-calendar 
-      ref="rangeCalendarRef" 
+      ref="calendarRef" 
       :week-start="1" 
-      selection-mode="range"
-      @range-change="onRangeChange" 
+      :marker-dates="markerDates"
+      :selection-mode="selectionMode"
+      @select-change="onSelectChange"
+      @range-change="onRangeChange"
     />
-    <div v-if="rangeSelection" style="margin-top: 10px; padding: 10px; background: #f5f5f5;">
+
+    <div class="selection-info" v-if="selectionMode === 'single' && selectedDate">
+      <p>选中日期: {{ selectedDate.toLocaleDateString() }}</p>
+    </div>
+    <div class="selection-info" v-else-if="selectionMode === 'range'">
       <p>起始日期: {{ rangeSelection.start ? rangeSelection.start.toLocaleDateString() : '未选择' }}</p>
       <p>结束日期: {{ rangeSelection.end ? rangeSelection.end.toLocaleDateString() : '未选择' }}</p>
     </div>
@@ -23,8 +40,9 @@ import OhhhVueCalendar from './packages/Calendar/Calendar.vue'
 import '/src/packages/Calendar/style/mobile/mobile.scss'
 
 const calendarRef = useTemplateRef('calendarRef')
-const rangeCalendarRef = useTemplateRef('rangeCalendarRef')
 
+const selectionMode = ref('single')
+const selectedDate = ref(null)
 const rangeSelection = ref({ start: null, end: null })
 
 const markerDates = [
@@ -40,6 +58,7 @@ const markerDates = [
 
 function onSelectChange(date) {
   console.log('单日期选择:', date)
+  selectedDate.value = date
 }
 
 function onRangeChange(range) {
@@ -52,8 +71,39 @@ function onRangeChange(range) {
 .app-container {
   padding: 20px;
 }
-h3 {
-  margin-bottom: 10px;
-  color: #303133;
+.mode-switch {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.mode-switch button {
+  padding: 8px 16px;
+  border: 1px solid #dcdfe6;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+.mode-switch button:hover {
+  color: #409eff;
+  border-color: #c6e2ff;
+  background: #ecf5ff;
+}
+.mode-switch button.active {
+  color: #fff;
+  background: #409eff;
+  border-color: #409eff;
+}
+.selection-info {
+  margin-top: 15px;
+  padding: 12px;
+  background: #f5f7fa;
+  border-radius: 4px;
+}
+.selection-info p {
+  margin: 4px 0;
+  font-size: 14px;
+  color: #606266;
 }
 </style>
