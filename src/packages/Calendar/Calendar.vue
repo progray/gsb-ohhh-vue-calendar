@@ -14,8 +14,9 @@
         <div v-html="icons.arrowDoubleLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-year')" />
         <div v-html="icons.arrowLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-page')" />
         <div class="ohhh-calendar-toolbar--text">
-          {{ headerLabel }}
+          <span>{{ currentYear }}年</span>
           <span class="ohhh-calendar-toolbar--today" @click="goToToday">今</span>
+          <span>{{ currentMonth + 1 }}月</span>
         </div>
         <div v-html="icons.arrowRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-page')" />
         <div v-html="icons.arrowDoubleRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-year')" />
