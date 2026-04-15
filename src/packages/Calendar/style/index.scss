@@ -42,6 +42,27 @@
   margin: 0 auto;
   font-size: var(--calendar-toolbar-font-size);
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ohhh-calendar-toolbar--today {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--calendar-theme-color);
+  background: var(--calendar-theme-color-light);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.ohhh-calendar-toolbar--today:hover {
+  background: var(--calendar-theme-color);
+  color: #fff;
 }
 
 .ohhh-calendar-weekdays {
@@ -97,6 +118,10 @@
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-label {
   color: var(--calendar-days-selected-color);
+}
+.ohhh-calendar-day.is-weekend:not(.is-selected):not(.is-today) .ohhh-calendar-day--inner-value,
+.ohhh-calendar-day.is-weekend:not(.is-selected):not(.is-today) .ohhh-calendar-day--inner-label {
+  color: var(--calendar-weekend-color);
 }
 
 .ohhh-calendar-day--inner {

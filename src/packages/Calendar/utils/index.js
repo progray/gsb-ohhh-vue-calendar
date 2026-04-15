@@ -24,6 +24,11 @@ export function isSameDay(date1, date2) {
   )
 }
 
+export function isWeekend(date) {
+  const day = date.getDay()
+  return day === 0 || day === 6
+}
+
 export function createMonthDates(date, index) {
   const year = date.getFullYear()
   const month = date.getMonth()

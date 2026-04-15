@@ -13,7 +13,10 @@
       <slot name="toolbar" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
         <div v-html="icons.arrowDoubleLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-year')" />
         <div v-html="icons.arrowLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-page')" />
-        <div class="ohhh-calendar-toolbar--text">{{ headerLabel }}</div>
+        <div class="ohhh-calendar-toolbar--text">
+          {{ headerLabel }}
+          <span class="ohhh-calendar-toolbar--today" @click="goToToday">今</span>
+        </div>
         <div v-html="icons.arrowRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-page')" />
         <div v-html="icons.arrowDoubleRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-year')" />
       </slot>
@@ -42,6 +45,7 @@
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
+            'is-weekend': isWeekend(dateObj.date),
             'other-month': !dateObj.current
           }"
           @click="changeSelectedDate(dateObj.date)"
@@ -74,7 +78,7 @@
 import { computed, useTemplateRef, toRefs } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
-import { isSameDay, createWeekdays } from './utils'
+import { isSameDay, createWeekdays, isWeekend } from './utils'
 import { icons } from './utils/icons.js'
 
 const swipeRef = useTemplateRef('swp')
@@ -235,12 +239,20 @@ function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
+// 回到今天
+function goToToday() {
+  const today = new Date()
+  changeSelectedDate(today)
+}
+
 defineExpose({
   // 切换周/月视图
   toggleViewMode,
   // 切换日历页
   changePageTo,
   // 切换选中日期
-  changeSelectedDate
+  changeSelectedDate,
+  // 回到今天
+  goToToday
 })
 </script>
