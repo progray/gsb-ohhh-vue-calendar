@@ -98,6 +98,13 @@
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-label {
   color: var(--calendar-days-selected-color);
 }
+.ohhh-calendar-day.is-disabled {
+  cursor: not-allowed;
+}
+.ohhh-calendar-day.is-disabled .ohhh-calendar-day--inner-value,
+.ohhh-calendar-day.is-disabled .ohhh-calendar-day--inner-label {
+  color: var(--calendar-days-disabled-color);
+}
 
 .ohhh-calendar-day--inner {
   display: flex;
