@@ -39,14 +39,7 @@
           v-for="dateObj in item"
           :key="dateObj.key"
           class="ohhh-calendar-day"
-          :class="{
-            'is-selected': isSameDay(dateObj.date, selected),
-            'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current,
-            'is-range-start': isRangeStart(dateObj.date),
-            'is-range-end': isRangeEnd(dateObj.date),
-            'is-in-range': isInRange(dateObj.date)
-          }"
+          :class="getDayClasses(dateObj)"
           @click="changeSelectedDate(dateObj.date)"
         >
           <div class="ohhh-calendar-day--inner">
@@ -274,6 +267,24 @@ function isInRange(date) {
   }
   const d = new Date(date)
   return d > rangeStart.value && d < rangeEnd.value
+}
+
+// 获取日期的 class
+function getDayClasses(dateObj) {
+  const classes = {
+    'is-today': isSameDay(dateObj.date, new Date()),
+    'other-month': !dateObj.current
+  }
+  
+  if (selectionMode.value === 'range') {
+    classes['is-range-start'] = isRangeStart(dateObj.date)
+    classes['is-range-end'] = isRangeEnd(dateObj.date)
+    classes['is-in-range'] = isInRange(dateObj.date)
+  } else {
+    classes['is-selected'] = isSameDay(dateObj.date, selected.value)
+  }
+  
+  return classes
 }
 
 // 获取 marker 颜色
