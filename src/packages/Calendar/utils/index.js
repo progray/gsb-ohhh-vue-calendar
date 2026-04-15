@@ -24,6 +24,26 @@ export function isSameDay(date1, date2) {
   )
 }
 
+export function isBeforeDay(date1, date2) {
+  const d1 = new Date(date1.getFullYear(), date1.getMonth(), date1.getDate())
+  const d2 = new Date(date2.getFullYear(), date2.getMonth(), date2.getDate())
+  return d1 < d2
+}
+
+export function isAfterDay(date1, date2) {
+  const d1 = new Date(date1.getFullYear(), date1.getMonth(), date1.getDate())
+  const d2 = new Date(date2.getFullYear(), date2.getMonth(), date2.getDate())
+  return d1 > d2
+}
+
+export function isInRange(date, start, end) {
+  if (!start || !end) return false
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const s = new Date(start.getFullYear(), start.getMonth(), start.getDate())
+  const e = new Date(end.getFullYear(), end.getMonth(), end.getDate())
+  return d > s && d < e
+}
+
 export function createMonthDates(date, index) {
   const year = date.getFullYear()
   const month = date.getMonth()

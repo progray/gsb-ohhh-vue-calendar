@@ -42,9 +42,13 @@
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'is-range-start': isRangeStart(dateObj.date),
+            'is-range-end': isRangeEnd(dateObj.date),
+            'is-in-range': isDateInRange(dateObj.date),
+            'is-selecting-range': isInSelectingRange(dateObj.date)
           }"
-          @click="changeSelectedDate(dateObj.date)"
+          @click="handleDateClick(dateObj.date)"
         >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
@@ -79,7 +83,7 @@ import { icons } from './utils/icons.js'
 
 const swipeRef = useTemplateRef('swp')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'range-change'])
 
 const props = defineProps({
   // 初始选中的日期
@@ -91,6 +95,11 @@ const props = defineProps({
   initialViewMode: {
     type: String,
     default: 'month' // month or week
+  },
+  // 选择模式：single 单日期选择，range 区间选择
+  selectionMode: {
+    type: String,
+    default: 'single' // single or range
   },
   // 以周几作为每周的起始
   weekStart: {
@@ -124,7 +133,7 @@ const props = defineProps({
   }
 })
 
-const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration } = toRefs(props)
+const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration, selectionMode } = toRefs(props)
 
 const {
   selected,
@@ -140,8 +149,18 @@ const {
   switchPageToTargetDate,
   startTransitionAnimation,
   onTransitionEnd,
-  toggleViewMode
-} = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
+  toggleViewMode,
+  // 区间选择相关
+  rangeStart,
+  rangeEnd,
+  isSelectingRange,
+  selectRangeDate,
+  clearRangeSelection,
+  isRangeStart,
+  isRangeEnd,
+  isDateInRange,
+  isInSelectingRange
+} = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration, selectionMode }, emit)
 
 // 顶部工具栏标题
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
@@ -230,6 +249,18 @@ function changeSelectedDate(date) {
   }
 }
 
+// 处理日期点击
+function handleDateClick(date) {
+  if (selectionMode.value === 'range') {
+    // 区间选择模式
+    changePageTo(date)
+    selectRangeDate(date)
+  } else {
+    // 单日期选择模式
+    changeSelectedDate(date)
+  }
+}
+
 // 获取 marker 颜色
 function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
@@ -241,6 +272,12 @@ defineExpose({
   // 切换日历页
   changePageTo,
   // 切换选中日期
-  changeSelectedDate
+  changeSelectedDate,
+  // 区间选择相关
+  selectRangeDate,
+  clearRangeSelection,
+  rangeStart,
+  rangeEnd,
+  isSelectingRange
 })
 </script>
