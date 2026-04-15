@@ -1,9 +1,13 @@
 import { ref, computed, nextTick } from 'vue'
 import { createMonthDates, createWeekDates, isSameDay } from '../utils/index.js'
 
-export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit) {
+export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration, selectionMode }, emit) {
   // 选中的日期
   const selected = ref(initialSelectedDate.value)
+  // 区间选择模式下的起始日期
+  const rangeStart = ref(null)
+  // 区间选择模式下的结束日期
+  const rangeEnd = ref(null)
   // 当前渲染页年份
   const currentYear = ref(initialSelectedDate.value.getFullYear())
   // 当前渲染页月份(索引)
@@ -223,6 +227,9 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
 
   return {
     selected,
+    rangeStart,
+    rangeEnd,
+    selectionMode,
     viewMode,
     currentYear,
     currentMonth,

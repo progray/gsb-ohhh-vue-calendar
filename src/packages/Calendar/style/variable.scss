@@ -38,6 +38,12 @@
   --calendar-days-selected-color: #fff;
   --calendar-days-selected-background: var(--calendar-theme-color);
   --calendar-days-other-month-color: var(--calendar-text-color-level-5);
+  --calendar-days-range-color: var(--calendar-theme-color);
+  --calendar-days-range-background: var(--calendar-theme-color-light);
+  --calendar-days-range-start-color: #fff;
+  --calendar-days-range-start-background: var(--calendar-theme-color);
+  --calendar-days-range-end-color: #fff;
+  --calendar-days-range-end-background: var(--calendar-theme-color);
 
   --calendar-days-inner-size: 34px;
   --calendar-days-inner-width: var(--calendar-days-inner-size);

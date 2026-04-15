@@ -42,7 +42,10 @@
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'is-range-start': isRangeStart(dateObj.date),
+            'is-range-end': isRangeEnd(dateObj.date),
+            'is-in-range': isInRange(dateObj.date)
           }"
           @click="changeSelectedDate(dateObj.date)"
         >
@@ -79,7 +82,7 @@ import { icons } from './utils/icons.js'
 
 const swipeRef = useTemplateRef('swp')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'range-change'])
 
 const props = defineProps({
   // 初始选中的日期
@@ -121,13 +124,20 @@ const props = defineProps({
   duration: {
     type: String,
     default: '0.3s'
+  },
+  // 选择模式：'single' 单日期选择，'range' 区间选择
+  selectionMode: {
+    type: String,
+    default: 'single'
   }
 })
 
-const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration } = toRefs(props)
+const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration, selectionMode } = toRefs(props)
 
 const {
   selected,
+  rangeStart,
+  rangeEnd,
   viewMode,
   currentYear,
   currentMonth,
@@ -141,7 +151,7 @@ const {
   startTransitionAnimation,
   onTransitionEnd,
   toggleViewMode
-} = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
+} = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration, selectionMode }, emit)
 
 // 顶部工具栏标题
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
@@ -224,10 +234,46 @@ function changePageTo(param) {
 // 切换选中的日期
 function changeSelectedDate(date) {
   changePageTo(date)
-  if (!isSameDay(new Date(date), selected.value)) {
-    selected.value = new Date(date)
-    emit('select-change', selected.value)
+  if (selectionMode.value === 'range') {
+    if (!rangeStart.value || (rangeStart.value && rangeEnd.value)) {
+      rangeStart.value = new Date(date)
+      rangeEnd.value = null
+      emit('range-change', { start: rangeStart.value, end: null })
+    } else {
+      const clickedDate = new Date(date)
+      if (clickedDate < rangeStart.value) {
+        rangeEnd.value = new Date(rangeStart.value)
+        rangeStart.value = clickedDate
+      } else {
+        rangeEnd.value = clickedDate
+      }
+      emit('range-change', { start: rangeStart.value, end: rangeEnd.value })
+    }
+  } else {
+    if (!isSameDay(new Date(date), selected.value)) {
+      selected.value = new Date(date)
+      emit('select-change', selected.value)
+    }
   }
+}
+
+// 判断日期是否是区间起始日期
+function isRangeStart(date) {
+  return rangeStart.value && isSameDay(date, rangeStart.value)
+}
+
+// 判断日期是否是区间结束日期
+function isRangeEnd(date) {
+  return rangeEnd.value && isSameDay(date, rangeEnd.value)
+}
+
+// 判断日期是否在区间内
+function isInRange(date) {
+  if (!rangeStart.value || !rangeEnd.value) {
+    return false
+  }
+  const d = new Date(date)
+  return d > rangeStart.value && d < rangeEnd.value
 }
 
 // 获取 marker 颜色
