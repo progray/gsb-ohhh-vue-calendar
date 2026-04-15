@@ -99,6 +99,37 @@
   color: var(--calendar-days-selected-color);
 }
 
+.ohhh-calendar-day.is-in-range .ohhh-calendar-day--inner {
+  background: var(--calendar-days-range-background);
+  border-radius: 0;
+}
+.ohhh-calendar-day.is-in-range .ohhh-calendar-day--inner-value,
+.ohhh-calendar-day.is-in-range .ohhh-calendar-day--inner-label {
+  color: var(--calendar-days-range-color);
+}
+
+.ohhh-calendar-day.is-range-start .ohhh-calendar-day--inner {
+  background: var(--calendar-days-range-start-background);
+  border-radius: var(--calendar-days-inner-radius) 0 0 var(--calendar-days-inner-radius);
+}
+.ohhh-calendar-day.is-range-start .ohhh-calendar-day--inner-value,
+.ohhh-calendar-day.is-range-start .ohhh-calendar-day--inner-label {
+  color: var(--calendar-days-range-start-color);
+}
+
+.ohhh-calendar-day.is-range-end .ohhh-calendar-day--inner {
+  background: var(--calendar-days-range-end-background);
+  border-radius: 0 var(--calendar-days-inner-radius) var(--calendar-days-inner-radius) 0;
+}
+.ohhh-calendar-day.is-range-end .ohhh-calendar-day--inner-value,
+.ohhh-calendar-day.is-range-end .ohhh-calendar-day--inner-label {
+  color: var(--calendar-days-range-end-color);
+}
+
+.ohhh-calendar-day.is-range-start.is-range-end .ohhh-calendar-day--inner {
+  border-radius: var(--calendar-days-inner-radius);
+}
+
 .ohhh-calendar-day--inner {
   display: flex;
   flex-direction: column;
