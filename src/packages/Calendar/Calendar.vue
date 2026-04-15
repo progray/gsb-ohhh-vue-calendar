@@ -42,9 +42,10 @@
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'is-disabled': isDateDisabled(dateObj.date)
           }"
-          @click="changeSelectedDate(dateObj.date)"
+          @click="handleDateClick(dateObj.date)"
         >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
@@ -121,10 +122,20 @@ const props = defineProps({
   duration: {
     type: String,
     default: '0.3s'
+  },
+  // 最小可选日期
+  minDate: {
+    type: Date,
+    default: null
+  },
+  // 最大可选日期
+  maxDate: {
+    type: Date,
+    default: null
   }
 })
 
-const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration } = toRefs(props)
+const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration, minDate, maxDate } = toRefs(props)
 
 const {
   selected,
@@ -228,6 +239,35 @@ function changeSelectedDate(date) {
     selected.value = new Date(date)
     emit('select-change', selected.value)
   }
+}
+
+// 判断日期是否被禁用
+function isDateDisabled(date) {
+  if (!minDate.value && !maxDate.value) {
+    return false
+  }
+  const dateToCheck = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  if (minDate.value) {
+    const min = new Date(minDate.value.getFullYear(), minDate.value.getMonth(), minDate.value.getDate())
+    if (dateToCheck < min) {
+      return true
+    }
+  }
+  if (maxDate.value) {
+    const max = new Date(maxDate.value.getFullYear(), maxDate.value.getMonth(), maxDate.value.getDate())
+    if (dateToCheck > max) {
+      return true
+    }
+  }
+  return false
+}
+
+// 处理日期点击
+function handleDateClick(date) {
+  if (isDateDisabled(date)) {
+    return
+  }
+  changeSelectedDate(date)
 }
 
 // 获取 marker 颜色
