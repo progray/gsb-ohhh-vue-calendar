@@ -1,6 +1,12 @@
 <template>
   <div class="app-container">
-    <ohhh-vue-calendar ref="calendarRef" :week-start="1" :markerDates @select-change="onSelectChange" />
+    <ohhh-vue-calendar
+      ref="calendarRef"
+      :week-start="1"
+      :markerDates
+      :disabledDate="disabledDate"
+      @select-change="onSelectChange"
+    />
   </div>
 </template>
 
@@ -21,6 +27,15 @@ const markerDates = [
     color: '#ff6a6a'
   }
 ]
+
+// 禁用今天之前的日期
+function disabledDate(date) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const compareDate = new Date(date)
+  compareDate.setHours(0, 0, 0, 0)
+  return compareDate < today
+}
 
 function onSelectChange(date) {
   console.log(date)

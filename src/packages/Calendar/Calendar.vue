@@ -42,9 +42,10 @@
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'is-disabled': isDateDisabled(dateObj.date)
           }"
-          @click="changeSelectedDate(dateObj.date)"
+          @click="handleDateClick(dateObj.date)"
         >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
@@ -121,10 +122,15 @@ const props = defineProps({
   duration: {
     type: String,
     default: '0.3s'
+  },
+  // 禁用日期的函数
+  disabledDate: {
+    type: Function,
+    default: null
   }
 })
 
-const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration } = toRefs(props)
+const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration, disabledDate } = toRefs(props)
 
 const {
   selected,
@@ -219,6 +225,22 @@ function _normalize(param) {
 function changePageTo(param) {
   const targetDate = _normalize(param)
   switchPageToTargetDate(targetDate)
+}
+
+// 判断日期是否被禁用
+function isDateDisabled(date) {
+  if (!disabledDate.value) {
+    return false
+  }
+  return disabledDate.value(date)
+}
+
+// 处理日期点击
+function handleDateClick(date) {
+  if (isDateDisabled(date)) {
+    return
+  }
+  changeSelectedDate(date)
 }
 
 // 切换选中的日期
