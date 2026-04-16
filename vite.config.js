@@ -2,25 +2,49 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import dts from 'vite-plugin-dts'
 import postcssPxToViewport from 'postcss-px-to-viewport-8-plugin'
+import { resolve } from 'path'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [
     vue(),
     dts({
-      include: ['src/packages/**/*.{vue,ts}']
+      include: ['src/packages/**/*.{vue,ts}'],
+      outDir: 'dist/types',
+      staticImport: true,
+      insertTypesEntry: true
     })
   ],
   build: {
     outDir: 'dist',
     lib: {
-      entry: ['src/packages/index.ts', 'src/packages/Calendar/style/mobile/mobile.js'],
+      entry: {
+        index: resolve(__dirname, 'src/packages/index.ts'),
+        style: resolve(__dirname, 'src/packages/styles/index.scss'),
+        'style-mobile': resolve(__dirname, 'src/packages/styles/mobile.scss')
+      },
       name: 'OhhhVueCalendar',
-      formats: ['es'],
-      fileName: format => `ohhh-vue-calendar.${format}.js`
+      formats: ['es', 'cjs'],
+      fileName: (format, entryName) => {
+        if (entryName === 'index') {
+          return `ohhh-vue-calendar.${format}.js`
+        }
+        return `${entryName}.${format}.js`
+      }
     },
     rollupOptions: {
-      external: ['vue', '@vueuse/core']
+      external: ['vue', '@vueuse/core'],
+      output: {
+        globals: {
+          vue: 'Vue',
+          '@vueuse/core': 'VueUse'
+        },
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name && assetInfo.name.endsWith('.css')) {
+            return 'styles/[name][extname]'
+          }
+          return 'assets/[name][extname]'
+        }
+      }
     },
     cssCodeSplit: true
   },

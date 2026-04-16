@@ -1,6 +1,5 @@
 import type { App } from 'vue'
 import OhhhVueCalendar from './Calendar/Calendar.vue'
-import './Calendar/style/index.scss'
 
 const components = [{ name: 'OhhhVueCalendar', comp: OhhhVueCalendar }]
 

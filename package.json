@@ -6,9 +6,25 @@
   "license": "MIT",
   "private": false,
   "type": "module",
-  "main": "dist/ohhh-vue-calendar.es.js",
-  "module": "dist/ohhh-vue-calendar.es.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/ohhh-vue-calendar.cjs.js",
+  "module": "./dist/ohhh-vue-calendar.es.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/ohhh-vue-calendar.es.js",
+      "require": "./dist/ohhh-vue-calendar.cjs.js"
+    },
+    "./style": {
+      "import": "./dist/styles/style.css",
+      "require": "./dist/styles/style.css"
+    },
+    "./style/mobile": {
+      "import": "./dist/styles/style-mobile.css",
+      "require": "./dist/styles/style-mobile.css"
+    },
+    "./dist/*": "./dist/*"
+  },
   "files": [
     "dist"
   ],
@@ -29,7 +45,8 @@
   "scripts": {
     "dev": "vite --host --port 80",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:package": "node scripts/verify-package.js"
   },
   "peerDependencies": {
     "vue": "^3.5.0"
