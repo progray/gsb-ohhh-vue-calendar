@@ -26,6 +26,11 @@
   column-gap: var(--calendar-toolbar-column-gap);
   padding: var(--calendar-toolbar-padding);
 }
+.ohhh-calendar-toolbar--left {
+  display: flex;
+  align-items: center;
+  column-gap: var(--calendar-toolbar-column-gap);
+}
 .ohhh-calendar-toolbar--icon,
 .ohhh-calendar-footer--icon {
   display: flex;
@@ -42,6 +47,25 @@
   margin: 0 auto;
   font-size: var(--calendar-toolbar-font-size);
   font-weight: 500;
+}
+.ohhh-calendar-toolbar--shortcuts {
+  display: flex;
+  align-items: center;
+  column-gap: var(--calendar-shortcuts-column-gap);
+}
+.ohhh-calendar-toolbar--shortcut-btn {
+  padding: var(--calendar-shortcuts-btn-padding);
+  font-size: var(--calendar-shortcuts-btn-font-size);
+  color: var(--calendar-shortcuts-btn-color);
+  background: var(--calendar-shortcuts-btn-background);
+  border: var(--calendar-shortcuts-btn-border);
+  border-radius: var(--calendar-shortcuts-btn-radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.ohhh-calendar-toolbar--shortcut-btn:hover {
+  color: var(--calendar-shortcuts-btn-hover-color);
+  background: var(--calendar-shortcuts-btn-hover-background);
 }
 
 .ohhh-calendar-weekdays {
