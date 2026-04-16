@@ -118,12 +118,98 @@
   font-size: var(--calendar-days-label-font-size);
   color: var(--calendar-days-label-color);
 }
-.ohhh-calendar-day--marker {
-  flex: none;
+.ohhh-calendar-day--events {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--calendar-event-dot-gap);
   margin-top: var(--calendar-days-marker-top-gap);
-  width: var(--calendar-days-marker-size);
-  height: var(--calendar-days-marker-size);
+  height: var(--calendar-event-dot-size);
+}
+
+.ohhh-calendar-day--event-dot {
+  width: var(--calendar-event-dot-size);
+  height: var(--calendar-event-dot-size);
   border-radius: 50%;
+}
+
+.ohhh-calendar-day--event-more {
+  font-size: 10px;
+  color: var(--calendar-text-color-level-3);
+  line-height: 1;
+}
+
+.ohhh-calendar-event-card {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 8px;
+  width: calc(100% - 32px);
+  max-width: 400px;
+  background: var(--calendar-event-card-background);
+  border-radius: var(--calendar-event-card-border-radius);
+  box-shadow: var(--calendar-event-card-shadow);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.ohhh-calendar-event-card--header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: var(--calendar-event-card-header-height);
+  padding: 0 var(--calendar-event-card-padding);
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ohhh-calendar-event-card--header-date {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--calendar-text-color-level-1);
+}
+
+.ohhh-calendar-event-card--header-close {
+  font-size: 20px;
+  color: var(--calendar-text-color-level-3);
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.ohhh-calendar-event-card--header-close:hover {
+  color: var(--calendar-text-color-level-1);
+}
+
+.ohhh-calendar-event-card--body {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.ohhh-calendar-event-card--item {
+  display: flex;
+  align-items: center;
+  height: var(--calendar-event-card-item-height);
+  padding: 0 var(--calendar-event-card-padding);
+  gap: 12px;
+}
+
+.ohhh-calendar-event-card--item:hover {
+  background: #f9f9f9;
+}
+
+.ohhh-calendar-event-card--item-color {
+  width: var(--calendar-event-card-item-color-size);
+  height: var(--calendar-event-card-item-color-size);
+  border-radius: var(--calendar-event-card-item-color-radius);
+  flex-shrink: 0;
+}
+
+.ohhh-calendar-event-card--item-title {
+  font-size: 14px;
+  color: var(--calendar-text-color-level-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ohhh-calendar-footer {
