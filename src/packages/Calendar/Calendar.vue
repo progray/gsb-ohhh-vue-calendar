@@ -74,7 +74,7 @@
 import { computed, useTemplateRef, toRefs } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
-import { isSameDay, createWeekdays } from './utils'
+import { isSameDay, createWeekdays, normalizeDateParam } from '../../composables/useCalendar.js'
 import { icons } from './utils/icons.js'
 
 const swipeRef = useTemplateRef('swp')
@@ -178,46 +178,14 @@ const { lengthX } = useSwipe(swipeRef, {
   }
 })
 
-// 归一化参数
-// 支持 'prev-page', 'next-page', 'prev-year', 'next-year', 以及合法的日期
-function _normalize(param) {
-  if (!param) {
-    throw new Error('参数不能为空')
-  }
-  if (param === 'prev-page') {
-    if (viewMode.value === 'week') {
-      return new Date(
-        new Date(currentRenderDates.value[0].date).setDate(currentRenderDates.value[0].date.getDate() - 1)
-      )
-    } else if (viewMode.value === 'month') {
-      return new Date(currentYear.value, currentMonth.value - 1)
-    }
-  }
-  if (param === 'next-page') {
-    if (viewMode.value === 'week') {
-      return new Date(
-        new Date(currentRenderDates.value[6].date).setDate(currentRenderDates.value[6].date.getDate() + 1)
-      )
-    } else if (viewMode.value === 'month') {
-      return new Date(currentYear.value, currentMonth.value + 1)
-    }
-  }
-  if (param === 'prev-year') {
-    return new Date(currentYear.value - 1, currentMonth.value)
-  }
-  if (param === 'next-year') {
-    return new Date(currentYear.value + 1, currentMonth.value)
-  }
-  const targetDate = new Date(param)
-  if (!Number.isNaN(targetDate.getTime())) {
-    return targetDate
-  }
-  throw new Error('日期不合法')
-}
-
 // 切换日历页面
 function changePageTo(param) {
-  const targetDate = _normalize(param)
+  const targetDate = normalizeDateParam(param, {
+    viewMode: viewMode.value,
+    currentYear: currentYear.value,
+    currentMonth: currentMonth.value,
+    currentRenderDates: currentRenderDates.value
+  })
   switchPageToTargetDate(targetDate)
 }
 
