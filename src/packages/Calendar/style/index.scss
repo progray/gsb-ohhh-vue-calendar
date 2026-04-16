@@ -1,6 +1,7 @@
 @use './variable.scss';
 
 .ohhh-calendar-container {
+  position: relative;
   -webkit-tap-highlight-color: transparent;
   background: var(--calendar-background);
   font-family:
@@ -118,12 +119,27 @@
   font-size: var(--calendar-days-label-font-size);
   color: var(--calendar-days-label-color);
 }
+.ohhh-calendar-day--markers {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin-top: var(--calendar-days-marker-top-gap);
+  gap: 2px;
+}
+
+.ohhh-calendar-day--marker {
+  flex: none;
+  width: var(--calendar-days-marker-size);
+  height: var(--calendar-days-marker-size);
+  border-radius: 50%;
+}
+
 .ohhh-calendar-day--events {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: var(--calendar-event-dot-gap);
-  margin-top: var(--calendar-days-marker-top-gap);
   height: var(--calendar-event-dot-size);
 }
 
@@ -140,10 +156,8 @@
 }
 
 .ohhh-calendar-event-card {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-top: 8px;
+  position: relative;
+  margin: 12px auto 0;
   width: calc(100% - 32px);
   max-width: 400px;
   background: var(--calendar-event-card-background);
@@ -151,6 +165,18 @@
   box-shadow: var(--calendar-event-card-shadow);
   z-index: 100;
   overflow: hidden;
+  animation: slideUp 0.2s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .ohhh-calendar-event-card--header {

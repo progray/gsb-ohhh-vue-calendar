@@ -1,6 +1,12 @@
 <template>
   <div class="app-container">
-    <ohhh-vue-calendar ref="calendarRef" :week-start="1" :events="events" @select-change="onSelectChange" />
+    <ohhh-vue-calendar 
+      ref="calendarRef" 
+      :week-start="1" 
+      :marker-dates="markerDates"
+      :events="events" 
+      @select-change="onSelectChange" 
+    />
   </div>
 </template>
 
@@ -15,6 +21,16 @@ const calendarRef = useTemplateRef('calendarRef')
 const today = new Date()
 const year = today.getFullYear()
 const month = today.getMonth()
+
+// 测试标记日期数据
+const markerDates = [
+  new Date(year, month, today.getDate() + 3),
+  {
+    date: new Date(year, month, today.getDate() + 4),
+    color: '#ff6a6a'
+  },
+  new Date(year, month, today.getDate() + 5)
+]
 
 // 测试事件数据
 const events = [

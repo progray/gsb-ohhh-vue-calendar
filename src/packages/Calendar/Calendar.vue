@@ -44,7 +44,7 @@
             'is-today': isSameDay(dateObj.date, new Date()),
             'other-month': !dateObj.current
           }"
-          @click="handleDateClick(dateObj.date)"
+          @click="handleDateClick(dateObj.date, $event)"
         >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
@@ -52,17 +52,20 @@
               <slot name="day-label" :date="dateObj.date" />
             </div>
           </div>
-          <div class="ohhh-calendar-day--events">
-            <div
-              v-for="(event, index) in getEventsForDate(dateObj.date).slice(0, 3)"
-              :key="index"
-              class="ohhh-calendar-day--event-dot"
-              :style="{ background: event.color }"
-            ></div>
-            <div
-              v-if="getEventsForDate(dateObj.date).length > 3"
-              class="ohhh-calendar-day--event-more"
-            >...</div>
+          <div class="ohhh-calendar-day--markers">
+            <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+            <div class="ohhh-calendar-day--events">
+              <div
+                v-for="(event, index) in getEventsForDate(dateObj.date).slice(0, 3)"
+                :key="index"
+                class="ohhh-calendar-day--event-dot"
+                :style="{ background: event.color }"
+              ></div>
+              <div
+                v-if="getEventsForDate(dateObj.date).length > 3"
+                class="ohhh-calendar-day--event-more"
+              >...</div>
+            </div>
           </div>
         </div>
       </div>
@@ -285,7 +288,10 @@ function getEventsForDate(date) {
 }
 
 // 处理日期点击
-function handleDateClick(date) {
+function handleDateClick(date, event) {
+  if (event) {
+    event.stopPropagation()
+  }
   changeSelectedDate(date)
   const dateEvents = getEventsForDate(date)
   if (dateEvents.length > 0) {
@@ -316,15 +322,23 @@ function formatEventCardDate(date) {
 // 点击外部区域隐藏事件卡片
 function handleClickOutside(event) {
   if (showEventCard.value) {
+    const container = document.querySelector('.ohhh-calendar-container')
     const eventCard = document.querySelector('.ohhh-calendar-event-card')
+    const calendarDays = document.querySelector('.ohhh-calendar-days')
+    
     if (eventCard && !eventCard.contains(event.target)) {
+      if (calendarDays && calendarDays.contains(event.target)) {
+        return
+      }
       hideEventCard()
     }
   }
 }
 
 onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
+  setTimeout(() => {
+    document.addEventListener('click', handleClickOutside)
+  }, 0)
 })
 
 onUnmounted(() => {
