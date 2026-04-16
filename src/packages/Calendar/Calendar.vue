@@ -11,11 +11,19 @@
     <!-- 顶部工具栏 -->
     <div v-if="showToolbar" class="ohhh-calendar-toolbar">
       <slot name="toolbar" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
-        <div v-html="icons.arrowDoubleLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-year')" />
-        <div v-html="icons.arrowLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-page')" />
-        <div class="ohhh-calendar-toolbar--text">{{ headerLabel }}</div>
-        <div v-html="icons.arrowRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-page')" />
-        <div v-html="icons.arrowDoubleRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-year')" />
+        <div class="ohhh-calendar-toolbar--left">
+          <div v-html="icons.arrowDoubleLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-year')" />
+          <div v-html="icons.arrowLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-page')" />
+          <div class="ohhh-calendar-toolbar--text">{{ headerLabel }}</div>
+          <div v-html="icons.arrowRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-page')" />
+          <div v-html="icons.arrowDoubleRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-year')" />
+        </div>
+        <div v-if="showShortcuts" class="ohhh-calendar-toolbar--shortcuts">
+          <button class="ohhh-calendar-toolbar--shortcut-btn" @click="selectShortcut('today')">今天</button>
+          <button class="ohhh-calendar-toolbar--shortcut-btn" @click="selectShortcut('tomorrow')">明天</button>
+          <button class="ohhh-calendar-toolbar--shortcut-btn" @click="selectShortcut('week')">一周后</button>
+          <button class="ohhh-calendar-toolbar--shortcut-btn" @click="selectShortcut('month')">一个月后</button>
+        </div>
       </slot>
     </div>
 
@@ -121,6 +129,11 @@ const props = defineProps({
   duration: {
     type: String,
     default: '0.3s'
+  },
+  // 是否显示快捷按钮
+  showShortcuts: {
+    type: Boolean,
+    default: true
   }
 })
 
@@ -228,6 +241,29 @@ function changeSelectedDate(date) {
     selected.value = new Date(date)
     emit('select-change', selected.value)
   }
+}
+
+// 选择快捷日期
+function selectShortcut(type) {
+  const today = new Date()
+  let targetDate
+  switch (type) {
+    case 'today':
+      targetDate = new Date(today)
+      break
+    case 'tomorrow':
+      targetDate = new Date(today.setDate(today.getDate() + 1))
+      break
+    case 'week':
+      targetDate = new Date(today.setDate(today.getDate() + 7))
+      break
+    case 'month':
+      targetDate = new Date(today.setMonth(today.getMonth() + 1))
+      break
+    default:
+      return
+  }
+  changeSelectedDate(targetDate)
 }
 
 // 获取 marker 颜色

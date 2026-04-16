@@ -20,6 +20,16 @@
   --calendar-toolbar-column-gap: 16px;
   --calendar-toolbar-padding: 12px 16px;
 
+  --calendar-shortcuts-column-gap: 8px;
+  --calendar-shortcuts-btn-padding: 4px 12px;
+  --calendar-shortcuts-btn-font-size: 14px;
+  --calendar-shortcuts-btn-color: var(--calendar-text-color-level-2);
+  --calendar-shortcuts-btn-background: transparent;
+  --calendar-shortcuts-btn-border: 1px solid var(--calendar-text-color-level-5);
+  --calendar-shortcuts-btn-radius: 4px;
+  --calendar-shortcuts-btn-hover-color: var(--calendar-theme-color);
+  --calendar-shortcuts-btn-hover-background: var(--calendar-theme-color-light);
+
   --calendar-footer-icon-size: var(--calendar-icon-size);
   --calendar-footer-icon-color: var(--calendar-icon-color);
   --calendar-footer-padding: 12px;
