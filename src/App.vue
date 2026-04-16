@@ -1,21 +1,23 @@
 <template>
-  <div class="app-container" :style="{ background: isDark ? '#171717' : '#fff', minHeight: '100vh' }">
-    <div class="theme-controls">
-      <button class="theme-btn" @click="toggleTheme">
-        {{ isDark ? '☀️ 亮色模式' : '🌙 暗黑模式' }}
+  <div class="app-container" :style="appStyle">
+    <div class="theme-controls" :style="controlsStyle">
+      <button class="theme-btn" @click="toggleMode">
+        {{ mode === 'dark' ? '☀️ 亮色模式' : '🌙 暗黑模式' }}
       </button>
       <div class="color-picker-container">
-        <label class="color-label">主题颜色:</label>
-        <input type="color" v-model="selectedColor" @input="onColorChange" class="color-input" />
-        <span class="color-value">{{ selectedColor }}</span>
+        <label class="color-label" :style="labelStyle">主题颜色:</label>
+        <input type="color" v-model="themeColor" class="color-input" />
+        <span class="color-value" :style="valueStyle">{{ themeColor }}</span>
       </div>
       <button class="reset-btn" @click="resetTheme">重置主题</button>
     </div>
     
-    <ohhh-vue-calendar 
+    <OhhhVueCalendar 
       ref="calendarRef" 
       :week-start="1" 
-      :markerDates 
+      :marker-dates="markerDates"
+      :initial-mode="mode"
+      :initial-theme-color="themeColor"
       @select-change="onSelectChange"
       @theme-change="onThemeChange"
     />
@@ -23,11 +25,38 @@
 </template>
 
 <script setup>
-import { useTemplateRef, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import OhhhVueCalendar from './packages/Calendar/Calendar.vue'
 import '/src/packages/Calendar/style/mobile/mobile.scss'
 
-const calendarRef = useTemplateRef('calendarRef')
+const STORAGE_KEY = 'ohhh-vue-calendar-theme'
+const DEFAULT_MODE = 'light'
+const DEFAULT_THEME_COLOR = '#409eff'
+
+function loadTheme() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) {
+      return JSON.parse(stored)
+    }
+  } catch (e) {
+    console.warn('Failed to load theme:', e)
+  }
+  return null
+}
+
+function saveTheme(mode, themeColor) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ mode, themeColor }))
+  } catch (e) {
+    console.warn('Failed to save theme:', e)
+  }
+}
+
+const stored = loadTheme()
+const mode = ref(stored?.mode || DEFAULT_MODE)
+const themeColor = ref(stored?.themeColor || DEFAULT_THEME_COLOR)
+const calendarRef = ref(null)
 
 const markerDates = [
   '2025-08-04',
@@ -40,34 +69,42 @@ const markerDates = [
   }
 ]
 
-const selectedColor = computed({
-  get: () => calendarRef.value?.themeColor || '#409eff',
-  set: (val) => {
-    if (calendarRef.value) {
-      calendarRef.value.setThemeColor(val)
-    }
-  }
-})
+const appStyle = computed(() => ({
+  background: mode.value === 'dark' ? '#141414' : '#ffffff',
+  minHeight: '100vh',
+  transition: 'background-color 0.3s ease'
+}))
 
-const isDark = computed(() => calendarRef.value?.mode === 'dark')
+const controlsStyle = computed(() => ({
+  background: mode.value === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'
+}))
 
-function toggleTheme() {
+const labelStyle = computed(() => ({
+  color: mode.value === 'dark' ? '#d4d4d4' : '#606266'
+}))
+
+const valueStyle = computed(() => ({
+  color: mode.value === 'dark' ? '#a3a3a3' : '#909399'
+}))
+
+function toggleMode() {
+  mode.value = mode.value === 'light' ? 'dark' : 'light'
   if (calendarRef.value) {
-    calendarRef.value.toggleMode()
-  }
-}
-
-function onColorChange(e) {
-  if (calendarRef.value) {
-    calendarRef.value.setThemeColor(e.target.value)
+    calendarRef.value.setMode(mode.value)
   }
 }
 
 function resetTheme() {
+  mode.value = DEFAULT_MODE
+  themeColor.value = DEFAULT_THEME_COLOR
   if (calendarRef.value) {
     calendarRef.value.resetTheme()
   }
 }
+
+watch([mode, themeColor], ([newMode, newColor]) => {
+  saveTheme(newMode, newColor)
+}, { deep: true })
 
 function onSelectChange(date) {
   console.log('Selected date:', date)
@@ -81,7 +118,6 @@ function onThemeChange(theme) {
 <style scoped>
 .app-container {
   padding: 20px;
-  transition: background-color 0.3s ease;
 }
 
 .theme-controls {
@@ -91,8 +127,8 @@ function onThemeChange(theme) {
   align-items: center;
   margin-bottom: 20px;
   padding: 16px;
-  background: rgba(128, 128, 128, 0.1);
   border-radius: 8px;
+  transition: background-color 0.3s ease;
 }
 
 .theme-btn,
@@ -132,7 +168,7 @@ function onThemeChange(theme) {
 
 .color-label {
   font-size: 14px;
-  color: #606266;
+  transition: color 0.3s ease;
 }
 
 .color-input {
@@ -157,7 +193,7 @@ function onThemeChange(theme) {
 .color-value {
   font-size: 14px;
   font-family: monospace;
-  color: #909399;
+  transition: color 0.3s ease;
 }
 
 @media (max-width: 600px) {
