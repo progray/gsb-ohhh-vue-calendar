@@ -44,7 +44,7 @@
             'is-today': isSameDay(dateObj.date, new Date()),
             'other-month': !dateObj.current
           }"
-          @click="changeSelectedDate(dateObj.date)"
+          @click="handleDateClick(dateObj.date, $event)"
         >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
@@ -52,7 +52,21 @@
               <slot name="day-label" :date="dateObj.date" />
             </div>
           </div>
-          <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+          <div class="ohhh-calendar-day--markers">
+            <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+            <div class="ohhh-calendar-day--events">
+              <div
+                v-for="(event, index) in getEventsForDate(dateObj.date).slice(0, 3)"
+                :key="index"
+                class="ohhh-calendar-day--event-dot"
+                :style="{ background: event.color }"
+              ></div>
+              <div
+                v-if="getEventsForDate(dateObj.date).length > 3"
+                class="ohhh-calendar-day--event-more"
+              >...</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -67,11 +81,25 @@
         />
       </slot>
     </div>
+
+    <!-- 事件卡片 -->
+    <div v-if="showEventCard && selectedDateEvents.length > 0" class="ohhh-calendar-event-card" @click.stop>
+      <div class="ohhh-calendar-event-card--header">
+        <div class="ohhh-calendar-event-card--header-date">{{ formatEventCardDate(selected) }}</div>
+        <div class="ohhh-calendar-event-card--header-close" @click="hideEventCard">×</div>
+      </div>
+      <div class="ohhh-calendar-event-card--body">
+        <div v-for="(event, index) in selectedDateEvents" :key="index" class="ohhh-calendar-event-card--item">
+          <div class="ohhh-calendar-event-card--item-color" :style="{ background: event.color }"></div>
+          <div class="ohhh-calendar-event-card--item-title">{{ event.title }}</div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref, onMounted, onUnmounted } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
 import { isSameDay, createWeekdays } from './utils'
@@ -102,6 +130,11 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
+  // 日程事件
+  events: {
+    type: Array,
+    default: () => []
+  },
   // 是否显示顶部工具栏
   showToolbar: {
     type: Boolean,
@@ -124,7 +157,12 @@ const props = defineProps({
   }
 })
 
-const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration } = toRefs(props)
+const { initialSelectedDate, initialViewMode, weekStart, markerDates, events, duration } = toRefs(props)
+
+// 事件卡片显示状态
+const showEventCard = ref(false)
+// 选中日期的事件列表
+const selectedDateEvents = ref([])
 
 const {
   selected,
@@ -234,6 +272,78 @@ function changeSelectedDate(date) {
 function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
+
+// 归一化事件数据
+const normalizedEvents = computed(() => {
+  return events.value.map(event => ({
+    date: new Date(event.date),
+    title: event.title || '',
+    color: event.color || 'var(--calendar-theme-color)'
+  }))
+})
+
+// 获取指定日期的事件
+function getEventsForDate(date) {
+  return normalizedEvents.value.filter(event => isSameDay(event.date, date))
+}
+
+// 处理日期点击
+function handleDateClick(date, event) {
+  if (event) {
+    event.stopPropagation()
+  }
+  changeSelectedDate(date)
+  const dateEvents = getEventsForDate(date)
+  if (dateEvents.length > 0) {
+    selectedDateEvents.value = dateEvents
+    showEventCard.value = true
+  } else {
+    showEventCard.value = false
+  }
+}
+
+// 隐藏事件卡片
+function hideEventCard() {
+  showEventCard.value = false
+}
+
+// 格式化事件卡片日期
+function formatEventCardDate(date) {
+  if (!date) return ''
+  const d = new Date(date)
+  const year = d.getFullYear()
+  const month = d.getMonth() + 1
+  const day = d.getDate()
+  const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+  const weekday = weekdays[d.getDay()]
+  return `${year}年${month}月${day}日 ${weekday}`
+}
+
+// 点击外部区域隐藏事件卡片
+function handleClickOutside(event) {
+  if (showEventCard.value) {
+    const container = document.querySelector('.ohhh-calendar-container')
+    const eventCard = document.querySelector('.ohhh-calendar-event-card')
+    const calendarDays = document.querySelector('.ohhh-calendar-days')
+    
+    if (eventCard && !eventCard.contains(event.target)) {
+      if (calendarDays && calendarDays.contains(event.target)) {
+        return
+      }
+      hideEventCard()
+    }
+  }
+}
+
+onMounted(() => {
+  setTimeout(() => {
+    document.addEventListener('click', handleClickOutside)
+  }, 0)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 
 defineExpose({
   // 切换周/月视图
