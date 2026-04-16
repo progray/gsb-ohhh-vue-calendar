@@ -5,12 +5,13 @@
       '--calendar-rows': renderRows,
       '--calendar-transition-duration': duration,
       '--translate-distance': transformDistance,
-      '--transition-duration': transitionDuration
+      '--transition-duration': transitionDuration,
+      ...cssVariables
     }"
   >
     <!-- 顶部工具栏 -->
     <div v-if="showToolbar" class="ohhh-calendar-toolbar">
-      <slot name="toolbar" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
+      <slot name="toolbar" :year="currentYear" :month="currentMonth" :viewMode="viewMode" :mode="mode" :themeColor="themeColor">
         <div v-html="icons.arrowDoubleLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-year')" />
         <div v-html="icons.arrowLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-page')" />
         <div class="ohhh-calendar-toolbar--text">{{ headerLabel }}</div>
@@ -59,7 +60,7 @@
 
     <!-- 底部工具栏 -->
     <div v-if="showFooter" class="ohhh-calendar-footer">
-      <slot name="footer" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
+      <slot name="footer" :year="currentYear" :month="currentMonth" :viewMode="viewMode" :mode="mode" :themeColor="themeColor">
         <div
           v-html="viewMode === 'week' ? icons.arrowDown : icons.arrowUp"
           class="ohhh-calendar-footer--icon"
@@ -74,57 +75,59 @@
 import { computed, useTemplateRef, toRefs } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
+import { useTheme } from './hooks/useTheme.js'
 import { isSameDay, createWeekdays } from './utils'
 import { icons } from './utils/icons.js'
 
 const swipeRef = useTemplateRef('swp')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'theme-change'])
 
 const props = defineProps({
-  // 初始选中的日期
   initialSelectedDate: {
     type: Date,
     default: () => new Date()
   },
-  // 初始视图模式
   initialViewMode: {
     type: String,
-    default: 'month' // month or week
+    default: 'month'
   },
-  // 以周几作为每周的起始
   weekStart: {
     type: Number,
-    default: 0 // 0: Sunday, 1: Monday, etc.
+    default: 0
   },
-  // 标记的日期
   markerDates: {
     type: Array,
     default: () => []
   },
-  // 是否显示顶部工具栏
   showToolbar: {
     type: Boolean,
     default: true
   },
-  // 是否显示底部工具栏
   showFooter: {
     type: Boolean,
     default: true
   },
-  // 是否显示weekdays栏
   showWeekdays: {
     type: Boolean,
     default: true
   },
-  // 过渡动画时长
   duration: {
     type: String,
     default: '0.3s'
+  },
+  initialMode: {
+    type: String,
+    default: 'light',
+    validator: (value) => ['light', 'dark'].includes(value)
+  },
+  initialThemeColor: {
+    type: String,
+    default: '#409eff'
   }
 })
 
-const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration } = toRefs(props)
+const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration, initialMode, initialThemeColor } = toRefs(props)
 
 const {
   selected,
@@ -143,11 +146,18 @@ const {
   toggleViewMode
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
 
-// 顶部工具栏标题
+const {
+  mode,
+  themeColor,
+  cssVariables,
+  toggleMode: _toggleMode,
+  setMode: _setMode,
+  setThemeColor: _setThemeColor,
+  resetTheme: _resetTheme
+} = useTheme({ initialMode, initialThemeColor })
+
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
-// 星期栏
 const weekdays = createWeekdays(weekStart.value)
-// 标记日期
 const markerDateList = computed(() =>
   markerDates.value.map(item => ({
     date: new Date(typeof item === 'object' && item.date ? item.date : item),
@@ -155,16 +165,12 @@ const markerDateList = computed(() =>
   }))
 )
 
-// 监听滑动事件
 const { lengthX } = useSwipe(swipeRef, {
-  // 滑动阈值
   threshold: 0,
-  // 手指滑动过程中
   onSwipe: () => {
     if (isInTransition.value) return
     transformDistance.value = -lengthX.value + 'px'
   },
-  // 手指抬起滑动结束，开始滑动动画
   onSwipeEnd: (_, direction) => {
     if (isInTransition.value) return
     if (direction === 'left') {
@@ -172,14 +178,11 @@ const { lengthX } = useSwipe(swipeRef, {
     } else if (direction === 'right') {
       changePageTo('prev-page')
     } else {
-      // 如果方向不是左右，则将页面复位
       startTransitionAnimation(direction)
     }
   }
 })
 
-// 归一化参数
-// 支持 'prev-page', 'next-page', 'prev-year', 'next-year', 以及合法的日期
 function _normalize(param) {
   if (!param) {
     throw new Error('参数不能为空')
@@ -215,13 +218,11 @@ function _normalize(param) {
   throw new Error('日期不合法')
 }
 
-// 切换日历页面
 function changePageTo(param) {
   const targetDate = _normalize(param)
   switchPageToTargetDate(targetDate)
 }
 
-// 切换选中的日期
 function changeSelectedDate(date) {
   changePageTo(date)
   if (!isSameDay(new Date(date), selected.value)) {
@@ -230,17 +231,39 @@ function changeSelectedDate(date) {
   }
 }
 
-// 获取 marker 颜色
 function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
+function toggleMode() {
+  _toggleMode()
+  emit('theme-change', { mode: mode.value, themeColor: themeColor.value })
+}
+
+function setMode(newMode) {
+  _setMode(newMode)
+  emit('theme-change', { mode: mode.value, themeColor: themeColor.value })
+}
+
+function setThemeColor(color) {
+  _setThemeColor(color)
+  emit('theme-change', { mode: mode.value, themeColor: themeColor.value })
+}
+
+function resetTheme() {
+  _resetTheme()
+  emit('theme-change', { mode: mode.value, themeColor: themeColor.value })
+}
+
 defineExpose({
-  // 切换周/月视图
   toggleViewMode,
-  // 切换日历页
   changePageTo,
-  // 切换选中日期
-  changeSelectedDate
+  changeSelectedDate,
+  toggleMode,
+  setMode,
+  setThemeColor,
+  resetTheme,
+  mode,
+  themeColor
 })
 </script>
