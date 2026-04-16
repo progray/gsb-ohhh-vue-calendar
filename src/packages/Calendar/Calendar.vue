@@ -19,7 +19,7 @@
     </div>
 
     <div v-if="showWeekdays" class="ohhh-calendar-weekdays">
-      <div v-for="(day, index) in weekdays" :key="day" class="ohhh-calendar-weekdays--weekday">
+      <div v-for="(day, index) in weekdays" :key="index" class="ohhh-calendar-weekdays--weekday">
         <slot name="weekday" :weekday="day" :index="(index + weekStart) % 7">{{ day }}</slot>
       </div>
     </div>
@@ -75,7 +75,7 @@ import { useCalendar } from './hooks/useCalendar.js'
 import { isSameDay, createWeekdays } from './utils'
 import { icons } from './utils/icons.js'
 
-const { t, locale } = useI18n()
+const { t, locale, messages } = useI18n()
 
 const swipeRef = useTemplateRef('swp')
 
@@ -136,12 +136,16 @@ const {
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
 
 const weekdays = computed(() => {
-  return createWeekdays(weekStart.value, t('weekdays'))
+  const localeMessages = messages.value[locale.value]
+  const weekdaysArray = localeMessages?.weekdays || ['日', '一', '二', '三', '四', '五', '六']
+  return createWeekdays(weekStart.value, weekdaysArray)
 })
 
 const headerLabel = computed(() => {
-  const format = t('headerFormat')
-  const monthName = t('months')[currentMonth.value]
+  const localeMessages = messages.value[locale.value]
+  const format = localeMessages?.headerFormat || '{year}年{month}月'
+  const monthsArray = localeMessages?.months || ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
+  const monthName = monthsArray[currentMonth.value]
   return format
     .replace('{year}', currentYear.value)
     .replace('{month}', monthName)
