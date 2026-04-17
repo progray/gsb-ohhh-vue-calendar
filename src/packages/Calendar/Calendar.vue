@@ -46,6 +46,15 @@
           }"
           @click="changeSelectedDate(dateObj.date)"
         >
+          <div
+            class="ohhh-calendar-moon"
+            :class="getMoonPhase(dateObj.date).key"
+          >
+            <div class="ohhh-calendar-moon-icon"></div>
+            <div class="ohhh-calendar-moon-tooltip">
+              {{ getMoonPhase(dateObj.date).name }}
+            </div>
+          </div>
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
             <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
@@ -76,6 +85,7 @@ import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
 import { isSameDay, createWeekdays } from './utils'
 import { icons } from './utils/icons.js'
+import { getMoonPhase } from './utils/lunar.js'
 
 const swipeRef = useTemplateRef('swp')
 
