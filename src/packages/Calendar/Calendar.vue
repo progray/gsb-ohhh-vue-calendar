@@ -44,7 +44,7 @@
             'is-today': isSameDay(dateObj.date, new Date()),
             'other-month': !dateObj.current
           }"
-          @click="changeSelectedDate(dateObj.date)"
+          @click="handleDayClick(dateObj.date, $event)"
         >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
@@ -53,6 +53,24 @@
             </div>
           </div>
           <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+          
+          <!-- Emoji 状态显示区域 -->
+          <div 
+            v-if="getEmojisForDate(dateObj.date).length > 0" 
+            class="ohhh-calendar-day--emojis"
+          >
+            <div
+              v-for="(status, idx) in getEmojisForDate(dateObj.date)"
+              :key="idx"
+              class="ohhh-calendar-day--emoji"
+              :style="{ zIndex: getEmojisForDate(dateObj.date).length - idx }"
+              @click.stop="handleEmojiClick(dateObj.date, status.emoji, $event)"
+              @mouseenter="showTooltip(status, $event)"
+              @mouseleave="hideTooltip"
+            >
+              {{ status.emoji }}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -67,57 +85,84 @@
         />
       </slot>
     </div>
+
+    <!-- Emoji 选择器 -->
+    <EmojiPicker
+      :visible="showEmojiPicker"
+      :target-date="activeDate"
+      :position="pickerPosition"
+      @select="handleEmojiSelect"
+      @close="closeEmojiPicker"
+    />
+
+    <!-- Emoji 输入框 -->
+    <EmojiInput
+      :visible="showEmojiInput"
+      :selected-emoji="selectedEmoji"
+      :position="inputPosition"
+      :initial-description="existingDescription"
+      @confirm="handleInputConfirm"
+      @close="closeEmojiInput"
+    />
+
+    <!-- 悬浮提示 -->
+    <Teleport to="body">
+      <Transition name="tooltip-fade">
+        <div
+          v-if="showTooltipFlag"
+          class="emoji-tooltip"
+          :style="tooltipStyle"
+        >
+          {{ tooltipContent }}
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
+import { useEmojiStatus } from './hooks/useEmojiStatus.js'
 import { isSameDay, createWeekdays } from './utils'
 import { icons } from './utils/icons.js'
+import EmojiPicker from './components/EmojiPicker.vue'
+import EmojiInput from './components/EmojiInput.vue'
 
 const swipeRef = useTemplateRef('swp')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'emoji-change'])
 
 const props = defineProps({
-  // 初始选中的日期
   initialSelectedDate: {
     type: Date,
     default: () => new Date()
   },
-  // 初始视图模式
   initialViewMode: {
     type: String,
-    default: 'month' // month or week
+    default: 'month'
   },
-  // 以周几作为每周的起始
   weekStart: {
     type: Number,
-    default: 0 // 0: Sunday, 1: Monday, etc.
+    default: 0
   },
-  // 标记的日期
   markerDates: {
     type: Array,
     default: () => []
   },
-  // 是否显示顶部工具栏
   showToolbar: {
     type: Boolean,
     default: true
   },
-  // 是否显示底部工具栏
   showFooter: {
     type: Boolean,
     default: true
   },
-  // 是否显示weekdays栏
   showWeekdays: {
     type: Boolean,
     default: true
   },
-  // 过渡动画时长
   duration: {
     type: String,
     default: '0.3s'
@@ -143,11 +188,27 @@ const {
   toggleViewMode
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
 
-// 顶部工具栏标题
+const {
+  getEmojisForDate,
+  addEmojiStatus,
+  removeEmojiStatus,
+  hasEmoji
+} = useEmojiStatus()
+
+const showEmojiPicker = ref(false)
+const showEmojiInput = ref(false)
+const activeDate = ref(null)
+const selectedEmoji = ref('')
+const existingDescription = ref('')
+const pickerPosition = ref({ x: 0, y: 0 })
+const inputPosition = ref({ x: 0, y: 0 })
+
+const showTooltipFlag = ref(false)
+const tooltipContent = ref('')
+const tooltipStyle = ref({})
+
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
-// 星期栏
 const weekdays = createWeekdays(weekStart.value)
-// 标记日期
 const markerDateList = computed(() =>
   markerDates.value.map(item => ({
     date: new Date(typeof item === 'object' && item.date ? item.date : item),
@@ -155,16 +216,12 @@ const markerDateList = computed(() =>
   }))
 )
 
-// 监听滑动事件
 const { lengthX } = useSwipe(swipeRef, {
-  // 滑动阈值
   threshold: 0,
-  // 手指滑动过程中
   onSwipe: () => {
     if (isInTransition.value) return
     transformDistance.value = -lengthX.value + 'px'
   },
-  // 手指抬起滑动结束，开始滑动动画
   onSwipeEnd: (_, direction) => {
     if (isInTransition.value) return
     if (direction === 'left') {
@@ -172,14 +229,11 @@ const { lengthX } = useSwipe(swipeRef, {
     } else if (direction === 'right') {
       changePageTo('prev-page')
     } else {
-      // 如果方向不是左右，则将页面复位
       startTransitionAnimation(direction)
     }
   }
 })
 
-// 归一化参数
-// 支持 'prev-page', 'next-page', 'prev-year', 'next-year', 以及合法的日期
 function _normalize(param) {
   if (!param) {
     throw new Error('参数不能为空')
@@ -215,13 +269,11 @@ function _normalize(param) {
   throw new Error('日期不合法')
 }
 
-// 切换日历页面
 function changePageTo(param) {
   const targetDate = _normalize(param)
   switchPageToTargetDate(targetDate)
 }
 
-// 切换选中的日期
 function changeSelectedDate(date) {
   changePageTo(date)
   if (!isSameDay(new Date(date), selected.value)) {
@@ -230,17 +282,192 @@ function changeSelectedDate(date) {
   }
 }
 
-// 获取 marker 颜色
 function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
+function handleDayClick(date, event) {
+  changeSelectedDate(date)
+  activeDate.value = date
+  
+  const rect = event.currentTarget.getBoundingClientRect()
+  pickerPosition.value = {
+    x: rect.left + rect.width / 2 - 140,
+    y: rect.bottom + 8
+  }
+  
+  showEmojiPicker.value = true
+}
+
+function handleEmojiClick(date, emoji, event) {
+  event.stopPropagation()
+  
+  const emojis = getEmojisForDate(date)
+  const status = emojis.find(s => s.emoji === emoji)
+  
+  if (status) {
+    activeDate.value = date
+    selectedEmoji.value = emoji
+    existingDescription.value = status.description || ''
+    
+    const rect = event.currentTarget.getBoundingClientRect()
+    inputPosition.value = {
+      x: rect.left - 100,
+      y: rect.bottom + 8
+    }
+    
+    showEmojiInput.value = true
+  }
+}
+
+function handleEmojiSelect(emoji) {
+  selectedEmoji.value = emoji
+  
+  if (hasEmoji(activeDate.value, emoji)) {
+    removeEmojiStatus(activeDate.value, emoji)
+    emit('emoji-change', {
+      date: activeDate.value,
+      emoji: emoji,
+      action: 'remove',
+      emojis: getEmojisForDate(activeDate.value)
+    })
+    closeEmojiPicker()
+  } else {
+    existingDescription.value = ''
+    inputPosition.value = { ...pickerPosition.value }
+    showEmojiPicker.value = false
+    showEmojiInput.value = true
+  }
+}
+
+function handleInputConfirm(description) {
+  addEmojiStatus(activeDate.value, selectedEmoji.value, description)
+  emit('emoji-change', {
+    date: activeDate.value,
+    emoji: selectedEmoji.value,
+    description: description,
+    action: 'add',
+    emojis: getEmojisForDate(activeDate.value)
+  })
+  closeEmojiInput()
+}
+
+function closeEmojiPicker() {
+  showEmojiPicker.value = false
+  activeDate.value = null
+}
+
+function closeEmojiInput() {
+  showEmojiInput.value = false
+  selectedEmoji.value = ''
+  existingDescription.value = ''
+}
+
+function showTooltip(status, event) {
+  if (!status.description) return
+  
+  tooltipContent.value = status.description
+  
+  const rect = event.currentTarget.getBoundingClientRect()
+  tooltipStyle.value = {
+    left: rect.left + rect.width / 2 + 'px',
+    top: rect.top - 8 + 'px'
+  }
+  
+  showTooltipFlag.value = true
+}
+
+function hideTooltip() {
+  showTooltipFlag.value = false
+}
+
 defineExpose({
-  // 切换周/月视图
   toggleViewMode,
-  // 切换日历页
   changePageTo,
-  // 切换选中日期
-  changeSelectedDate
+  changeSelectedDate,
+  getEmojisForDate,
+  addEmojiStatus,
+  removeEmojiStatus
 })
 </script>
+
+<style scoped>
+.ohhh-calendar-day {
+  position: relative;
+}
+
+.ohhh-calendar-day--emojis {
+  position: absolute;
+  bottom: 2px;
+  right: 4px;
+  display: flex;
+  flex-direction: row-reverse;
+  pointer-events: auto;
+}
+
+.ohhh-calendar-day--emoji {
+  font-size: 14px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: transform 0.2s ease, z-index 0.2s ease;
+  margin-left: -6px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.ohhh-calendar-day--emoji:first-child {
+  margin-left: 0;
+}
+
+.ohhh-calendar-day--emoji:hover {
+  transform: scale(1.3);
+  z-index: 100 !important;
+}
+
+.emoji-tooltip {
+  position: fixed;
+  transform: translate(-50%, -100%);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #303133;
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.12),
+    0 2px 4px rgba(0, 0, 0, 0.08);
+  z-index: 10000;
+  max-width: 200px;
+  word-break: break-word;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.emoji-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid rgba(255, 255, 255, 0.95);
+}
+
+.tooltip-fade-enter-active,
+.tooltip-fade-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.tooltip-fade-enter-from,
+.tooltip-fade-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -100%) translateY(-4px);
+}
+</style>
