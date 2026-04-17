@@ -138,3 +138,130 @@
   width: var(--calendar-footer-icon-size);
   height: var(--calendar-footer-icon-size);
 }
+
+.ohhh-calendar-moon {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: var(--calendar-moon-size);
+  height: var(--calendar-moon-size);
+  cursor: pointer;
+  z-index: 10;
+}
+
+.ohhh-calendar-moon-icon {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--calendar-moon-color);
+  box-shadow: 0 0 6px var(--calendar-moon-shadow);
+  overflow: hidden;
+}
+
+.ohhh-calendar-moon-icon::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.ohhh-calendar-moon.new-moon .ohhh-calendar-moon-icon {
+  background: transparent;
+  box-shadow: none;
+}
+
+.ohhh-calendar-moon.new-moon .ohhh-calendar-moon-icon::after {
+  left: 0;
+  background: var(--calendar-background, #fff);
+  box-shadow: inset 0 0 0 1px rgba(245, 216, 165, 0.3);
+}
+
+.ohhh-calendar-moon.waxing-crescent .ohhh-calendar-moon-icon::after {
+  left: 70%;
+  background: var(--calendar-background, #fff);
+  transform: scale(1.1);
+}
+
+.ohhh-calendar-moon.first-quarter .ohhh-calendar-moon-icon {
+  background: linear-gradient(to right, var(--calendar-background, #fff) 50%, var(--calendar-moon-color) 50%);
+}
+
+.ohhh-calendar-moon.first-quarter .ohhh-calendar-moon-icon::after {
+  display: none;
+}
+
+.ohhh-calendar-moon.waxing-gibbous .ohhh-calendar-moon-icon::after {
+  left: 30%;
+  background: var(--calendar-background, #fff);
+  transform: scale(1.1);
+}
+
+.ohhh-calendar-moon.full-moon .ohhh-calendar-moon-icon {
+  background: var(--calendar-moon-color);
+  box-shadow: 0 0 8px var(--calendar-moon-shadow), 0 0 12px rgba(245, 216, 165, 0.3);
+}
+
+.ohhh-calendar-moon.full-moon .ohhh-calendar-moon-icon::after {
+  display: none;
+}
+
+.ohhh-calendar-moon.waning-gibbous .ohhh-calendar-moon-icon::after {
+  left: -30%;
+  background: var(--calendar-background, #fff);
+  transform: scale(1.1);
+}
+
+.ohhh-calendar-moon.last-quarter .ohhh-calendar-moon-icon {
+  background: linear-gradient(to left, var(--calendar-background, #fff) 50%, var(--calendar-moon-color) 50%);
+}
+
+.ohhh-calendar-moon.last-quarter .ohhh-calendar-moon-icon::after {
+  display: none;
+}
+
+.ohhh-calendar-moon.waning-crescent .ohhh-calendar-moon-icon::after {
+  left: -70%;
+  background: var(--calendar-background, #fff);
+  transform: scale(1.1);
+}
+
+.ohhh-calendar-moon-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  font-size: 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.ohhh-calendar-moon-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: rgba(0, 0, 0, 0.8);
+}
+
+.ohhh-calendar-moon:hover .ohhh-calendar-moon-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+.ohhh-calendar-day {
+  position: relative;
+}
