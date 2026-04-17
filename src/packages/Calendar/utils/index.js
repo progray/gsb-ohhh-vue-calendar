@@ -5,9 +5,11 @@ export class CalendarDate {
     this.fullDate = {
       year: date.getFullYear(),
       month: date.getMonth() + 1,
-      date: date.getDate()
+      date: date.getDate(),
+      day: date.getDay()
     }
     this.current = current
+    this.isWeekend = date.getDay() === 0 || date.getDay() === 6
   }
 }
 
