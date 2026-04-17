@@ -29,30 +29,50 @@
     <!-- 日历主体 -->
     <div ref="swp" class="ohhh-calendar-wrapper">
       <div
-        v-for="(item, index) in allRenderDates"
-        :key="index"
-        :style="{ left: 100 * (index - 1) + '%' }"
+        v-for="(item, pageIndex) in allRenderDates"
+        :key="pageIndex"
+        :style="{ left: 100 * (pageIndex - 1) + '%' }"
         class="ohhh-calendar-days"
         @transitionend="onTransitionEnd"
       >
         <div
-          v-for="dateObj in item"
+          v-for="(dateObj, dateIndex) in item"
           :key="dateObj.key"
           class="ohhh-calendar-day"
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'has-mood': _hasMood(dateObj.date)
           }"
-          @click="changeSelectedDate(dateObj.date)"
+          :style="{
+            animationDelay: _getAnimationDelay(dateIndex) + 'ms'
+          }"
+          @click="handleDateClick(dateObj, $event)"
         >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
-            <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
-              <slot name="day-label" :date="dateObj.date" />
+            <div 
+              v-if="_hasMood(dateObj.date)" 
+              class="ohhh-calendar-day--inner-mood"
+              :class="{
+                'animate-shake': _isShaking(dateObj.key)
+              }"
+            >
+              {{ _getMoodEmoji(dateObj.date) }}
             </div>
           </div>
           <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+          <div 
+            v-if="_rippleEffect.dateKey === dateObj.key" 
+            class="ripple-effect"
+            :style="{
+              left: _rippleEffect.x + 'px',
+              top: _rippleEffect.y + 'px',
+              width: '30px',
+              height: '30px'
+            }"
+          ></div>
         </div>
       </div>
     </div>
@@ -71,60 +91,56 @@
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref, watch } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
-import { isSameDay, createWeekdays } from './utils'
+import { isSameDay, createWeekdays, formatDateKey } from './utils'
 import { icons } from './utils/icons.js'
 
 const swipeRef = useTemplateRef('swp')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'date-click', 'mood-select'])
 
 const props = defineProps({
-  // 初始选中的日期
   initialSelectedDate: {
     type: Date,
     default: () => new Date()
   },
-  // 初始视图模式
   initialViewMode: {
     type: String,
-    default: 'month' // month or week
+    default: 'month'
   },
-  // 以周几作为每周的起始
   weekStart: {
     type: Number,
-    default: 0 // 0: Sunday, 1: Monday, etc.
+    default: 0
   },
-  // 标记的日期
   markerDates: {
     type: Array,
     default: () => []
   },
-  // 是否显示顶部工具栏
   showToolbar: {
     type: Boolean,
     default: true
   },
-  // 是否显示底部工具栏
   showFooter: {
     type: Boolean,
     default: true
   },
-  // 是否显示weekdays栏
   showWeekdays: {
     type: Boolean,
     default: true
   },
-  // 过渡动画时长
   duration: {
     type: String,
     default: '0.3s'
+  },
+  moodData: {
+    type: Object,
+    default: () => ({})
   }
 })
 
-const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration } = toRefs(props)
+const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration, moodData } = toRefs(props)
 
 const {
   selected,
@@ -143,11 +159,18 @@ const {
   toggleViewMode
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
 
-// 顶部工具栏标题
+const _rippleEffect = ref({
+  dateKey: null,
+  x: 0,
+  y: 0
+})
+
+const _shakingKeys = ref(new Set())
+
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
-// 星期栏
+
 const weekdays = createWeekdays(weekStart.value)
-// 标记日期
+
 const markerDateList = computed(() =>
   markerDates.value.map(item => ({
     date: new Date(typeof item === 'object' && item.date ? item.date : item),
@@ -155,16 +178,12 @@ const markerDateList = computed(() =>
   }))
 )
 
-// 监听滑动事件
 const { lengthX } = useSwipe(swipeRef, {
-  // 滑动阈值
   threshold: 0,
-  // 手指滑动过程中
   onSwipe: () => {
     if (isInTransition.value) return
     transformDistance.value = -lengthX.value + 'px'
   },
-  // 手指抬起滑动结束，开始滑动动画
   onSwipeEnd: (_, direction) => {
     if (isInTransition.value) return
     if (direction === 'left') {
@@ -172,14 +191,11 @@ const { lengthX } = useSwipe(swipeRef, {
     } else if (direction === 'right') {
       changePageTo('prev-page')
     } else {
-      // 如果方向不是左右，则将页面复位
       startTransitionAnimation(direction)
     }
   }
 })
 
-// 归一化参数
-// 支持 'prev-page', 'next-page', 'prev-year', 'next-year', 以及合法的日期
 function _normalize(param) {
   if (!param) {
     throw new Error('参数不能为空')
@@ -215,13 +231,11 @@ function _normalize(param) {
   throw new Error('日期不合法')
 }
 
-// 切换日历页面
 function changePageTo(param) {
   const targetDate = _normalize(param)
   switchPageToTargetDate(targetDate)
 }
 
-// 切换选中的日期
 function changeSelectedDate(date) {
   changePageTo(date)
   if (!isSameDay(new Date(date), selected.value)) {
@@ -230,17 +244,74 @@ function changeSelectedDate(date) {
   }
 }
 
-// 获取 marker 颜色
 function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
+function _getAnimationDelay(index) {
+  const row = Math.floor(index / 7)
+  const col = index % 7
+  return row * 100 + col * 30
+}
+
+function _hasMood(date) {
+  const dateKey = formatDateKey(date)
+  return moodData.value[dateKey] !== undefined
+}
+
+function _getMoodEmoji(date) {
+  const dateKey = formatDateKey(date)
+  const mood = moodData.value[dateKey]
+  const moodEmojis = {
+    happy: '😊',
+    normal: '😐',
+    sad: '😢',
+    angry: '😡',
+    tired: '😴'
+  }
+  return moodEmojis[mood] || mood
+}
+
+function _isShaking(dateKey) {
+  return _shakingKeys.value.has(dateKey)
+}
+
+function _triggerShake(dateKey) {
+  _shakingKeys.value.add(dateKey)
+  setTimeout(() => {
+    _shakingKeys.value.delete(dateKey)
+  }, 500)
+}
+
+function handleDateClick(dateObj, event) {
+  const rect = event.currentTarget.getBoundingClientRect()
+  _rippleEffect.value = {
+    dateKey: dateObj.key,
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top
+  }
+  
+  setTimeout(() => {
+    _rippleEffect.value = { dateKey: null, x: 0, y: 0 }
+  }, 600)
+
+  emit('date-click', dateObj.date, _hasMood(dateObj.date))
+
+  if (_hasMood(dateObj.date)) {
+    _triggerShake(dateObj.key)
+    return
+  }
+
+  changePageTo(dateObj.date)
+  if (!isSameDay(new Date(dateObj.date), selected.value)) {
+    selected.value = new Date(dateObj.date)
+    emit('select-change', selected.value)
+  }
+}
+
 defineExpose({
-  // 切换周/月视图
   toggleViewMode,
-  // 切换日历页
   changePageTo,
-  // 切换选中日期
   changeSelectedDate
 })
 </script>

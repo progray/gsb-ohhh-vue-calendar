@@ -1,4 +1,5 @@
 @use './variable.scss';
+@use './animations.scss';
 
 .ohhh-calendar-container {
   -webkit-tap-highlight-color: transparent;
@@ -42,6 +43,7 @@
   margin: 0 auto;
   font-size: var(--calendar-toolbar-font-size);
   font-weight: 500;
+  color: var(--calendar-text-color-level-1);
 }
 
 .ohhh-calendar-weekdays {
@@ -61,7 +63,7 @@
   position: relative;
   overflow: hidden;
   height: calc(var(--calendar-rows) * var(--calendar-row-height));
-  transition: height var(--calendar-transition-duration) ease;
+  transition: height var(--calendar-transition-duration) cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 .ohhh-calendar-days {
   display: grid;
@@ -70,15 +72,19 @@
   inset: 0;
   width: 100%;
   transform: translate3d(var(--translate-distance), 0, 0);
-  transition: transform var(--transition-duration) ease;
+  transition: transform var(--transition-duration) cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 .ohhh-calendar-day {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   height: var(--calendar-row-height);
   cursor: pointer;
+  overflow: visible;
+  animation: fadeInUp 0.5s ease-out forwards;
+  opacity: 0;
 }
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-label {
@@ -98,6 +104,13 @@
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-label {
   color: var(--calendar-days-selected-color);
 }
+.ohhh-calendar-day.has-mood .ohhh-calendar-day--inner {
+  flex-direction: column;
+}
+.ohhh-calendar-day.has-mood .ohhh-calendar-day--inner-value {
+  transform: translateY(-4px);
+  font-size: calc(var(--calendar-days-value-font-size) - 2px);
+}
 
 .ohhh-calendar-day--inner {
   display: flex;
@@ -109,14 +122,30 @@
   padding: var(--calendar-days-inner-padding);
   border-radius: var(--calendar-days-inner-radius);
   background: var(--calendar-days-inner-background);
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+.ohhh-calendar-day--inner:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 .ohhh-calendar-day--inner-value {
   font-size: var(--calendar-days-value-font-size);
   color: var(--calendar-days-value-color);
+  transition: transform 0.3s ease, font-size 0.3s ease;
 }
 .ohhh-calendar-day--inner-label {
   font-size: var(--calendar-days-label-font-size);
   color: var(--calendar-days-label-color);
+}
+.ohhh-calendar-day--inner-mood {
+  font-size: var(--calendar-days-marker-size);
+  line-height: 1;
+  margin-top: 0;
+  animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+.ohhh-calendar-day--inner-mood.animate-shake {
+  animation: shake 0.5s ease-in-out;
 }
 .ohhh-calendar-day--marker {
   flex: none;
@@ -137,4 +166,136 @@
 .ohhh-calendar-footer--icon svg {
   width: var(--calendar-footer-icon-size);
   height: var(--calendar-footer-icon-size);
+}
+
+.ripple-effect {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  animation: ripple 0.6s ease-out forwards;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.mood-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--calendar-modal-background);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: modalFadeIn 0.3s ease-out forwards;
+}
+
+.mood-panel {
+  background: var(--calendar-panel-background);
+  border-radius: var(--calendar-panel-border-radius);
+  padding: var(--calendar-panel-padding);
+  max-width: 320px;
+  width: 90%;
+  animation: panelSlideUp 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+.mood-panel-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--calendar-text-color-level-1);
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.mood-panel-options {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.mood-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  opacity: 0;
+  animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+.mood-option:hover {
+  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.mood-option:active {
+  transform: scale(0.95);
+}
+
+.mood-option-emoji {
+  font-size: 36px;
+  margin-bottom: 8px;
+}
+
+.mood-option-label {
+  font-size: 12px;
+  color: var(--calendar-text-color-level-2);
+}
+
+.mood-chart-container {
+  margin-top: 20px;
+  padding: 16px;
+  background: var(--calendar-panel-background);
+  border-radius: var(--calendar-panel-border-radius);
+}
+
+.mood-chart-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--calendar-text-color-level-1);
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.mood-chart-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mood-chart-bar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mood-chart-bar-emoji {
+  font-size: 20px;
+  width: 28px;
+  text-align: center;
+}
+
+.mood-chart-bar-wrapper {
+  flex: 1;
+  height: var(--calendar-chart-bar-height);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--calendar-chart-bar-radius);
+  overflow: hidden;
+}
+
+.mood-chart-bar-fill {
+  height: 100%;
+  border-radius: var(--calendar-chart-bar-radius);
+  background: var(--calendar-theme-color);
+  animation: barGrow 0.8s ease-out forwards;
+}
+
+.mood-chart-bar-count {
+  font-size: 12px;
+  color: var(--calendar-text-color-level-2);
+  min-width: 32px;
+  text-align: right;
+  animation: numberCount 0.3s ease-out forwards;
 }

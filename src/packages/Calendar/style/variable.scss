@@ -1,18 +1,18 @@
 .ohhh-calendar-container {
-  --calendar-theme-color: #409eff;
-  --calendar-theme-color-light: #{rgba(#409eff, 0.2)};
+  --calendar-theme-color: #6366f1;
+  --calendar-theme-color-light: #{rgba(#6366f1, 0.3)};
 
-  --calendar-text-color-level-1: #303133;
-  --calendar-text-color-level-2: #606266;
-  --calendar-text-color-level-3: #909399;
-  --calendar-text-color-level-4: #a8abb2;
-  --calendar-text-color-level-5: #c0c4cc;
+  --calendar-text-color-level-1: #e5e7eb;
+  --calendar-text-color-level-2: #9ca3af;
+  --calendar-text-color-level-3: #6b7280;
+  --calendar-text-color-level-4: #4b5563;
+  --calendar-text-color-level-5: #374151;
 
-  --calendar-background: transparent;
-  --calendar-row-height: 60px;
+  --calendar-background: #1f2937;
+  --calendar-row-height: 70px;
 
   --calendar-icon-size: 20px;
-  --calendar-icon-color: var(--calendar-text-color-level-3);
+  --calendar-icon-color: var(--calendar-text-color-level-2);
 
   --calendar-toolbar-font-size: 16px;
   --calendar-toolbar-icon-size: var(--calendar-icon-size);
@@ -24,9 +24,9 @@
   --calendar-footer-icon-color: var(--calendar-icon-color);
   --calendar-footer-padding: 12px;
 
-  --calendar-weekdays-height: 30px;
-  --calendar-weekdays-font-size: 14px;
-  --calendar-weekdays-color: var(--calendar-text-color-level-1);
+  --calendar-weekdays-height: 36px;
+  --calendar-weekdays-font-size: 13px;
+  --calendar-weekdays-color: var(--calendar-text-color-level-2);
 
   --calendar-days-value-font-size: 14px;
   --calendar-days-value-color: var(--calendar-text-color-level-1);
@@ -39,14 +39,23 @@
   --calendar-days-selected-background: var(--calendar-theme-color);
   --calendar-days-other-month-color: var(--calendar-text-color-level-5);
 
-  --calendar-days-inner-size: 34px;
+  --calendar-days-inner-size: 40px;
   --calendar-days-inner-width: var(--calendar-days-inner-size);
   --calendar-days-inner-height: var(--calendar-days-inner-size);
   --calendar-days-inner-padding: 2px;
   --calendar-days-inner-radius: 50%;
   --calendar-days-inner-background: transparent;
 
-  --calendar-days-marker-top-gap: 4px;
-  --calendar-days-marker-size: 4px;
+  --calendar-days-marker-top-gap: 2px;
+  --calendar-days-marker-size: 20px;
   --calendar-days-marker-color: var(--calendar-theme-color);
+
+  --calendar-modal-background: rgba(0, 0, 0, 0.6);
+  --calendar-panel-background: #374151;
+  --calendar-panel-border-radius: 16px;
+  --calendar-panel-padding: 24px;
+
+  --calendar-mood-emoji-size: 32px;
+  --calendar-chart-bar-height: 8px;
+  --calendar-chart-bar-radius: 4px;
 }
