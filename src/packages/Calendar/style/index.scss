@@ -138,3 +138,73 @@
   width: var(--calendar-footer-icon-size);
   height: var(--calendar-footer-icon-size);
 }
+
+// 倒计时显示区域样式
+.ohhh-calendar-countdown {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: var(--countdown-margin);
+  padding: var(--countdown-padding);
+  background: var(--countdown-background);
+  backdrop-filter: var(--countdown-backdrop-filter);
+  -webkit-backdrop-filter: var(--countdown-backdrop-filter);
+  border-radius: var(--countdown-border-radius);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.ohhh-calendar-countdown--text {
+  font-size: var(--countdown-font-size);
+  font-weight: var(--countdown-font-weight);
+  color: var(--countdown-color, var(--calendar-theme-color));
+}
+
+// 过期状态下的倒计时样式
+.ohhh-calendar-countdown.is-expired .ohhh-calendar-countdown--text {
+  color: var(--countdown-expired-color);
+}
+
+// 倒计时目标日期样式（醒目标记边框）
+.ohhh-calendar-day.is-countdown-target .ohhh-calendar-day--inner {
+  position: relative;
+  border: var(--countdown-target-border-width) var(--countdown-target-border-style) var(--countdown-color, var(--calendar-theme-color));
+  animation: countdown-pulse var(--countdown-target-animation-duration) ease-in-out infinite;
+}
+
+// 过期状态下的目标日期样式
+.ohhh-calendar-day.is-countdown-target.is-expired .ohhh-calendar-day--inner {
+  border-color: var(--countdown-expired-color);
+  animation: none;
+}
+
+// 倒计时范围内的日期样式（渐变色带效果）
+.ohhh-calendar-day.in-countdown-range .ohhh-calendar-day--inner {
+  background: color-mix(
+    in srgb,
+    var(--countdown-color, var(--calendar-theme-color)) calc(var(--countdown-gradient) * 60% + 10%),
+    transparent
+  );
+  transition: background 0.3s ease;
+}
+
+// 过期状态下的倒计时范围日期样式
+.ohhh-calendar-day.in-countdown-range.is-expired .ohhh-calendar-day--inner {
+  background: color-mix(
+    in srgb,
+    var(--countdown-expired-color) calc(var(--countdown-gradient) * 30% + 5%),
+    transparent
+  );
+}
+
+// 倒计时脉冲动画
+@keyframes countdown-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 var(--countdown-color, var(--calendar-theme-color));
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(var(--calendar-theme-color-rgb, 64, 158, 255), 0.3);
+    transform: scale(1.02);
+  }
+}
