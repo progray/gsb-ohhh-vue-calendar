@@ -1,14 +1,14 @@
 import { ref, computed, nextTick } from 'vue'
 import { createMonthDates, createWeekDates, isSameDay } from '../utils/index.js'
 
-export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit) {
+export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration, events }, emit) {
   // 选中的日期
   const selected = ref(initialSelectedDate.value)
   // 当前渲染页年份
   const currentYear = ref(initialSelectedDate.value.getFullYear())
   // 当前渲染页月份(索引)
   const currentMonth = ref(initialSelectedDate.value.getMonth())
-  // 当前渲染视图模式
+  // 当前渲染视图模式 (month/week/timeline)
   const viewMode = ref(initialViewMode.value)
   // 周视图下，当前展示的周索引
   const weekIndex = ref(0)
@@ -89,13 +89,45 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     nextWeekDates.value = createWeekDates(date, weekStart.value)
   }
 
-  // 切换视图模式
+  // 切换视图模式 (支持 month -> week -> timeline -> month 循环)
   function toggleViewMode() {
-    viewMode.value = viewMode.value === 'week' ? 'month' : 'week'
+    if (viewMode.value === 'month') {
+      viewMode.value = 'week'
+    } else if (viewMode.value === 'week') {
+      viewMode.value = 'timeline'
+    } else {
+      viewMode.value = 'month'
+    }
     renderRows.value = currentRenderRows.value
     _setWeekIndex()
     emit('view-change', viewMode.value)
   }
+
+  // 直接切换到指定视图模式
+  function switchViewMode(mode) {
+    viewMode.value = mode
+    renderRows.value = currentRenderRows.value
+    _setWeekIndex()
+    emit('view-change', viewMode.value)
+  }
+
+  // 获取指定日期的日程数量
+  function getEventCountForDate(date) {
+    if (!events || !events.value) return 0
+    return events.value.filter(event => isSameDay(new Date(event.date), date)).length
+  }
+
+  // 获取选中日期的所有日程
+  const selectedDateEvents = computed(() => {
+    if (!events || !events.value || !selected.value) return []
+    return events.value
+      .filter(event => isSameDay(new Date(event.date), selected.value))
+      .sort((a, b) => {
+        const timeA = a.startTime || '00:00'
+        const timeB = b.startTime || '00:00'
+        return timeA.localeCompare(timeB)
+      })
+  })
 
   // 切换的目标日期
   const _targetDate = ref(null)
@@ -235,6 +267,9 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     switchPageToTargetDate,
     startTransitionAnimation,
     onTransitionEnd,
-    toggleViewMode
+    toggleViewMode,
+    switchViewMode,
+    getEventCountForDate,
+    selectedDateEvents
   }
 }
