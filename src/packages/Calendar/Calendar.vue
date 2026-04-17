@@ -1,6 +1,7 @@
 <template>
   <div
     class="ohhh-calendar-container"
+    :class="{ 'is-timeline-view': viewMode === 'timeline' }"
     :style="{
       '--calendar-rows': renderRows,
       '--calendar-transition-duration': duration,
@@ -8,65 +9,99 @@
       '--transition-duration': transitionDuration
     }"
   >
-    <!-- 顶部工具栏 -->
-    <div v-if="showToolbar" class="ohhh-calendar-toolbar">
-      <slot name="toolbar" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
-        <div v-html="icons.arrowDoubleLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-year')" />
-        <div v-html="icons.arrowLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-page')" />
-        <div class="ohhh-calendar-toolbar--text">{{ headerLabel }}</div>
-        <div v-html="icons.arrowRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-page')" />
-        <div v-html="icons.arrowDoubleRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-year')" />
-      </slot>
-    </div>
+    <!-- 时间轴视图 -->
+    <TimelineView
+      v-if="viewMode === 'timeline'"
+      :selectedDate="selected"
+      :events="selectedDateEvents"
+      :hourHeight="timelineHourHeight"
+      :showCurrentTimeIndicator="showCurrentTimeIndicator"
+      @create-event="onCreateEvent"
+      @click-event="onClickEvent"
+    />
 
-    <!-- 星期栏 -->
-    <div v-if="showWeekdays" class="ohhh-calendar-weekdays">
-      <div v-for="(day, index) in weekdays" :key="day" class="ohhh-calendar-weekdays--weekday">
-        <slot name="weekday" :weekday="day" :index="(index + weekStart) % 7">{{ day }}</slot>
+    <!-- 月视图/周视图 -->
+    <template v-else>
+      <!-- 顶部工具栏 -->
+      <div v-if="showToolbar" class="ohhh-calendar-toolbar">
+        <slot name="toolbar" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
+          <div v-html="icons.arrowDoubleLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-year')" />
+          <div v-html="icons.arrowLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-page')" />
+          <div class="ohhh-calendar-toolbar--text">{{ headerLabel }}</div>
+          <div v-html="icons.arrowRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-page')" />
+          <div v-html="icons.arrowDoubleRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-year')" />
+        </slot>
       </div>
-    </div>
 
-    <!-- 日历主体 -->
-    <div ref="swp" class="ohhh-calendar-wrapper">
-      <div
-        v-for="(item, index) in allRenderDates"
-        :key="index"
-        :style="{ left: 100 * (index - 1) + '%' }"
-        class="ohhh-calendar-days"
-        @transitionend="onTransitionEnd"
-      >
-        <div
-          v-for="dateObj in item"
-          :key="dateObj.key"
-          class="ohhh-calendar-day"
-          :class="{
-            'is-selected': isSameDay(dateObj.date, selected),
-            'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
-          }"
-          @click="changeSelectedDate(dateObj.date)"
-        >
-          <div class="ohhh-calendar-day--inner">
-            <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
-            <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
-              <slot name="day-label" :date="dateObj.date" />
-            </div>
-          </div>
-          <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+      <!-- 星期栏 -->
+      <div v-if="showWeekdays" class="ohhh-calendar-weekdays">
+        <div v-for="(day, index) in weekdays" :key="day" class="ohhh-calendar-weekdays--weekday">
+          <slot name="weekday" :weekday="day" :index="(index + weekStart) % 7">{{ day }}</slot>
         </div>
       </div>
-    </div>
 
-    <!-- 底部工具栏 -->
-    <div v-if="showFooter" class="ohhh-calendar-footer">
-      <slot name="footer" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
+      <!-- 日历主体 -->
+      <div ref="swp" class="ohhh-calendar-wrapper">
         <div
-          v-html="viewMode === 'week' ? icons.arrowDown : icons.arrowUp"
-          class="ohhh-calendar-footer--icon"
-          @click="toggleViewMode"
-        />
-      </slot>
-    </div>
+          v-for="(item, index) in allRenderDates"
+          :key="index"
+          :style="{ left: 100 * (index - 1) + '%' }"
+          class="ohhh-calendar-days"
+          @transitionend="onTransitionEnd"
+        >
+          <div
+            v-for="dateObj in item"
+            :key="dateObj.key"
+            class="ohhh-calendar-day"
+            :class="{
+              'is-selected': isSameDay(dateObj.date, selected),
+              'is-today': isSameDay(dateObj.date, new Date()),
+              'other-month': !dateObj.current
+            }"
+            @click="changeSelectedDate(dateObj.date)"
+          >
+            <div class="ohhh-calendar-day--inner">
+              <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
+              <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
+                <slot name="day-label" :date="dateObj.date" />
+              </div>
+            </div>
+            <div class="ohhh-calendar-day--bottom-row">
+              <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+              <div
+                v-if="getEventCountForDate(dateObj.date) > 0"
+                class="ohhh-calendar-day--event-count"
+              >
+                {{ getEventCountForDate(dateObj.date) }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 底部工具栏 -->
+      <div v-if="showFooter" class="ohhh-calendar-footer">
+        <slot name="footer" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
+          <div class="ohhh-calendar-footer--view-indicator">
+            <span
+              :class="{ 'is-active': viewMode === 'month' }"
+              class="ohhh-calendar-footer--view-text"
+              @click="switchViewMode('month')"
+            >月</span>
+            <span
+              :class="{ 'is-active': viewMode === 'week' }"
+              class="ohhh-calendar-footer--view-text"
+              @click="switchViewMode('week')"
+            >周</span>
+            <span
+              :class="{ 'is-active': viewMode === 'timeline' }"
+              class="ohhh-calendar-footer--view-text"
+              @click="switchViewMode('timeline')"
+            >时间轴</span>
+          </div>
+        </slot>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -76,10 +111,11 @@ import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
 import { isSameDay, createWeekdays } from './utils'
 import { icons } from './utils/icons.js'
+import TimelineView from './TimelineView.vue'
 
 const swipeRef = useTemplateRef('swp')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'create-event', 'click-event'])
 
 const props = defineProps({
   // 初始选中的日期
@@ -90,7 +126,7 @@ const props = defineProps({
   // 初始视图模式
   initialViewMode: {
     type: String,
-    default: 'month' // month or week
+    default: 'month' // month, week or timeline
   },
   // 以周几作为每周的起始
   weekStart: {
@@ -99,6 +135,11 @@ const props = defineProps({
   },
   // 标记的日期
   markerDates: {
+    type: Array,
+    default: () => []
+  },
+  // 日程数据
+  events: {
     type: Array,
     default: () => []
   },
@@ -121,10 +162,20 @@ const props = defineProps({
   duration: {
     type: String,
     default: '0.3s'
+  },
+  // 时间轴每小时高度
+  timelineHourHeight: {
+    type: Number,
+    default: 60
+  },
+  // 是否显示当前时间指示线
+  showCurrentTimeIndicator: {
+    type: Boolean,
+    default: true
   }
 })
 
-const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration } = toRefs(props)
+const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration, events } = toRefs(props)
 
 const {
   selected,
@@ -140,8 +191,11 @@ const {
   switchPageToTargetDate,
   startTransitionAnimation,
   onTransitionEnd,
-  toggleViewMode
-} = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
+  toggleViewMode,
+  switchViewMode,
+  getEventCountForDate,
+  selectedDateEvents
+} = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration, events }, emit)
 
 // 顶部工具栏标题
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
@@ -235,9 +289,20 @@ function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
+// 时间轴视图 - 创建新日程
+function onCreateEvent(event) {
+  emit('create-event', event)
+}
+
+// 时间轴视图 - 点击日程
+function onClickEvent(event) {
+  emit('click-event', event)
+}
+
 defineExpose({
-  // 切换周/月视图
+  // 切换视图
   toggleViewMode,
+  switchViewMode,
   // 切换日历页
   changePageTo,
   // 切换选中日期

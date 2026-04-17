@@ -118,12 +118,36 @@
   font-size: var(--calendar-days-label-font-size);
   color: var(--calendar-days-label-color);
 }
+.ohhh-calendar-day--bottom-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: var(--calendar-days-marker-top-gap);
+  min-height: var(--calendar-days-marker-size);
+}
+
 .ohhh-calendar-day--marker {
   flex: none;
-  margin-top: var(--calendar-days-marker-top-gap);
   width: var(--calendar-days-marker-size);
   height: var(--calendar-days-marker-size);
   border-radius: 50%;
+}
+
+.ohhh-calendar-day--event-count {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--calendar-theme-color);
+  border-radius: 8px;
+  line-height: 1;
 }
 
 .ohhh-calendar-footer {
@@ -137,4 +161,44 @@
 .ohhh-calendar-footer--icon svg {
   width: var(--calendar-footer-icon-size);
   height: var(--calendar-footer-icon-size);
+}
+
+.ohhh-calendar-footer--view-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+}
+
+.ohhh-calendar-footer--view-text {
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--calendar-text-color-level-3);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ohhh-calendar-footer--view-text:hover {
+  color: var(--calendar-text-color-level-2);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.ohhh-calendar-footer--view-text.is-active {
+  color: #fff;
+  background: var(--calendar-theme-color);
+  font-weight: 500;
+}
+
+.ohhh-calendar-container.is-timeline-view {
+  height: 100%;
+}
+
+.ohhh-calendar-container.is-timeline-view .ohhh-calendar-toolbar,
+.ohhh-calendar-container.is-timeline-view .ohhh-calendar-weekdays,
+.ohhh-calendar-container.is-timeline-view .ohhh-calendar-wrapper,
+.ohhh-calendar-container.is-timeline-view .ohhh-calendar-footer {
+  display: none;
 }
