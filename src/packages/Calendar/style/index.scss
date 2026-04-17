@@ -162,23 +162,29 @@
 }
 
 .ohhh-calendar-moon.new-moon .ohhh-calendar-moon-icon {
-  background: radial-gradient(circle at 50% 50%, rgba(245, 216, 165, 0.2) 45%, transparent 45%);
+  background: rgba(245, 216, 165, 0.15);
   box-shadow: none;
 }
 
 .ohhh-calendar-moon.waxing-crescent .ohhh-calendar-moon-icon {
-  background: radial-gradient(ellipse at 25% 50%, transparent 40%, rgba(245, 216, 165, 0.85) 40%);
-  box-shadow: 1px 0 3px rgba(245, 216, 165, 0.3);
+  background: var(--calendar-moon-color);
+  box-shadow:
+    inset -8px 0 6px -2px rgba(180, 180, 180, 0.6),
+    1px 0 3px rgba(245, 216, 165, 0.3);
 }
 
 .ohhh-calendar-moon.first-quarter .ohhh-calendar-moon-icon {
-  background: linear-gradient(90deg, transparent 50%, rgba(245, 216, 165, 0.85) 50%);
-  box-shadow: 1px 0 4px rgba(245, 216, 165, 0.4);
+  background: linear-gradient(90deg, rgba(200, 200, 200, 0.3) 50%, var(--calendar-moon-color) 50%);
+  box-shadow:
+    inset -1px 0 0 0 rgba(180, 180, 180, 0.5),
+    1px 0 4px rgba(245, 216, 165, 0.4);
 }
 
 .ohhh-calendar-moon.waxing-gibbous .ohhh-calendar-moon-icon {
-  background: radial-gradient(ellipse at 40% 50%, transparent 25%, rgba(245, 216, 165, 0.85) 25%);
-  box-shadow: 0 0 5px rgba(245, 216, 165, 0.4);
+  background: var(--calendar-moon-color);
+  box-shadow:
+    inset -4px 0 5px -1px rgba(180, 180, 180, 0.4),
+    0 0 5px rgba(245, 216, 165, 0.4);
 }
 
 .ohhh-calendar-moon.full-moon .ohhh-calendar-moon-icon {
@@ -190,18 +196,24 @@
 }
 
 .ohhh-calendar-moon.waning-gibbous .ohhh-calendar-moon-icon {
-  background: radial-gradient(ellipse at 60% 50%, transparent 25%, rgba(245, 216, 165, 0.85) 25%);
-  box-shadow: 0 0 5px rgba(245, 216, 165, 0.4);
+  background: var(--calendar-moon-color);
+  box-shadow:
+    inset 4px 0 5px -1px rgba(180, 180, 180, 0.4),
+    0 0 5px rgba(245, 216, 165, 0.4);
 }
 
 .ohhh-calendar-moon.last-quarter .ohhh-calendar-moon-icon {
-  background: linear-gradient(-90deg, transparent 50%, rgba(245, 216, 165, 0.85) 50%);
-  box-shadow: -1px 0 4px rgba(245, 216, 165, 0.4);
+  background: linear-gradient(-90deg, rgba(200, 200, 200, 0.3) 50%, var(--calendar-moon-color) 50%);
+  box-shadow:
+    inset 1px 0 0 0 rgba(180, 180, 180, 0.5),
+    -1px 0 4px rgba(245, 216, 165, 0.4);
 }
 
 .ohhh-calendar-moon.waning-crescent .ohhh-calendar-moon-icon {
-  background: radial-gradient(ellipse at 75% 50%, transparent 40%, rgba(245, 216, 165, 0.85) 40%);
-  box-shadow: -1px 0 3px rgba(245, 216, 165, 0.3);
+  background: var(--calendar-moon-color);
+  box-shadow:
+    inset 8px 0 6px -2px rgba(180, 180, 180, 0.6),
+    -1px 0 3px rgba(245, 216, 165, 0.3);
 }
 
 .ohhh-calendar-moon-tooltip {
