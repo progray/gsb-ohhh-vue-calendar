@@ -19,6 +19,16 @@
       </slot>
     </div>
 
+    <!-- 倒计时显示区域 -->
+    <div
+      v-if="countDownEnabled && parsedCountDownDate"
+      class="ohhh-calendar-countdown"
+      :class="{ 'is-expired': isCountDownExpired }"
+      :style="{ '--countdown-color': countDownColor }"
+    >
+      <div class="ohhh-calendar-countdown--text">{{ countDownDisplayText }}</div>
+    </div>
+
     <!-- 星期栏 -->
     <div v-if="showWeekdays" class="ohhh-calendar-weekdays">
       <div v-for="(day, index) in weekdays" :key="day" class="ohhh-calendar-weekdays--weekday">
@@ -42,8 +52,18 @@
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'is-countdown-target': isCountDownTargetDate(dateObj.date),
+            'in-countdown-range': isInCountDownRange(dateObj.date)
           }"
+          :style="
+            countDownEnabled && getCountDownDateGradient(dateObj.date) !== null
+              ? {
+                  '--countdown-gradient': getCountDownDateGradient(dateObj.date),
+                  '--countdown-color': countDownColor
+                }
+              : {}
+          "
           @click="changeSelectedDate(dateObj.date)"
         >
           <div class="ohhh-calendar-day--inner">
@@ -121,10 +141,27 @@ const props = defineProps({
   duration: {
     type: String,
     default: '0.3s'
+  },
+  // 倒计时功能相关
+  countDownEnabled: {
+    type: Boolean,
+    default: false
+  },
+  countDownDate: {
+    type: [Date, String],
+    default: null
+  },
+  countDownTitle: {
+    type: String,
+    default: ''
+  },
+  countDownColor: {
+    type: String,
+    default: null
   }
 })
 
-const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration } = toRefs(props)
+const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration, countDownEnabled, countDownDate, countDownTitle, countDownColor } = toRefs(props)
 
 const {
   selected,
@@ -154,6 +191,104 @@ const markerDateList = computed(() =>
     color: typeof item === 'object' && item.color ? item.color : 'var(--calendar-theme-color)'
   }))
 )
+
+// 倒计时相关计算
+// 解析倒计时日期
+const parsedCountDownDate = computed(() => {
+  if (!countDownDate.value) return null
+  const date = new Date(countDownDate.value)
+  return Number.isNaN(date.getTime()) ? null : date
+})
+
+// 获取今天的日期（仅年月日，去掉时分秒）
+const today = computed(() => {
+  const now = new Date()
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate())
+})
+
+// 计算倒计时天数差
+const countDownDaysDiff = computed(() => {
+  if (!parsedCountDownDate.value) return 0
+  const targetDate = new Date(
+    parsedCountDownDate.value.getFullYear(),
+    parsedCountDownDate.value.getMonth(),
+    parsedCountDownDate.value.getDate()
+  )
+  const timeDiff = targetDate.getTime() - today.value.getTime()
+  return Math.ceil(timeDiff / (1000 * 60 * 60 * 24))
+})
+
+// 判断倒计时是否已过期
+const isCountDownExpired = computed(() => {
+  return countDownDaysDiff.value < 0
+})
+
+// 生成倒计时显示文本
+const countDownDisplayText = computed(() => {
+  if (!countDownEnabled.value || !parsedCountDownDate.value) return ''
+  
+  const days = Math.abs(countDownDaysDiff.value)
+  
+  if (isCountDownExpired.value) {
+    return countDownTitle.value ? `已过 ${days} 天 - ${countDownTitle.value}` : `已过 ${days} 天`
+  } else {
+    return countDownTitle.value ? `距离${countDownTitle.value}还有 ${days} 天` : `还有 ${days} 天`
+  }
+})
+
+// 计算日期的颜色梯度值（用于渐变色带）
+function getCountDownDateGradient(date) {
+  if (!countDownEnabled.value || !parsedCountDownDate.value) return null
+  
+  const checkDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const targetDate = new Date(
+    parsedCountDownDate.value.getFullYear(),
+    parsedCountDownDate.value.getMonth(),
+    parsedCountDownDate.value.getDate()
+  )
+  
+  // 如果是目标日期，返回1（最深色）
+  if (isSameDay(checkDate, targetDate)) {
+    return 1
+  }
+  
+  // 如果日期在今天和目标日期之间
+  if (checkDate > today.value && checkDate < targetDate) {
+    const totalDays = targetDate.getTime() - today.value.getTime()
+    const passedDays = checkDate.getTime() - today.value.getTime()
+    return passedDays / totalDays
+  }
+  
+  // 如果日期已过期且在目标日期之后
+  if (checkDate > targetDate) {
+    const totalDays = today.value.getTime() - targetDate.getTime()
+    if (totalDays <= 0) return 0
+    const passedDays = checkDate.getTime() - targetDate.getTime()
+    return Math.min(passedDays / totalDays, 1)
+  }
+  
+  return null
+}
+
+// 判断日期是否是倒计时目标日期
+function isCountDownTargetDate(date) {
+  if (!countDownEnabled.value || !parsedCountDownDate.value) return false
+  return isSameDay(date, parsedCountDownDate.value)
+}
+
+// 判断日期是否在倒计时范围内
+function isInCountDownRange(date) {
+  if (!countDownEnabled.value || !parsedCountDownDate.value) return false
+  
+  const checkDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const targetDate = new Date(
+    parsedCountDownDate.value.getFullYear(),
+    parsedCountDownDate.value.getMonth(),
+    parsedCountDownDate.value.getDate()
+  )
+  
+  return checkDate >= today.value && checkDate <= targetDate
+}
 
 // 监听滑动事件
 const { lengthX } = useSwipe(swipeRef, {

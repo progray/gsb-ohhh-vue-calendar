@@ -49,4 +49,27 @@
   --calendar-days-marker-top-gap: 4px;
   --calendar-days-marker-size: 4px;
   --calendar-days-marker-color: var(--calendar-theme-color);
+
+  // 倒计时功能相关变量
+  --countdown-color: var(--calendar-theme-color);
+  --countdown-color-light: rgba(var(--calendar-theme-color-rgb, 64, 158, 255), 0.1);
+  --countdown-expired-color: #909399;
+  --countdown-expired-color-light: rgba(144, 147, 153, 0.1);
+
+  --countdown-background: rgba(255, 255, 255, 0.7);
+  --countdown-backdrop-filter: blur(10px);
+  --countdown-border-radius: 12px;
+  --countdown-padding: 8px 16px;
+  --countdown-margin: 0 16px 8px 16px;
+  --countdown-font-size: 14px;
+  --countdown-font-weight: 500;
+  --countdown-text-color: var(--calendar-text-color-level-1);
+
+  --countdown-target-border-width: 3px;
+  --countdown-target-border-style: dashed;
+  --countdown-target-border-radius: var(--calendar-days-inner-radius);
+  --countdown-target-animation-duration: 2s;
+
+  --countdown-range-opacity-min: 0.1;
+  --countdown-range-opacity-max: 0.6;
 }
