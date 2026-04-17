@@ -116,9 +116,16 @@ const monthlyExpense = computed(() => {
 
 const monthlyBalance = computed(() => monthlyIncome.value - monthlyExpense.value)
 
+function hasTransactions(date) {
+  const dateStr = formatDateYYYYMMDD(date)
+  return transactionData.some(t => t.date === dateStr)
+}
+
 function onSelectChange(date) {
-  selectedDate.value = date
-  modalVisible.value = true
+  if (hasTransactions(date)) {
+    selectedDate.value = date
+    modalVisible.value = true
+  }
 }
 
 function onViewChange(viewMode) {
