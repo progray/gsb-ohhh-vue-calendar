@@ -52,7 +52,14 @@
               <slot name="day-label" :date="dateObj.date" />
             </div>
           </div>
-          <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+          <div class="ohhh-calendar-day--markers">
+            <div
+              v-for="(marker, index) in _getMarkers(dateObj.date)"
+              :key="index"
+              class="ohhh-calendar-day--marker"
+              :style="{ background: marker.color }"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -154,6 +161,11 @@ const markerDateList = computed(() =>
     color: typeof item === 'object' && item.color ? item.color : 'var(--calendar-theme-color)'
   }))
 )
+
+// 获取某一天的所有标记点
+function _getMarkers(date) {
+  return markerDateList.value.filter(d => isSameDay(d.date, date))
+}
 
 // 监听滑动事件
 const { lengthX } = useSwipe(swipeRef, {

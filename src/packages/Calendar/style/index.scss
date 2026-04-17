@@ -42,6 +42,7 @@
   margin: 0 auto;
   font-size: var(--calendar-toolbar-font-size);
   font-weight: 500;
+  color: var(--calendar-text-color-level-1);
 }
 
 .ohhh-calendar-weekdays {
@@ -118,9 +119,15 @@
   font-size: var(--calendar-days-label-font-size);
   color: var(--calendar-days-label-color);
 }
+.ohhh-calendar-day--markers {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  margin-top: var(--calendar-days-marker-top-gap);
+}
 .ohhh-calendar-day--marker {
   flex: none;
-  margin-top: var(--calendar-days-marker-top-gap);
   width: var(--calendar-days-marker-size);
   height: var(--calendar-days-marker-size);
   border-radius: 50%;
