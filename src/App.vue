@@ -298,6 +298,11 @@ body {
   font-weight: 700;
 }
 
+.ohhh-calendar-day.is-today.is-selected .ohhh-calendar-day--inner-value {
+  color: #fff;
+  font-weight: 700;
+}
+
 .workout-card {
   margin-top: 20px;
   background: #1f2937;
