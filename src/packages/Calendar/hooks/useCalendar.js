@@ -227,6 +227,8 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     currentYear,
     currentMonth,
     currentRenderDates,
+    prevRenderDates,
+    nextRenderDates,
     allRenderDates,
     transformDistance,
     transitionDuration,

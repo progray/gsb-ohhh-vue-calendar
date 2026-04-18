@@ -1,6 +1,7 @@
 <template>
   <div
     class="ohhh-calendar-container"
+    :class="{ 'is-week-view': viewMode === 'week' }"
     :style="{
       '--calendar-rows': renderRows,
       '--calendar-transition-duration': duration,
@@ -16,6 +17,10 @@
         <div class="ohhh-calendar-toolbar--text">{{ headerLabel }}</div>
         <div v-html="icons.arrowRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-page')" />
         <div v-html="icons.arrowDoubleRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-year')" />
+        <!-- 视图切换按钮 -->
+        <div class="ohhh-calendar-toolbar--view-switch" @click="toggleViewMode">
+          {{ viewMode === 'week' ? '月视图' : '周视图' }}
+        </div>
       </slot>
     </div>
 
@@ -27,35 +32,109 @@
     </div>
 
     <!-- 日历主体 -->
-    <div ref="swp" class="ohhh-calendar-wrapper">
-      <div
-        v-for="(item, index) in allRenderDates"
-        :key="index"
-        :style="{ left: 100 * (index - 1) + '%' }"
-        class="ohhh-calendar-days"
-        @transitionend="onTransitionEnd"
-      >
+    <template v-if="viewMode === 'month'">
+      <div ref="swp" class="ohhh-calendar-wrapper">
         <div
-          v-for="dateObj in item"
-          :key="dateObj.key"
-          class="ohhh-calendar-day"
-          :class="{
-            'is-selected': isSameDay(dateObj.date, selected),
-            'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
-          }"
-          @click="changeSelectedDate(dateObj.date)"
+          v-for="(item, index) in allRenderDates"
+          :key="index"
+          :style="{ left: 100 * (index - 1) + '%' }"
+          class="ohhh-calendar-days"
+          @transitionend="onTransitionEnd"
         >
-          <div class="ohhh-calendar-day--inner">
-            <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
-            <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
-              <slot name="day-label" :date="dateObj.date" />
+          <div
+            v-for="dateObj in item"
+            :key="dateObj.key"
+            class="ohhh-calendar-day"
+            :class="{
+              'is-selected': isSameDay(dateObj.date, selected),
+              'is-today': isSameDay(dateObj.date, new Date()),
+              'other-month': !dateObj.current
+            }"
+            @click="changeSelectedDate(dateObj.date)"
+          >
+            <div class="ohhh-calendar-day--inner">
+              <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
+              <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
+                <slot name="day-label" :date="dateObj.date" />
+              </div>
             </div>
+            <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
           </div>
-          <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
         </div>
       </div>
-    </div>
+    </template>
+
+    <!-- 周视图 - 时间轴布局 -->
+    <template v-else>
+      <div ref="swp" class="ohhh-calendar-week-wrapper">
+        <div
+          v-for="(weekData, pageIndex) in allWeekViewData"
+          :key="pageIndex"
+          :style="{ left: 100 * (pageIndex - 1) + '%' }"
+          class="ohhh-calendar-week-page"
+          @transitionend="onTransitionEnd"
+        >
+          <!-- 时间轴左侧 -->
+          <div class="ohhh-calendar-time-axis">
+            <div
+              v-for="hour in timeAxisHours"
+              :key="hour"
+              class="ohhh-calendar-time-axis--hour"
+            >
+              <span class="ohhh-calendar-time-axis--hour-label">{{ _formatHourLabel(hour) }}</span>
+            </div>
+          </div>
+
+          <!-- 日期列区域 -->
+          <div class="ohhh-calendar-week-days">
+            <div
+              v-for="(dateObj, dayIndex) in weekData.dates"
+              :key="dateObj.key"
+              class="ohhh-calendar-week-day"
+              :class="{
+                'is-selected': isSameDay(dateObj.date, selected),
+                'is-today': isSameDay(dateObj.date, new Date()),
+                'other-month': !dateObj.current
+              }"
+              @click="changeSelectedDate(dateObj.date)"
+            >
+              <!-- 日期头部 -->
+              <div class="ohhh-calendar-week-day--header">
+                <div class="ohhh-calendar-week-day--date">{{ dateObj.fullDate.date }}</div>
+              </div>
+
+              <!-- 时间网格 -->
+              <div class="ohhh-calendar-week-day--grid">
+                <div
+                  v-for="hour in timeAxisHours"
+                  :key="hour"
+                  class="ohhh-calendar-week-day--grid-hour"
+                ></div>
+              </div>
+
+              <!-- 事件层 -->
+              <div class="ohhh-calendar-week-day--events">
+                <div
+                  v-for="(event, eventIndex) in weekData.eventsByDay[dayIndex]"
+                  :key="eventIndex"
+                  class="ohhh-calendar-event"
+                  :style="_getEventStyle(event)"
+                  :title="event.title"
+                  @click.stop="$emit('event-click', event)"
+                >
+                  <slot name="event" :event="event">
+                    <div class="ohhh-calendar-event--title">{{ event.title }}</div>
+                    <div class="ohhh-calendar-event--time" v-if="event.showTime">
+                      {{ event.startTime }} - {{ event.endTime }}
+                    </div>
+                  </slot>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
 
     <!-- 底部工具栏 -->
     <div v-if="showFooter" class="ohhh-calendar-footer">
@@ -79,7 +158,7 @@ import { icons } from './utils/icons.js'
 
 const swipeRef = useTemplateRef('swp')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'event-click'])
 
 const props = defineProps({
   // 初始选中的日期
@@ -101,6 +180,27 @@ const props = defineProps({
   markerDates: {
     type: Array,
     default: () => []
+  },
+  // 日程事件数组（用于周视图）
+  // 每个事件格式：{ date: '2025-08-05' 或 Date, startTime: '09:00', endTime: '11:30', title: '会议', color: '#409eff' }
+  events: {
+    type: Array,
+    default: () => []
+  },
+  // 周视图时间轴开始时间（小时）
+  timeAxisStart: {
+    type: Number,
+    default: 8 // 8:00
+  },
+  // 周视图时间轴结束时间（小时）
+  timeAxisEnd: {
+    type: Number,
+    default: 22 // 22:00
+  },
+  // 是否显示事件上的时间
+  showEventTime: {
+    type: Boolean,
+    default: false
   },
   // 是否显示顶部工具栏
   showToolbar: {
@@ -124,7 +224,7 @@ const props = defineProps({
   }
 })
 
-const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration } = toRefs(props)
+const { initialSelectedDate, initialViewMode, weekStart, markerDates, events, timeAxisStart, timeAxisEnd, showEventTime, duration } = toRefs(props)
 
 const {
   selected,
@@ -132,6 +232,8 @@ const {
   currentYear,
   currentMonth,
   currentRenderDates,
+  prevRenderDates,
+  nextRenderDates,
   allRenderDates,
   transformDistance,
   transitionDuration,
@@ -154,6 +256,108 @@ const markerDateList = computed(() =>
     color: typeof item === 'object' && item.color ? item.color : 'var(--calendar-theme-color)'
   }))
 )
+
+// ==================== 周视图时间轴相关 ====================
+
+// 时间轴小时数组（从开始时间到结束时间）
+const timeAxisHours = computed(() => {
+  const hours = []
+  for (let h = timeAxisStart.value; h <= timeAxisEnd.value; h++) {
+    hours.push(h)
+  }
+  return hours
+})
+
+// 时间轴总时长（分钟）
+const timeAxisTotalMinutes = computed(() => {
+  return (timeAxisEnd.value - timeAxisStart.value) * 60
+})
+
+// 归一化事件数据
+const normalizedEvents = computed(() => {
+  return events.value.map(event => {
+    const eventDate = event.date instanceof Date ? event.date : new Date(event.date)
+    return {
+      ...event,
+      eventDate,
+      startMinutes: _timeToMinutes(event.startTime),
+      endMinutes: _timeToMinutes(event.endTime),
+      showTime: showEventTime.value,
+      color: event.color || 'var(--calendar-theme-color)'
+    }
+  })
+})
+
+// 生成周视图数据（包含日期和对应事件）
+function _createWeekViewData(dates) {
+  const eventsByDay = dates.map(() => [])
+  
+  normalizedEvents.value.forEach(event => {
+    dates.forEach((dateObj, index) => {
+      if (isSameDay(event.eventDate, dateObj.date)) {
+        // 检查事件是否在时间轴范围内
+        if (event.endMinutes > timeAxisStart.value * 60 && event.startMinutes < timeAxisEnd.value * 60) {
+          eventsByDay[index].push(event)
+        }
+      }
+    })
+  })
+  
+  return {
+    dates,
+    eventsByDay
+  }
+}
+
+// 当前周视图数据
+const currentWeekViewData = computed(() => {
+  return _createWeekViewData(currentRenderDates.value)
+})
+
+// 上一周视图数据
+const prevWeekViewData = computed(() => {
+  return _createWeekViewData(prevRenderDates.value)
+})
+
+// 下一周视图数据
+const nextWeekViewData = computed(() => {
+  return _createWeekViewData(nextRenderDates.value)
+})
+
+// 所有周视图数据（上一页、当前页、下一页）
+const allWeekViewData = computed(() => {
+  return [prevWeekViewData.value, currentWeekViewData.value, nextWeekViewData.value]
+})
+
+// 时间字符串转分钟数
+function _timeToMinutes(timeStr) {
+  if (!timeStr) return 0
+  const [hours, minutes] = timeStr.split(':').map(Number)
+  return hours * 60 + (minutes || 0)
+}
+
+// 格式化小时标签
+function _formatHourLabel(hour) {
+  return `${hour.toString().padStart(2, '0')}:00`
+}
+
+// 获取事件样式（用于定位和高度）
+function _getEventStyle(event) {
+  const startMinutes = Math.max(event.startMinutes, timeAxisStart.value * 60)
+  const endMinutes = Math.min(event.endMinutes, timeAxisEnd.value * 60)
+  
+  const offsetMinutes = startMinutes - timeAxisStart.value * 60
+  const durationMinutes = endMinutes - startMinutes
+  
+  const topPercent = (offsetMinutes / timeAxisTotalMinutes.value) * 100
+  const heightPercent = (durationMinutes / timeAxisTotalMinutes.value) * 100
+  
+  return {
+    top: `${topPercent}%`,
+    height: `${Math.max(heightPercent, 2)}%`,
+    backgroundColor: event.color
+  }
+}
 
 // 监听滑动事件
 const { lengthX } = useSwipe(swipeRef, {

@@ -22,4 +22,22 @@
 
   --calendar-days-marker-top-gap: 8px;
   --calendar-days-marker-size: 8px;
+
+  --calendar-week-view-height: 800px;
+  --calendar-time-axis-width: 80px;
+  --calendar-time-axis-font-size: 24px;
+
+  --calendar-week-day-header-height: 60px;
+  --calendar-week-day-date-font-size: 28px;
+
+  --calendar-event-padding: 8px 12px;
+  --calendar-event-border-radius: 8px;
+  --calendar-event-title-font-size: 22px;
+  --calendar-event-time-font-size: 18px;
+  --calendar-event-gap: 4px;
+}
+
+.ohhh-calendar-toolbar--view-switch {
+  padding: 8px 20px;
+  border-radius: 8px;
 }
