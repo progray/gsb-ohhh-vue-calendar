@@ -20,6 +20,16 @@
             </div>
             {{ trackLeftDate(year, month) }}
           </template>
+          
+          <template #day-label="{ date }">
+            <div
+              class="range-overlay"
+              :class="{
+                'in-range': isLeftDateInRange(date),
+                'hover-preview': isLeftDateInHoverPreview(date)
+              }"
+            ></div>
+          </template>
         </ohhh-vue-calendar>
       </div>
 
@@ -50,6 +60,19 @@
             </div>
             {{ trackRightDate(year, month) }}
           </template>
+          
+          <template #day-label="{ date }">
+            <div
+              class="range-overlay"
+              :class="{
+                'in-range': isRightDateInRange(date),
+                'hover-preview': isRightDateInHoverPreview(date),
+                'disabled': isRightDateDisabled(date)
+              }"
+              @mouseenter="onRightDateHover(date)"
+              @mouseleave="onRightDateLeave"
+            ></div>
+          </template>
         </ohhh-vue-calendar>
       </div>
     </div>
@@ -71,6 +94,7 @@
 <script setup>
 import { ref } from 'vue'
 import OhhhVueCalendar from './packages/Calendar/Calendar.vue'
+import { isSameDay } from './packages/Calendar/utils/index.js'
 import '/src/packages/Calendar/style/mobile/mobile.scss'
 
 const leftCal = ref(null)
@@ -84,6 +108,8 @@ const leftM = ref(new Date().getMonth())
 
 const rightY = ref(new Date().getFullYear())
 const rightM = ref(new Date().getMonth() + 1)
+
+const hoverDate = ref(null)
 
 // 格式化日期
 function fmt(d) {
@@ -104,6 +130,14 @@ function after(d1, d2) {
   const a = new Date(d1.getFullYear(), d1.getMonth(), d1.getDate())
   const b = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate())
   return a > b
+}
+
+function between(d, s, e) {
+  if (!d || !s || !e) return false
+  const a = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  const b = new Date(s.getFullYear(), s.getMonth(), s.getDate())
+  const c = new Date(e.getFullYear(), e.getMonth(), e.getDate())
+  return a > b && a < c
 }
 
 // 跟踪左侧日期
@@ -187,6 +221,50 @@ function isRightNavDisabled(dir) {
   }
   
   return y < leftY.value || (y === leftY.value && m <= leftM.value)
+}
+
+// 检查左侧日期是否在范围内
+function isLeftDateInRange(date) {
+  if (!start.value || !end.value) return false
+  return between(date, start.value, end.value)
+}
+
+// 检查右侧日期是否在范围内
+function isRightDateInRange(date) {
+  if (!start.value || !end.value) return false
+  return between(date, start.value, end.value)
+}
+
+// 检查左侧日期是否在悬停预览范围内
+function isLeftDateInHoverPreview(date) {
+  if (!start.value || end.value || !hoverDate.value) return false
+  return between(date, start.value, hoverDate.value) || isSameDay(date, hoverDate.value)
+}
+
+// 检查右侧日期是否在悬停预览范围内
+function isRightDateInHoverPreview(date) {
+  if (!start.value || end.value || !hoverDate.value) return false
+  return between(date, start.value, hoverDate.value) || isSameDay(date, hoverDate.value)
+}
+
+// 检查右侧日期是否禁用
+function isRightDateDisabled(date) {
+  if (!start.value) return false
+  return before(date, start.value)
+}
+
+// 右侧日期悬停
+function onRightDateHover(date) {
+  if (start.value && !end.value) {
+    if (!before(date, start.value)) {
+      hoverDate.value = date
+    }
+  }
+}
+
+// 右侧日期悬停离开
+function onRightDateLeave() {
+  hoverDate.value = null
 }
 
 // 左侧选择
@@ -291,6 +369,49 @@ function emitRange() {
   font-size: 16px;
   font-weight: 500;
   color: #333;
+}
+
+/* 范围覆盖层样式 - 关键修复 */
+:deep(.ohhh-calendar-day--inner) {
+  position: relative;
+}
+
+:deep(.ohhh-calendar-day--inner-label) {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0;
+  margin: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.range-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.range-overlay.in-range,
+.range-overlay.hover-preview {
+  background-color: rgba(66, 153, 225, 0.15);
+}
+
+.range-overlay.disabled {
+  cursor: not-allowed;
+  pointer-events: auto;
+}
+
+/* 确保日期数字在覆盖层上面 */
+:deep(.ohhh-calendar-day--inner-value) {
+  position: relative;
+  z-index: 2;
 }
 
 /* 结果显示 */
