@@ -1,6 +1,13 @@
 <template>
   <div
+    ref="calendarContainerRef"
     class="ohhh-calendar-container"
+    role="application"
+    aria-label="日历"
+    tabindex="0"
+    @keydown="onKeydown"
+    @focus="onContainerFocus"
+    @blur="onContainerBlur"
     :style="{
       '--calendar-rows': renderRows,
       '--calendar-transition-duration': duration,
@@ -9,42 +16,90 @@
     }"
   >
     <!-- 顶部工具栏 -->
-    <div v-if="showToolbar" class="ohhh-calendar-toolbar">
+    <div v-if="showToolbar" class="ohhh-calendar-toolbar" role="toolbar" aria-label="日历导航">
       <slot name="toolbar" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
-        <div v-html="icons.arrowDoubleLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-year')" />
-        <div v-html="icons.arrowLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-page')" />
-        <div class="ohhh-calendar-toolbar--text">{{ headerLabel }}</div>
-        <div v-html="icons.arrowRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-page')" />
-        <div v-html="icons.arrowDoubleRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-year')" />
+        <button
+          class="ohhh-calendar-toolbar--icon"
+          aria-label="上一年"
+          @click="changePageTo('prev-year')"
+          @keydown.stop
+        >
+          <span v-html="icons.arrowDoubleLeft"></span>
+        </button>
+        <button
+          class="ohhh-calendar-toolbar--icon"
+          aria-label="上一月"
+          @click="changePageTo('prev-page')"
+          @keydown.stop
+        >
+          <span v-html="icons.arrowLeft"></span>
+        </button>
+        <div class="ohhh-calendar-toolbar--text" role="status" aria-live="polite">
+          {{ headerLabel }}
+        </div>
+        <button
+          class="ohhh-calendar-toolbar--icon"
+          aria-label="下一月"
+          @click="changePageTo('next-page')"
+          @keydown.stop
+        >
+          <span v-html="icons.arrowRight"></span>
+        </button>
+        <button
+          class="ohhh-calendar-toolbar--icon"
+          aria-label="下一年"
+          @click="changePageTo('next-year')"
+          @keydown.stop
+        >
+          <span v-html="icons.arrowDoubleRight"></span>
+        </button>
       </slot>
     </div>
 
     <!-- 星期栏 -->
-    <div v-if="showWeekdays" class="ohhh-calendar-weekdays">
-      <div v-for="(day, index) in weekdays" :key="day" class="ohhh-calendar-weekdays--weekday">
+    <div v-if="showWeekdays" class="ohhh-calendar-weekdays" role="row">
+      <div
+        v-for="(day, index) in weekdays"
+        :key="day"
+        class="ohhh-calendar-weekdays--weekday"
+        role="columnheader"
+        :aria-label="day"
+      >
         <slot name="weekday" :weekday="day" :index="(index + weekStart) % 7">{{ day }}</slot>
       </div>
     </div>
 
     <!-- 日历主体 -->
-    <div ref="swp" class="ohhh-calendar-wrapper">
+    <div
+      ref="swp"
+      class="ohhh-calendar-wrapper"
+      role="grid"
+      :aria-label="viewMode === 'month' ? '月视图' : '周视图'"
+      aria-readonly="false"
+    >
       <div
-        v-for="(item, index) in allRenderDates"
-        :key="index"
-        :style="{ left: 100 * (index - 1) + '%' }"
+        v-for="(item, pageIndex) in allRenderDates"
+        :key="pageIndex"
+        :style="{ left: 100 * (pageIndex - 1) + '%' }"
         class="ohhh-calendar-days"
         @transitionend="onTransitionEnd"
       >
         <div
-          v-for="dateObj in item"
+          v-for="(dateObj, dateIndex) in item"
           :key="dateObj.key"
           class="ohhh-calendar-day"
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
+            'is-focused': isFocusedDate(dateObj.date),
             'other-month': !dateObj.current
           }"
+          role="gridcell"
+          :tabindex="isFocusedDate(dateObj.date) ? 0 : -1"
+          :aria-selected="isSameDay(dateObj.date, selected)"
+          :aria-label="getAccessibleDateLabel(dateObj)"
           @click="changeSelectedDate(dateObj.date)"
+          @keydown.stop="onDayKeydown($event, dateObj.date)"
         >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
@@ -58,28 +113,37 @@
     </div>
 
     <!-- 底部工具栏 -->
-    <div v-if="showFooter" class="ohhh-calendar-footer">
+    <div v-if="showFooter" class="ohhh-calendar-footer" role="toolbar" aria-label="视图切换">
       <slot name="footer" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
-        <div
-          v-html="viewMode === 'week' ? icons.arrowDown : icons.arrowUp"
+        <button
           class="ohhh-calendar-footer--icon"
+          :aria-label="viewMode === 'week' ? '切换到月视图' : '切换到周视图'"
           @click="toggleViewMode"
-        />
+          @keydown.stop
+        >
+          <span v-html="viewMode === 'week' ? icons.arrowDown : icons.arrowUp"></span>
+        </button>
       </slot>
+    </div>
+
+    <!-- 键盘导航提示（仅在获得焦点时显示给屏幕阅读器） -->
+    <div class="sr-only" aria-live="polite" v-if="showKeyboardHint">
+      使用方向键导航日期，Enter 或空格键选择日期，PageUp/PageDown 切换{{ viewMode === 'month' ? '月份' : '周'}}
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
 import { isSameDay, createWeekdays } from './utils'
 import { icons } from './utils/icons.js'
 
 const swipeRef = useTemplateRef('swp')
+const calendarContainerRef = useTemplateRef('calendarContainerRef')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'focus-change'])
 
 const props = defineProps({
   // 初始选中的日期
@@ -121,13 +185,19 @@ const props = defineProps({
   duration: {
     type: String,
     default: '0.3s'
+  },
+  // 是否启用键盘导航
+  keyboardNavigation: {
+    type: Boolean,
+    default: true
   }
 })
 
-const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration } = toRefs(props)
+const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration, keyboardNavigation } = toRefs(props)
 
 const {
   selected,
+  focusedDate,
   viewMode,
   currentYear,
   currentMonth,
@@ -137,11 +207,20 @@ const {
   transitionDuration,
   isInTransition,
   renderRows,
+  keyboardNavigationEnabled,
   switchPageToTargetDate,
   startTransitionAnimation,
   onTransitionEnd,
-  toggleViewMode
+  toggleViewMode,
+  handleKeydown,
+  isSameDay: calendarIsSameDay
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
+
+// 同步键盘导航开关
+keyboardNavigationEnabled.value = keyboardNavigation.value
+
+// 日历容器是否获得焦点
+const isContainerFocused = ref(false)
 
 // 顶部工具栏标题
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
@@ -154,6 +233,38 @@ const markerDateList = computed(() =>
     color: typeof item === 'object' && item.color ? item.color : 'var(--calendar-theme-color)'
   }))
 )
+
+// 是否显示键盘导航提示
+const showKeyboardHint = computed(() => isContainerFocused.value && keyboardNavigationEnabled.value)
+
+// 检查日期是否是当前焦点日期
+function isFocusedDate(date) {
+  return focusedDate.value && isSameDay(date, focusedDate.value)
+}
+
+// 获取无障碍日期标签
+function getAccessibleDateLabel(dateObj) {
+  const date = dateObj.date
+  const year = date.getFullYear()
+  const month = date.getMonth() + 1
+  const day = date.getDate()
+  const weekdaysCN = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
+  const weekday = weekdaysCN[date.getDay()]
+  
+  let label = `${year}年${month}月${day}日，${weekday}`
+  
+  if (!dateObj.current) {
+    label = '非当前月，' + label
+  }
+  if (isSameDay(date, selected.value)) {
+    label = '已选中，' + label
+  }
+  if (isSameDay(date, new Date())) {
+    label = '今天，' + label
+  }
+  
+  return label
+}
 
 // 监听滑动事件
 const { lengthX } = useSwipe(swipeRef, {
@@ -235,12 +346,65 @@ function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
+// ==================== 键盘导航事件处理 ====================
+
+// 日历容器获得焦点
+function onContainerFocus() {
+  isContainerFocused.value = true
+}
+
+// 日历容器失去焦点
+function onContainerBlur() {
+  isContainerFocused.value = false
+}
+
+// 日历容器键盘事件
+function onKeydown(event) {
+  if (!keyboardNavigationEnabled.value) return
+  
+  // 处理 Enter 和 Space 键选中日期
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    changeSelectedDate(focusedDate.value)
+    return
+  }
+  
+  // 其他键由 hook 处理
+  handleKeydown(event)
+}
+
+// 日期格子键盘事件
+function onDayKeydown(event, date) {
+  if (!keyboardNavigationEnabled.value) return
+  
+  // 点击日期格子时更新焦点日期
+  if (event.type === 'keydown') {
+    focusedDate.value = new Date(date)
+  }
+  
+  // 处理 Enter 和 Space 键选中日期
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    changeSelectedDate(date)
+    return
+  }
+  
+  // 其他键由容器处理
+  onKeydown(event)
+}
+
 defineExpose({
   // 切换周/月视图
   toggleViewMode,
   // 切换日历页
   changePageTo,
   // 切换选中日期
-  changeSelectedDate
+  changeSelectedDate,
+  // 获取当前焦点日期
+  getFocusedDate: () => focusedDate.value,
+  // 设置焦点日期
+  setFocusedDate: (date) => {
+    focusedDate.value = new Date(date)
+  }
 })
 </script>
