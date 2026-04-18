@@ -176,6 +176,8 @@
   background: var(--calendar-time-axis-background);
   display: flex;
   flex-direction: column;
+  padding-top: calc(var(--calendar-time-axis-font-size) / 2);
+  box-sizing: border-box;
 }
 
 .ohhh-calendar-time-axis--hour {
@@ -187,13 +189,15 @@
   padding-top: 0;
   border-bottom: 1px solid var(--calendar-week-day-border-color);
   box-sizing: border-box;
+  position: relative;
 }
 
 .ohhh-calendar-time-axis--hour-label {
   font-size: var(--calendar-time-axis-font-size);
   color: var(--calendar-time-axis-color);
+  position: absolute;
+  top: 0;
   transform: translateY(-50%);
-  margin-top: -1px;
 }
 
 // 日期列区域
