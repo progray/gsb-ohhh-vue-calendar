@@ -96,11 +96,10 @@
             'other-month': !dateObj.current
           }"
           role="gridcell"
-          :tabindex="isFocusedDate(dateObj.date) ? 0 : -1"
+          tabindex="-1"
           :aria-selected="isSameDay(dateObj.date, selected)"
           :aria-label="getAccessibleDateLabel(dateObj)"
           @click="onDayClick(dateObj)"
-          @focus="onDayFocus(dateObj.date)"
         >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
@@ -266,40 +265,14 @@ function getDayRef(date) {
   return dayRefs.value.get(key)
 }
 
-// 聚焦到指定日期的 DOM 元素
-function focusToDateElement(date) {
-  if (!date) return
-  
-  // 尝试聚焦的辅助函数
-  function tryFocus(remainingAttempts, delay = 0) {
-    if (remainingAttempts <= 0) return
-    
-    const doFocus = () => {
-      const el = getDayRef(date)
-      if (el && typeof el.focus === 'function') {
-        el.focus({ preventScroll: true })
-      } else {
-        tryFocus(remainingAttempts - 1, 50)
-      }
+// 聚焦到容器（确保键盘事件能被捕获）
+function focusToContainer() {
+  nextTick(() => {
+    if (calendarContainerRef.value && typeof calendarContainerRef.value.focus === 'function') {
+      calendarContainerRef.value.focus({ preventScroll: true })
     }
-    
-    if (delay > 0) {
-      setTimeout(doFocus, delay)
-    } else {
-      nextTick(doFocus)
-    }
-  }
-  
-  // 最多尝试 5 次（处理翻页后 DOM 更新延迟的情况）
-  tryFocus(5)
+  })
 }
-
-// 监听 focusedDate 变化，同步 DOM 焦点
-watch(focusedDate, (newDate) => {
-  if (newDate) {
-    focusToDateElement(newDate)
-  }
-}, { flush: 'post' })
 
 // 获取无障碍日期标签
 function getAccessibleDateLabel(dateObj) {
@@ -400,13 +373,11 @@ function changeSelectedDate(date) {
   }
 }
 
-// 动画结束包装器 - 确保翻页后同步 focusedDate
+// 动画结束包装器
 function onTransitionEndWrapper() {
   onTransitionEnd()
-  // 动画结束后，聚焦到当前焦点日期
-  if (focusedDate.value) {
-    focusToDateElement(focusedDate.value)
-  }
+  // 动画结束后，确保容器获得焦点
+  focusToContainer()
 }
 
 // 获取 marker 颜色
@@ -420,16 +391,10 @@ function _getMarkerColor(date) {
 function onDayClick(dateObj) {
   // 点击时更新焦点日期
   focusedDate.value = new Date(dateObj.date)
+  // 让容器获得焦点（确保键盘事件能被捕获）
+  focusToContainer()
   // 然后选中该日期
   changeSelectedDate(dateObj.date)
-}
-
-// 日期格子获得焦点事件
-function onDayFocus(date) {
-  // 当日期格子获得焦点时，同步状态焦点
-  if (!isSameDay(date, focusedDate.value)) {
-    focusedDate.value = new Date(date)
-  }
 }
 
 // 日历容器获得焦点
@@ -483,7 +448,7 @@ defineExpose({
   // 设置焦点日期
   setFocusedDate: (date) => {
     focusedDate.value = new Date(date)
-    focusToDateElement(focusedDate.value)
+    focusToContainer()
   }
 })
 </script>
