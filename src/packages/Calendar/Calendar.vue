@@ -34,26 +34,65 @@
         :style="{ left: 100 * (index - 1) + '%' }"
         class="ohhh-calendar-days"
         @transitionend="onTransitionEnd"
+        @mouseleave="clearHover"
       >
         <div
           v-for="dateObj in item"
           :key="dateObj.key"
           class="ohhh-calendar-day"
           :class="{
-            'is-selected': isSameDay(dateObj.date, selected),
+            'is-selected': currentSelectionMode === 'single' ? isSameDay(dateObj.date, selected) : isDateSelected(dateObj.date),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'is-range-boundary': isDateRangeBoundary(dateObj.date),
+            'is-in-range-preview': isDateInRangePreview(dateObj.date),
+            'is-in-selected-range': isDateInSelectedRange(dateObj.date)
           }"
-          @click="changeSelectedDate(dateObj.date)"
+          @click="handleDateClick(dateObj.date)"
+          @mouseenter="handleDateHover(dateObj.date)"
         >
           <div class="ohhh-calendar-day--inner">
-            <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
+            <div class="ohhh-calendar-day--inner-value">
+              {{ dateObj.fullDate.date }}
+              <span 
+                v-if="currentSelectionMode === 'multiple' && !isRangeMode && isDateSelected(dateObj.date)" 
+                class="ohhh-calendar-day--selection-index"
+              >
+                {{ getSelectedIndex(dateObj.date) }}
+              </span>
+            </div>
             <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
               <slot name="day-label" :date="dateObj.date" />
             </div>
           </div>
           <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
         </div>
+      </div>
+    </div>
+
+    <!-- 已选日期标签区域 -->
+    <div v-if="showSelectedTags && currentSelectionMode === 'multiple' && selectedDates.length > 0" class="ohhh-calendar-selected-tags">
+      <div class="ohhh-calendar-selected-tags--title">已选日期 ({{ selectedDates.length }}/{{ currentMaxSelectCount === Infinity ? '∞' : currentMaxSelectCount }})</div>
+      <div class="ohhh-calendar-selected-tags--container">
+        <div 
+          v-for="(date, index) in selectedDates" 
+          :key="formatDate(date)"
+          class="ohhh-calendar-selected-tags--tag"
+        >
+          <span class="ohhh-calendar-selected-tags--tag-index">{{ index + 1 }}</span>
+          <span class="ohhh-calendar-selected-tags--tag-text">{{ formatDate(date) }}</span>
+          <span 
+            class="ohhh-calendar-selected-tags--tag-close"
+            @click="removeSelectedDate(date)"
+          >×</span>
+        </div>
+      </div>
+      <div 
+        v-if="selectedDates.length > 0"
+        class="ohhh-calendar-selected-tags--clear-all"
+        @click="clearAllSelections"
+      >
+        清空所有
       </div>
     </div>
 
@@ -92,6 +131,21 @@ const props = defineProps({
     type: String,
     default: 'month' // month or week
   },
+  // 选择模式
+  selectionMode: {
+    type: String,
+    default: 'single' // single or multiple
+  },
+  // 范围选择模式
+  rangeMode: {
+    type: Boolean,
+    default: false
+  },
+  // 最大可选数量
+  maxSelectCount: {
+    type: Number,
+    default: Infinity
+  },
   // 以周几作为每周的起始
   weekStart: {
     type: Number,
@@ -117,6 +171,11 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
+  // 是否显示已选日期标签
+  showSelectedTags: {
+    type: Boolean,
+    default: true
+  },
   // 过渡动画时长
   duration: {
     type: String,
@@ -124,11 +183,27 @@ const props = defineProps({
   }
 })
 
-const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration } = toRefs(props)
+const { 
+  initialSelectedDate, 
+  initialViewMode, 
+  weekStart, 
+  markerDates, 
+  duration,
+  selectionMode,
+  rangeMode,
+  maxSelectCount
+} = toRefs(props)
 
 const {
   selected,
+  selectedDates,
   viewMode,
+  currentSelectionMode,
+  isRangeMode,
+  currentMaxSelectCount,
+  rangeStartDate,
+  rangeEndDate,
+  hoverDate,
   currentYear,
   currentMonth,
   currentRenderDates,
@@ -140,8 +215,30 @@ const {
   switchPageToTargetDate,
   startTransitionAnimation,
   onTransitionEnd,
-  toggleViewMode
-} = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
+  toggleViewMode,
+  isDateSelected,
+  getSelectedIndex,
+  isDateInRangePreview,
+  isDateRangeBoundary,
+  isDateInSelectedRange,
+  toggleDateSelection,
+  handleRangeSelection,
+  handleDateHover,
+  clearHover,
+  setSelectionMode,
+  setRangeMode,
+  setMaxSelectCount,
+  clearAllSelections,
+  removeSelectedDate
+} = useCalendar({ 
+  initialSelectedDate, 
+  initialViewMode, 
+  weekStart, 
+  duration,
+  selectionMode,
+  rangeMode,
+  maxSelectCount
+}, emit)
 
 // 顶部工具栏标题
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
@@ -230,6 +327,36 @@ function changeSelectedDate(date) {
   }
 }
 
+// 格式化日期
+function formatDate(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+// 处理日期点击
+function handleDateClick(date) {
+  changePageTo(date)
+  
+  if (currentSelectionMode.value === 'single') {
+    // 单选模式
+    if (!isSameDay(new Date(date), selected.value)) {
+      selected.value = new Date(date)
+      emit('select-change', selected.value)
+    }
+  } else {
+    // 多选模式
+    if (isRangeMode.value) {
+      // 范围选择模式
+      handleRangeSelection(date)
+    } else {
+      // 普通多选模式
+      toggleDateSelection(date)
+    }
+  }
+}
+
 // 获取 marker 颜色
 function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
@@ -241,6 +368,18 @@ defineExpose({
   // 切换日历页
   changePageTo,
   // 切换选中日期
-  changeSelectedDate
+  changeSelectedDate,
+  // 处理日期点击
+  handleDateClick,
+  // 设置选择模式
+  setSelectionMode,
+  // 设置范围选择模式
+  setRangeMode,
+  // 设置最大可选数量
+  setMaxSelectCount,
+  // 清除所有选中日期
+  clearAllSelections,
+  // 移除单个选中日期
+  removeSelectedDate
 })
 </script>

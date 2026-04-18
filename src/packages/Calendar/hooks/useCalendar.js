@@ -1,9 +1,32 @@
 import { ref, computed, nextTick } from 'vue'
 import { createMonthDates, createWeekDates, isSameDay } from '../utils/index.js'
 
-export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit) {
-  // 选中的日期
+export function useCalendar({ 
+  initialSelectedDate, 
+  initialViewMode, 
+  weekStart, 
+  duration,
+  selectionMode = ref('single'),
+  rangeMode = ref(false),
+  maxSelectCount = ref(Infinity)
+}, emit) {
+  // 选中的日期（单选模式）
   const selected = ref(initialSelectedDate.value)
+  // 选中的日期数组（多选模式）
+  const selectedDates = ref([])
+  // 选择模式：'single' | 'multiple'
+  const currentSelectionMode = ref(selectionMode.value)
+  // 范围选择模式
+  const isRangeMode = ref(rangeMode.value)
+  // 最大可选数量
+  const currentMaxSelectCount = ref(maxSelectCount.value)
+  // 范围选择的起始日期
+  const rangeStartDate = ref(null)
+  // 范围选择的结束日期
+  const rangeEndDate = ref(null)
+  // 悬停预览的日期
+  const hoverDate = ref(null)
+  
   // 当前渲染页年份
   const currentYear = ref(initialSelectedDate.value.getFullYear())
   // 当前渲染页月份(索引)
@@ -194,6 +217,183 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     }
   }
 
+  // 检查日期是否在选中数组中
+  function isDateSelected(date) {
+    return selectedDates.value.some(d => isSameDay(d, date))
+  }
+
+  // 获取日期的选中序号
+  function getSelectedIndex(date) {
+    const index = selectedDates.value.findIndex(d => isSameDay(d, date))
+    return index >= 0 ? index + 1 : 0
+  }
+
+  // 检查日期是否在范围选择的预览范围内
+  function isDateInRangePreview(date) {
+    if (!isRangeMode.value || !rangeStartDate.value || !hoverDate.value) {
+      return false
+    }
+    
+    const start = rangeStartDate.value
+    const end = hoverDate.value
+    
+    // 确保 start 是较小的日期，end 是较大的日期
+    const actualStart = start <= end ? start : end
+    const actualEnd = start <= end ? end : start
+    
+    // 检查日期是否在范围内（不包括起始日期，因为起始日期已经是选中状态）
+    return date > actualStart && date < actualEnd
+  }
+
+  // 检查日期是否是范围选择的边界（起始或结束）
+  function isDateRangeBoundary(date) {
+    if (!isRangeMode.value) return false
+    if (rangeStartDate.value && isSameDay(date, rangeStartDate.value)) return true
+    if (rangeEndDate.value && isSameDay(date, rangeEndDate.value)) return true
+    return false
+  }
+
+  // 检查日期是否在已选范围中间
+  function isDateInSelectedRange(date) {
+    if (!isRangeMode.value || !rangeStartDate.value || !rangeEndDate.value) {
+      return false
+    }
+    
+    const start = rangeStartDate.value
+    const end = rangeEndDate.value
+    
+    // 确保 start 是较小的日期，end 是较大的日期
+    const actualStart = start <= end ? start : end
+    const actualEnd = start <= end ? end : start
+    
+    // 检查日期是否在范围内（不包括边界，因为边界已经是选中状态）
+    return date > actualStart && date < actualEnd
+  }
+
+  // 多选模式下切换日期选择状态
+  function toggleDateSelection(date) {
+    const dateIndex = selectedDates.value.findIndex(d => isSameDay(d, date))
+    
+    if (dateIndex >= 0) {
+      // 日期已选中，取消选中
+      selectedDates.value.splice(dateIndex, 1)
+    } else {
+      // 日期未选中，添加到选中列表
+      // 检查是否超过最大可选数量
+      if (selectedDates.value.length >= currentMaxSelectCount.value) {
+        // 超过限制，移除最早选中的日期
+        selectedDates.value.shift()
+      }
+      selectedDates.value.push(new Date(date))
+    }
+    
+    // 触发选择变化事件
+    emit('select-change', currentSelectionMode.value === 'single' ? selected.value : selectedDates.value)
+  }
+
+  // 范围选择模式下处理日期选择
+  function handleRangeSelection(date) {
+    if (!rangeStartDate.value) {
+      // 第一次点击，设置起始日期
+      rangeStartDate.value = new Date(date)
+      rangeEndDate.value = null
+      // 清空之前的选中日期
+      selectedDates.value = [new Date(date)]
+    } else {
+      // 第二次点击，设置结束日期并选择范围内的所有日期
+      rangeEndDate.value = new Date(date)
+      
+      // 计算范围内的所有日期
+      const start = rangeStartDate.value <= rangeEndDate.value ? rangeStartDate.value : rangeEndDate.value
+      const end = rangeStartDate.value <= rangeEndDate.value ? rangeEndDate.value : rangeStartDate.value
+      
+      // 清空之前的选中日期
+      selectedDates.value = []
+      
+      // 添加范围内的所有日期
+      let currentDate = new Date(start)
+      while (currentDate <= end) {
+        // 检查是否超过最大可选数量
+        if (selectedDates.value.length >= currentMaxSelectCount.value) {
+          break
+        }
+        selectedDates.value.push(new Date(currentDate))
+        currentDate.setDate(currentDate.getDate() + 1)
+      }
+      
+      // 重置范围选择状态，以便下次选择
+      rangeStartDate.value = null
+      rangeEndDate.value = null
+      hoverDate.value = null
+    }
+    
+    // 触发选择变化事件
+    emit('select-change', selectedDates.value)
+  }
+
+  // 处理悬停事件
+  function handleDateHover(date) {
+    if (isRangeMode.value && rangeStartDate.value) {
+      hoverDate.value = new Date(date)
+    }
+  }
+
+  // 清除悬停状态
+  function clearHover() {
+    hoverDate.value = null
+  }
+
+  // 切换选择模式
+  function setSelectionMode(mode) {
+    if (currentSelectionMode.value !== mode) {
+      currentSelectionMode.value = mode
+      // 切换模式时清空选中状态
+      if (mode === 'single') {
+        selectedDates.value = []
+      } else {
+        selected.value = initialSelectedDate.value
+      }
+    }
+  }
+
+  // 设置范围选择模式
+  function setRangeMode(enabled) {
+    isRangeMode.value = enabled
+    if (!enabled) {
+      // 关闭范围模式时重置相关状态
+      rangeStartDate.value = null
+      rangeEndDate.value = null
+      hoverDate.value = null
+    }
+  }
+
+  // 设置最大可选数量
+  function setMaxSelectCount(count) {
+    currentMaxSelectCount.value = count
+    // 如果当前选中数量超过新的限制，移除最早选中的日期
+    while (selectedDates.value.length > count) {
+      selectedDates.value.shift()
+    }
+  }
+
+  // 清除所有选中日期
+  function clearAllSelections() {
+    selectedDates.value = []
+    rangeStartDate.value = null
+    rangeEndDate.value = null
+    hoverDate.value = null
+    emit('select-change', currentSelectionMode.value === 'single' ? selected.value : selectedDates.value)
+  }
+
+  // 移除单个选中日期
+  function removeSelectedDate(date) {
+    const index = selectedDates.value.findIndex(d => isSameDay(d, date))
+    if (index >= 0) {
+      selectedDates.value.splice(index, 1)
+      emit('select-change', selectedDates.value)
+    }
+  }
+
   // 监听过渡动画结束
   function onTransitionEnd() {
     transitionDuration.value = '0s'
@@ -223,7 +423,14 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
 
   return {
     selected,
+    selectedDates,
     viewMode,
+    currentSelectionMode,
+    isRangeMode,
+    currentMaxSelectCount,
+    rangeStartDate,
+    rangeEndDate,
+    hoverDate,
     currentYear,
     currentMonth,
     currentRenderDates,
@@ -235,6 +442,20 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     switchPageToTargetDate,
     startTransitionAnimation,
     onTransitionEnd,
-    toggleViewMode
+    toggleViewMode,
+    isDateSelected,
+    getSelectedIndex,
+    isDateInRangePreview,
+    isDateRangeBoundary,
+    isDateInSelectedRange,
+    toggleDateSelection,
+    handleRangeSelection,
+    handleDateHover,
+    clearHover,
+    setSelectionMode,
+    setRangeMode,
+    setMaxSelectCount,
+    clearAllSelections,
+    removeSelectedDate
   }
 }

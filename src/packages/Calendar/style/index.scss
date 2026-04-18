@@ -99,6 +99,24 @@
   color: var(--calendar-days-selected-color);
 }
 
+/* 范围选择模式样式 */
+.ohhh-calendar-day.is-in-range-preview,
+.ohhh-calendar-day.is-in-selected-range {
+  background: var(--calendar-days-range-background);
+}
+.ohhh-calendar-day.is-in-range-preview .ohhh-calendar-day--inner,
+.ohhh-calendar-day.is-in-selected-range .ohhh-calendar-day--inner {
+  background: transparent;
+}
+
+.ohhh-calendar-day.is-range-boundary .ohhh-calendar-day--inner {
+  background: var(--calendar-days-selected-background);
+}
+.ohhh-calendar-day.is-range-boundary .ohhh-calendar-day--inner-value,
+.ohhh-calendar-day.is-range-boundary .ohhh-calendar-day--inner-label {
+  color: var(--calendar-days-selected-color);
+}
+
 .ohhh-calendar-day--inner {
   display: flex;
   flex-direction: column;
@@ -109,10 +127,27 @@
   padding: var(--calendar-days-inner-padding);
   border-radius: var(--calendar-days-inner-radius);
   background: var(--calendar-days-inner-background);
+  position: relative;
 }
 .ohhh-calendar-day--inner-value {
   font-size: var(--calendar-days-value-font-size);
   color: var(--calendar-days-value-color);
+  position: relative;
+}
+.ohhh-calendar-day--selection-index {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  font-size: 10px;
+  background: #ff6a6a;
+  color: #fff;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
 }
 .ohhh-calendar-day--inner-label {
   font-size: var(--calendar-days-label-font-size);
@@ -124,6 +159,67 @@
   width: var(--calendar-days-marker-size);
   height: var(--calendar-days-marker-size);
   border-radius: 50%;
+}
+
+/* 已选日期标签区域 */
+.ohhh-calendar-selected-tags {
+  padding: var(--calendar-selected-tags-padding);
+  border-top: 1px solid var(--calendar-text-color-level-5);
+}
+.ohhh-calendar-selected-tags--title {
+  font-size: var(--calendar-selected-tags-title-font-size);
+  color: var(--calendar-selected-tags-title-color);
+  margin-bottom: 8px;
+}
+.ohhh-calendar-selected-tags--container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--calendar-selected-tags-gap);
+  margin-bottom: 8px;
+}
+.ohhh-calendar-selected-tags--tag {
+  display: flex;
+  align-items: center;
+  height: var(--calendar-selected-tags-tag-height);
+  padding: var(--calendar-selected-tags-tag-padding);
+  border-radius: var(--calendar-selected-tags-tag-radius);
+  background: var(--calendar-selected-tags-tag-background);
+  font-size: var(--calendar-selected-tags-tag-font-size);
+}
+.ohhh-calendar-selected-tags--tag-index {
+  background: var(--calendar-theme-color);
+  color: #fff;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  margin-right: 4px;
+}
+.ohhh-calendar-selected-tags--tag-text {
+  color: var(--calendar-selected-tags-tag-text-color);
+  margin-right: 4px;
+}
+.ohhh-calendar-selected-tags--tag-close {
+  color: var(--calendar-selected-tags-tag-text-color);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  margin-left: 2px;
+}
+.ohhh-calendar-selected-tags--tag-close:hover {
+  color: #ff6a6a;
+}
+.ohhh-calendar-selected-tags--clear-all {
+  font-size: var(--calendar-selected-tags-clear-font-size);
+  color: var(--calendar-selected-tags-clear-color);
+  cursor: pointer;
+  text-align: right;
+}
+.ohhh-calendar-selected-tags--clear-all:hover {
+  color: var(--calendar-theme-color);
 }
 
 .ohhh-calendar-footer {
