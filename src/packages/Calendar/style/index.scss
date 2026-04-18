@@ -231,12 +231,12 @@
 }
 
 .ohhh-calendar-container.page-style-stack .ohhh-calendar-days.page-exit {
-  animation: stackPageExit var(--transition-duration) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: stackPageExit var(--page-transition-duration) cubic-bezier(0.4, 0, 0.2, 1) forwards;
   z-index: 15;
 }
 
 .ohhh-calendar-container.page-style-stack .ohhh-calendar-days.page-enter {
-  animation: stackPageEnter var(--transition-duration) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: stackPageEnter var(--page-transition-duration) cubic-bezier(0.4, 0, 0.2, 1) forwards;
   z-index: 5;
 }
 
@@ -312,7 +312,8 @@
   border-radius: 50%;
 }
 
-.ohhh-calendar-day--ripple::before {
+.ohhh-calendar-day--ripple::before,
+.ohhh-calendar-day--ripple::after {
   content: '';
   position: absolute;
   top: var(--ripple-y, 50%);
@@ -321,28 +322,59 @@
   height: 0;
   border-radius: 50%;
   background: var(--calendar-theme-color);
-  opacity: 0.3;
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
 
-.ohhh-calendar-day.has-ripple .ohhh-calendar-day--ripple::before {
-  animation: rippleExpand calc(var(--calendar-transition-duration) * 1.5) ease-out forwards;
+.ohhh-calendar-day--ripple::before {
+  opacity: 0.4;
 }
 
-@keyframes rippleExpand {
+.ohhh-calendar-day--ripple::after {
+  opacity: 0.25;
+}
+
+.ohhh-calendar-day.has-ripple .ohhh-calendar-day--ripple::before {
+  animation: rippleExpandPrimary calc(var(--calendar-transition-duration) * 1.8) cubic-bezier(0.215, 0.61, 0.355, 1) forwards;
+}
+
+.ohhh-calendar-day.has-ripple .ohhh-calendar-day--ripple::after {
+  animation: rippleExpandSecondary calc(var(--calendar-transition-duration) * 1.8) cubic-bezier(0.215, 0.61, 0.355, 1) 0.08s forwards;
+}
+
+@keyframes rippleExpandPrimary {
   0% {
     width: 0;
     height: 0;
-    opacity: 0.6;
+    opacity: 0.5;
+    transform: translate(-50%, -50%) scale(0.8);
   }
-  50% {
+  30% {
     opacity: 0.4;
   }
   100% {
-    width: 200%;
-    height: 200%;
+    width: 220%;
+    height: 220%;
     opacity: 0;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes rippleExpandSecondary {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 0.3;
+    transform: translate(-50%, -50%) scale(0.6);
+  }
+  40% {
+    opacity: 0.2;
+  }
+  100% {
+    width: 180%;
+    height: 180%;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1);
   }
 }
 
@@ -405,7 +437,9 @@
   .ohhh-calendar-week-row,
   .ohhh-calendar-day,
   .ohhh-calendar-day--inner,
-  .ohhh-calendar-toolbar--icon {
+  .ohhh-calendar-toolbar--icon,
+  .ohhh-calendar-day--ripple::before,
+  .ohhh-calendar-day--ripple::after {
     transition: none !important;
     animation: none !important;
   }
@@ -421,8 +455,16 @@
     transition: none !important;
   }
 
-  .ohhh-calendar-day.has-ripple .ohhh-calendar-day--ripple::before {
+  .ohhh-calendar-day.has-ripple .ohhh-calendar-day--ripple::before,
+  .ohhh-calendar-day.has-ripple .ohhh-calendar-day--ripple::after {
     animation: none !important;
     opacity: 0 !important;
+  }
+
+  .ohhh-calendar-days.page-exit,
+  .ohhh-calendar-days.page-enter {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
