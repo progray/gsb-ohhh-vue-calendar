@@ -255,6 +255,8 @@ function _getDateKey(date) {
 function setDayRef(key, el) {
   if (el) {
     dayRefs.value.set(key, el)
+  } else {
+    dayRefs.value.delete(key)
   }
 }
 
@@ -266,12 +268,30 @@ function getDayRef(date) {
 
 // 聚焦到指定日期的 DOM 元素
 function focusToDateElement(date) {
-  nextTick(() => {
-    const el = getDayRef(date)
-    if (el && typeof el.focus === 'function') {
-      el.focus({ preventScroll: true })
+  if (!date) return
+  
+  // 尝试聚焦的辅助函数
+  function tryFocus(remainingAttempts, delay = 0) {
+    if (remainingAttempts <= 0) return
+    
+    const doFocus = () => {
+      const el = getDayRef(date)
+      if (el && typeof el.focus === 'function') {
+        el.focus({ preventScroll: true })
+      } else {
+        tryFocus(remainingAttempts - 1, 50)
+      }
     }
-  })
+    
+    if (delay > 0) {
+      setTimeout(doFocus, delay)
+    } else {
+      nextTick(doFocus)
+    }
+  }
+  
+  // 最多尝试 5 次（处理翻页后 DOM 更新延迟的情况）
+  tryFocus(5)
 }
 
 // 监听 focusedDate 变化，同步 DOM 焦点
@@ -426,6 +446,18 @@ function onContainerBlur() {
 function onKeydown(event) {
   if (!keyboardNavigationEnabled.value) return
   
+  // 动画期间禁用键盘操作（除了 Enter/Space 选中当前焦点日期）
+  if (isInTransition.value) {
+    // 动画期间只允许选中当前焦点日期
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      if (focusedDate.value) {
+        changeSelectedDate(focusedDate.value)
+      }
+    }
+    return
+  }
+  
   // 处理 Enter 和 Space 键选中日期
   if (event.key === 'Enter' || event.key === ' ') {
     event.preventDefault()
@@ -436,12 +468,7 @@ function onKeydown(event) {
   }
   
   // 其他键由 hook 处理
-  const handled = handleKeydown(event)
-  
-  // 如果处理了方向键等，聚焦到新的焦点日期
-  if (handled && focusedDate.value) {
-    focusToDateElement(focusedDate.value)
-  }
+  handleKeydown(event)
 }
 
 defineExpose({
