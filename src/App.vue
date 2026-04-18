@@ -29,16 +29,17 @@
             </div>
           </template>
           
-          <!-- 日期覆盖层 -->
+          <!-- 日期覆盖层 - 用于范围高亮和悬停预览 -->
           <template #day-label="{ date }">
             <div
-              class="day-overlay-wrapper"
+              class="day-overlay"
               :class="{
-                'is-disabled': isDateDisabled(date, 'left'),
                 'is-in-range': isDateInRange(date),
-                'is-hover-preview': isHoverPreviewDate(date)
+                'is-hover-preview': isHoverPreviewDate(date),
+                'is-disabled': isDateDisabled(date, 'left')
               }"
-              @click="handleDayClick(date, 'left', $event)"
+              @mouseenter="handleLeftDateHover(date)"
+              @mouseleave="handleDateLeave"
             ></div>
           </template>
         </ohhh-vue-calendar>
@@ -80,18 +81,17 @@
             </div>
           </template>
           
-          <!-- 日期覆盖层 -->
+          <!-- 日期覆盖层 - 用于范围高亮和悬停预览 -->
           <template #day-label="{ date }">
             <div
-              class="day-overlay-wrapper"
+              class="day-overlay"
               :class="{
-                'is-disabled': isDateDisabled(date, 'right'),
                 'is-in-range': isDateInRange(date),
-                'is-hover-preview': isHoverPreviewDate(date)
+                'is-hover-preview': isHoverPreviewDate(date),
+                'is-disabled': isDateDisabled(date, 'right')
               }"
-              @click="handleDayClick(date, 'right', $event)"
               @mouseenter="handleRightDateHover(date)"
-              @mouseleave="handleRightDateLeave"
+              @mouseleave="handleDateLeave"
             ></div>
           </template>
         </ohhh-vue-calendar>
@@ -136,21 +136,14 @@ const rightDisplayMonth = ref(new Date().getMonth() + 1)
 // 悬停预览的日期
 const hoverDate = ref(null)
 
-// 标记是否需要忽略下一次选择事件
-const ignoreNextLeftSelect = ref(false)
-const ignoreNextRightSelect = ref(false)
-
 // 初始化右侧日历显示下一个月
 watch([leftDisplayYear, leftDisplayMonth], ([newYear, newMonth]) => {
-  // 计算下一个月
   const nextMonthDate = new Date(newYear, newMonth + 1, 1)
   const targetYear = nextMonthDate.getFullYear()
   const targetMonth = nextMonthDate.getMonth()
   
-  // 检查右侧日历当前显示的月份是否早于下一个月
   if (rightDisplayYear.value < targetYear || 
       (rightDisplayYear.value === targetYear && rightDisplayMonth.value < targetMonth)) {
-    // 让右侧日历显示下一个月
     rightDisplayYear.value = targetYear
     rightDisplayMonth.value = targetMonth
     
@@ -160,14 +153,14 @@ watch([leftDisplayYear, leftDisplayMonth], ([newYear, newMonth]) => {
   }
 }, { immediate: true })
 
-// 跟踪左侧日历当前显示的年/月（通过 toolbar slot 调用）
+// 跟踪左侧日历当前显示的年/月
 function trackLeftCalendarDate(year, month) {
   leftDisplayYear.value = year
   leftDisplayMonth.value = month
   return ''
 }
 
-// 跟踪右侧日历当前显示的年/月（通过 toolbar slot 调用）
+// 跟踪右侧日历当前显示的年/月
 function trackRightCalendarDate(year, month) {
   rightDisplayYear.value = year
   rightDisplayMonth.value = month
@@ -183,7 +176,7 @@ function formatDate(date) {
   return `${year}-${month}-${day}`
 }
 
-// 比较日期（只比较年月日）
+// 比较日期
 function isDateBefore(date1, date2) {
   if (!date1 || !date2) return false
   const d1 = new Date(date1.getFullYear(), date1.getMonth(), date1.getDate())
@@ -243,7 +236,6 @@ function navigateLeftCalendar(direction) {
 
 // 右侧日历导航
 function navigateRightCalendar(direction) {
-  // 检查是否可以导航
   if (isRightNavDisabled(direction)) {
     return
   }
@@ -283,7 +275,6 @@ function navigateRightCalendar(direction) {
 
 // 检查右侧日历导航是否禁用
 function isRightNavDisabled(direction) {
-  // 只有向前导航才需要检查
   if (direction !== 'prev-page' && direction !== 'prev-year') {
     return false
   }
@@ -304,7 +295,6 @@ function isRightNavDisabled(direction) {
       break
   }
   
-  // 检查目标月份是否早于或等于左侧当前月份
   if (targetYear < leftDisplayYear.value) {
     return true
   }
@@ -315,38 +305,17 @@ function isRightNavDisabled(direction) {
   return false
 }
 
-// 处理日期点击
-function handleDayClick(date, side, event) {
-  // 检查日期是否禁用
-  if (isDateDisabled(date, side)) {
-    event.stopPropagation()
-    event.preventDefault()
-    
-    // 设置标记，忽略下一次选择事件
-    if (side === 'left') {
-      ignoreNextLeftSelect.value = true
-    } else {
-      ignoreNextRightSelect.value = true
-    }
-    
-    return
-  }
-}
-
 // 左侧日期选择
 function onLeftSelectChange(date) {
-  // 检查是否需要忽略这次选择
-  if (ignoreNextLeftSelect.value) {
-    ignoreNextLeftSelect.value = false
+  console.log('左侧选择日期:', formatDate(date))
+  
+  // 检查是否选择了禁用的日期（晚于结束日期）
+  if (endDate.value && isDateAfter(date, endDate.value)) {
+    console.log('选择的日期晚于结束日期，忽略')
     return
   }
   
-  // 检查是否选择了禁用的日期
-  if (isDateDisabled(date, 'left')) {
-    return
-  }
-  
-  // 如果已经选择了结束日期，且新的开始日期晚于结束日期，则清空结束日期
+  // 如果新的开始日期晚于结束日期，清空结束日期
   if (endDate.value && isDateAfter(date, endDate.value)) {
     endDate.value = null
   }
@@ -357,19 +326,11 @@ function onLeftSelectChange(date) {
 
 // 右侧日期选择
 function onRightSelectChange(date) {
-  // 检查是否需要忽略这次选择
-  if (ignoreNextRightSelect.value) {
-    ignoreNextRightSelect.value = false
-    return
-  }
+  console.log('右侧选择日期:', formatDate(date))
   
-  // 检查是否选择了禁用的日期
-  if (isDateDisabled(date, 'right')) {
-    return
-  }
-  
-  // 如果已经选择了开始日期，且新的结束日期早于开始日期，则不更新
+  // 检查是否选择了禁用的日期（早于开始日期）
   if (startDate.value && isDateBefore(date, startDate.value)) {
+    console.log('选择的日期早于开始日期，忽略')
     return
   }
   
@@ -418,19 +379,28 @@ function isHoverPreviewDate(date) {
          isSameDay(date, hoverDate.value)
 }
 
+// 处理左侧日期悬停
+function handleLeftDateHover(date) {
+  // 只有当选择了结束日期但没选择开始日期时，才在左侧显示悬停预览
+  if (!startDate.value && endDate.value) {
+    if (!isDateAfter(date, endDate.value)) {
+      hoverDate.value = date
+    }
+  }
+}
+
 // 处理右侧日期悬停
 function handleRightDateHover(date) {
-  // 只有当只选择了开始日期时，才显示悬停预览
+  // 只有当只选择了开始日期时，才在右侧显示悬停预览
   if (startDate.value && !endDate.value) {
-    // 只预览晚于开始日期的日期
     if (!isDateBefore(date, startDate.value)) {
       hoverDate.value = date
     }
   }
 }
 
-// 处理右侧日期悬停离开
-function handleRightDateLeave() {
+// 处理日期悬停离开
+function handleDateLeave() {
   hoverDate.value = null
 }
 </script>
@@ -509,7 +479,7 @@ function handleRightDateLeave() {
   user-select: none;
 }
 
-/* 日期覆盖层 - 用于实现范围高亮和禁用状态 */
+/* 日期覆盖层 - 用于范围高亮 */
 :deep(.ohhh-calendar-day) {
   position: relative;
 }
@@ -525,40 +495,36 @@ function handleRightDateLeave() {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 10;
-  pointer-events: auto;
+  z-index: 2;
 }
 
-.day-overlay-wrapper {
+.day-overlay {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  pointer-events: auto;
-  z-index: 10;
-  cursor: pointer;
+  pointer-events: none;
+  z-index: 0;
 }
 
-.day-overlay-wrapper.is-disabled {
-  cursor: not-allowed;
-  background-color: rgba(0, 0, 0, 0.03);
-  
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.06);
-  }
-  
-  /* 覆盖禁用日期的文字颜色 */
-  & ~ :deep(.ohhh-calendar-day--inner) {
-    .ohhh-calendar-day--inner-value {
-      color: #ccc !important;
-    }
-  }
-}
-
-.day-overlay-wrapper.is-in-range,
-.day-overlay-wrapper.is-hover-preview {
+.day-overlay.is-in-range,
+.day-overlay.is-hover-preview {
   background-color: rgba(66, 153, 225, 0.15);
+}
+
+.day-overlay.is-disabled {
+  /* 禁用日期的样式通过覆盖层实现，让日期看起来是禁用的 */
+  pointer-events: auto;
+  cursor: not-allowed;
+}
+
+/* 禁用日期的文字样式 */
+:deep(.ohhh-calendar-day) {
+  /* 让禁用日期的文字颜色变浅 */
+  &:has(.day-overlay.is-disabled) .ohhh-calendar-day--inner-value {
+    color: #ccc !important;
+  }
 }
 
 /* 选中日期显示 */
