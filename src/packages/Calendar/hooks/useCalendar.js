@@ -313,10 +313,7 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
   // 处理焦点日期变化
   function _handleFocusChange(newDate) {
     focusedDate.value = newDate
-    // 检查是否需要切换页面（月份或周）
-    if (!_isDateInCurrentView(newDate)) {
-      switchPageToTargetDate(newDate)
-    }
+    switchPageToTargetDate(newDate)
   }
 
   // 检查日期是否在当前视图中
