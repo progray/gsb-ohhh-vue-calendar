@@ -17,6 +17,10 @@
         <div class="ohhh-calendar-toolbar--text">{{ headerLabel }}</div>
         <div v-html="icons.arrowRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-page')" />
         <div v-html="icons.arrowDoubleRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-year')" />
+        <!-- 视图切换按钮 -->
+        <div class="ohhh-calendar-toolbar--view-switch" @click="toggleViewMode">
+          {{ viewMode === 'week' ? '月视图' : '周视图' }}
+        </div>
       </slot>
     </div>
 

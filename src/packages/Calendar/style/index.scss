@@ -43,6 +43,19 @@
   font-size: var(--calendar-toolbar-font-size);
   font-weight: 500;
 }
+.ohhh-calendar-toolbar--view-switch {
+  padding: 4px 12px;
+  font-size: var(--calendar-toolbar-font-size);
+  color: var(--calendar-theme-color);
+  border: 1px solid var(--calendar-theme-color);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.ohhh-calendar-toolbar--view-switch:hover {
+  background: var(--calendar-theme-color);
+  color: #fff;
+}
 
 .ohhh-calendar-weekdays {
   display: grid;
