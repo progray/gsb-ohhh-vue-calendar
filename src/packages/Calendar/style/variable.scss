@@ -49,4 +49,13 @@
   --calendar-days-marker-top-gap: 4px;
   --calendar-days-marker-size: 4px;
   --calendar-days-marker-color: var(--calendar-theme-color);
+
+  // 焦点状态样式变量
+  --calendar-focus-color: var(--calendar-theme-color);
+  --calendar-focus-ring-width: 2px;
+  --calendar-focus-ring-offset: 2px;
+  --calendar-focus-ring-style: solid;
+  --calendar-focus-ring-color: var(--calendar-theme-color);
+  --calendar-focus-background: #{rgba(#409eff, 0.1)};
+  --calendar-focus-outline: var(--calendar-focus-ring-width) var(--calendar-focus-ring-style) var(--calendar-focus-ring-color);
 }

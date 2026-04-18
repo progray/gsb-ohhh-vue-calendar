@@ -24,6 +24,43 @@ export function isSameDay(date1, date2) {
   )
 }
 
+export function isSameMonth(date1, date2) {
+  return (
+    date1.getFullYear() === date2.getFullYear() &&
+    date1.getMonth() === date2.getMonth()
+  )
+}
+
+export function addDays(date, days) {
+  const result = new Date(date)
+  result.setDate(result.getDate() + days)
+  return result
+}
+
+export function addMonths(date, months) {
+  const result = new Date(date)
+  result.setMonth(result.getMonth() + months)
+  return result
+}
+
+export function addWeeks(date, weeks) {
+  const result = new Date(date)
+  result.setDate(result.getDate() + weeks * 7)
+  return result
+}
+
+export function getDaysInMonth(year, month) {
+  return new Date(year, month + 1, 0).getDate()
+}
+
+export function isDateBefore(date1, date2) {
+  return new Date(date1).setHours(0, 0, 0, 0) < new Date(date2).setHours(0, 0, 0, 0)
+}
+
+export function isDateAfter(date1, date2) {
+  return new Date(date1).setHours(0, 0, 0, 0) > new Date(date2).setHours(0, 0, 0, 0)
+}
+
 export function createMonthDates(date, index) {
   const year = date.getFullYear()
   const month = date.getMonth()
