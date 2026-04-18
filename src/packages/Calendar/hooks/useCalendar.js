@@ -182,6 +182,8 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     viewMode.value = viewMode.value === 'week' ? 'month' : 'week'
     renderRows.value = currentRenderRows.value
     _setWeekIndex()
+    // 立即显示 loading 并清空旧事件数据（避免闪烁）
+    _prepareForLoading()
     _loadCurrentViewEvents()
     emit('view-change', viewMode.value)
   }
@@ -194,6 +196,8 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     if (date.getFullYear() === currentYear.value && date.getMonth() === currentMonth.value) {
       return
     }
+    // 立即显示 loading 并清空旧事件数据（避免闪烁）
+    _prepareForLoading()
     // 1、设置prevMonthDates/nextMonthDates
     let direction
     if (
@@ -209,7 +213,8 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     _targetDate.value = date
     // 2、开启切换动画
     startTransitionAnimation(direction)
-    // 3、监听动画结束事件，并执行相应回调
+    // 3、触发异步加载（带防抖）
+    _loadCurrentViewEvents()
   }
 
   // 周视图下切换页面到指定日期
@@ -224,6 +229,8 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
       _setWeekIndex(date)
       return
     }
+    // 立即显示 loading 并清空旧事件数据（避免闪烁）
+    _prepareForLoading()
     // 1、设置prevWeekDates/nextWeekDates
     let direction
     if (date < currentWeekDates.value[0].date) {
@@ -236,7 +243,16 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     _targetDate.value = date
     // 2、开启切换动画
     startTransitionAnimation(direction)
-    // 3、监听动画结束事件，并执行相应回调
+    // 3、触发异步加载（带防抖）
+    _loadCurrentViewEvents()
+  }
+
+  // 准备加载状态：立即显示 loading，清空旧事件数据
+  function _prepareForLoading() {
+    if (loadEvents && typeof loadEvents.value === 'function') {
+      isLoading.value = true
+      loadedEvents.value = []
+    }
   }
 
   // 切换页面到指定日期 (根据当前视图自动判断切月或切周)
@@ -308,8 +324,6 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     }
     _targetDate.value = null
     isInTransition.value = false
-    // 页面切换完成后加载事件
-    _loadCurrentViewEvents()
   }
 
   // 监听debounceTime变化，重新初始化防抖函数
