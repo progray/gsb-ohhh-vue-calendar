@@ -28,6 +28,14 @@
 
     <!-- 日历主体 -->
     <div ref="swp" class="ohhh-calendar-wrapper">
+      <!-- 加载状态覆盖层 -->
+      <div v-if="isLoading" class="ohhh-calendar-loading-overlay">
+        <div class="ohhh-calendar-loading-spinner">
+          <div class="ohhh-calendar-loading-circle"></div>
+          <span class="ohhh-calendar-loading-text">加载中...</span>
+        </div>
+      </div>
+
       <div
         v-for="(item, index) in allRenderDates"
         :key="index"
@@ -52,7 +60,18 @@
               <slot name="day-label" :date="dateObj.date" />
             </div>
           </div>
-          <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+          <div class="ohhh-calendar-day--events">
+            <!-- 合并的 events 列表 -->
+            <template v-for="event in _getEventsForDate(dateObj.date)" :key="event.id || event.key || Math.random()">
+              <slot name="event" :date="dateObj.date" :event="event">
+                <div class="ohhh-calendar-day--event" :style="{ background: event.color || '#409eff' }">
+                  {{ event.title || event.name || '事件' }}
+                </div>
+              </slot>
+            </template>
+            <!-- 原有的 marker -->
+            <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+          </div>
         </div>
       </div>
     </div>
@@ -79,7 +98,7 @@ import { icons } from './utils/icons.js'
 
 const swipeRef = useTemplateRef('swp')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'events-loaded', 'load-error'])
 
 const props = defineProps({
   // 初始选中的日期
@@ -101,6 +120,21 @@ const props = defineProps({
   markerDates: {
     type: Array,
     default: () => []
+  },
+  // 静态事件数据（兜底）
+  events: {
+    type: Array,
+    default: () => []
+  },
+  // 异步加载事件的回调函数
+  loadEvents: {
+    type: Function,
+    default: null
+  },
+  // 加载请求的防抖间隔（毫秒）
+  debounce: {
+    type: Number,
+    default: 300
   },
   // 是否显示顶部工具栏
   showToolbar: {
@@ -124,7 +158,7 @@ const props = defineProps({
   }
 })
 
-const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration } = toRefs(props)
+const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration, events, loadEvents, debounce: debounceTime } = toRefs(props)
 
 const {
   selected,
@@ -136,12 +170,15 @@ const {
   transformDistance,
   transitionDuration,
   isInTransition,
+  isLoading,
+  loadedEvents,
   renderRows,
   switchPageToTargetDate,
   startTransitionAnimation,
   onTransitionEnd,
-  toggleViewMode
-} = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
+  toggleViewMode,
+  reloadEvents
+} = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration, loadEvents, debounceTime }, emit)
 
 // 顶部工具栏标题
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
@@ -154,6 +191,33 @@ const markerDateList = computed(() =>
     color: typeof item === 'object' && item.color ? item.color : 'var(--calendar-theme-color)'
   }))
 )
+
+// 合并静态 events 和异步加载的 events
+const allEvents = computed(() => {
+  const staticEvents = events.value || []
+  const dynamicEvents = loadedEvents.value || []
+  return [...staticEvents, ...dynamicEvents]
+})
+
+// 获取指定日期的事件列表
+function _getEventsForDate(date) {
+  if (!allEvents.value || allEvents.value.length === 0) {
+    return []
+  }
+  return allEvents.value.filter(event => {
+    let eventDate
+    if (event.date instanceof Date) {
+      eventDate = event.date
+    } else if (typeof event.date === 'string') {
+      eventDate = new Date(event.date)
+    } else if (event.startDate) {
+      eventDate = event.startDate instanceof Date ? event.startDate : new Date(event.startDate)
+    } else {
+      return false
+    }
+    return isSameDay(date, eventDate)
+  })
+}
 
 // 监听滑动事件
 const { lengthX } = useSwipe(swipeRef, {
@@ -241,6 +305,8 @@ defineExpose({
   // 切换日历页
   changePageTo,
   // 切换选中日期
-  changeSelectedDate
+  changeSelectedDate,
+  // 手动重新加载事件
+  reloadEvents
 })
 </script>
