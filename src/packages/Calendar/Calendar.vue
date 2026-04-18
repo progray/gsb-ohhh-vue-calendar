@@ -74,7 +74,7 @@
               'is-selected': isSameDay(dateObj.date, selected),
               'is-today': isSameDay(dateObj.date, new Date()),
               'other-month': !dateObj.current,
-              'has-ripple': rippleActive && isSameDay(dateObj.date, selected)
+              'has-ripple': rippleActive && rippleTargetDate && isSameDay(dateObj.date, rippleTargetDate)
             }"
             @click="onDayClick($event, dateObj)"
           >
@@ -85,7 +85,7 @@
               </div>
             </div>
             <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
-            <div class="ohhh-calendar-day--ripple" v-if="isSameDay(dateObj.date, selected)"></div>
+            <div class="ohhh-calendar-day--ripple"></div>
           </div>
         </div>
       </div>
@@ -236,20 +236,24 @@ function getPageRows(dates) {
 const rippleX = ref('50%')
 const rippleY = ref('50%')
 const rippleActive = ref(false)
+const rippleTargetDate = ref(null)
 
 function onDayClick(event, dateObj) {
-  if (isSameDay(dateObj.date, selected.value)) {
-    const rect = event.currentTarget.getBoundingClientRect()
-    rippleX.value = `${event.clientX - rect.left}px`
-    rippleY.value = `${event.clientY - rect.top}px`
-    rippleActive.value = false
-    nextTick(() => {
-      rippleActive.value = true
-      setTimeout(() => {
-        rippleActive.value = false
-      }, parseFloat(actualDuration.value) * 1000 * 1.5)
-    })
-  }
+  const rect = event.currentTarget.getBoundingClientRect()
+  rippleX.value = `${event.clientX - rect.left}px`
+  rippleY.value = `${event.clientY - rect.top}px`
+
+  rippleTargetDate.value = new Date(dateObj.date)
+  rippleActive.value = false
+
+  nextTick(() => {
+    rippleActive.value = true
+    const durationMs = parseFloat(actualDuration.value) * 1000 * 1.5
+    setTimeout(() => {
+      rippleActive.value = false
+      rippleTargetDate.value = null
+    }, durationMs)
+  })
 
   changeSelectedDate(dateObj.date)
 }
@@ -329,7 +333,7 @@ function handlePageChange(param) {
     }
   }
 
-  if (!animationEnabled.value || pageAnimationStyle.value === 'slide') {
+  if (!animationEnabled.value) {
     switchPageToTargetDate(targetDate)
     return
   }
@@ -346,25 +350,30 @@ function handlePageChange(param) {
     }
   }
 
-  isAnimatingPageChange.value = true
-  pageDirection.value = dir
-  pageTransitionDuration.value = actualDuration.value
+  if (pageAnimationStyle.value === 'stack') {
+    isAnimatingPageChange.value = true
+    pageDirection.value = dir
+    pageTransitionDuration.value = actualDuration.value
 
-  if (viewMode.value === 'week') {
-    if (dir === 'right') {
-      _setPrevWeekDates(targetDate)
+    if (viewMode.value === 'week') {
+      if (dir === 'right') {
+        _setPrevWeekDates(targetDate)
+      } else {
+        _setNextWeekDates(targetDate)
+      }
     } else {
-      _setNextWeekDates(targetDate)
+      if (dir === 'right') {
+        _setPrevMonthDates(targetDate)
+      } else {
+        _setNextMonthDates(targetDate)
+      }
     }
+
+    _targetDate.value = targetDate
+    isInTransition.value = true
   } else {
-    if (dir === 'right') {
-      _setPrevMonthDates(targetDate)
-    } else {
-      _setNextMonthDates(targetDate)
-    }
+    switchPageToTargetDate(targetDate)
   }
-
-  _targetDate.value = targetDate
 }
 
 function onPageTransitionEnd() {
@@ -374,30 +383,11 @@ function onPageTransitionEnd() {
 function onPageAnimationEnd() {
   if (!isAnimatingPageChange.value) return
 
-  if (_targetDate.value) {
-    currentYear.value = _targetDate.value.getFullYear()
-    currentMonth.value = _targetDate.value.getMonth()
+  onTransitionEnd()
 
-    const currentRenderRowsVal = viewMode.value === 'week' ? 1 : Math.ceil(currentMonthDates.value.length / 7)
-    renderRows.value = currentRenderRowsVal
-
-    if (viewMode.value === 'week') {
-      _setWeekIndex(_targetDate.value)
-      if (currentWeekDates.value && currentWeekDates.value.length > 0) {
-        _setPrevWeekDates(new Date(new Date(currentWeekDates.value[0].date).setDate(currentWeekDates.value[0].date.getDate() - 1)))
-        _setNextWeekDates(new Date(new Date(currentWeekDates.value[6].date).setDate(currentWeekDates.value[6].date.getDate() + 1)))
-      }
-    } else {
-      _setPrevMonthDates(new Date(currentYear.value, currentMonth.value - 1))
-      _setNextMonthDates(new Date(currentYear.value, currentMonth.value + 1))
-    }
-  }
-
-  _targetDate.value = null
   isAnimatingPageChange.value = false
   pageDirection.value = 'none'
   pageTransitionDuration.value = '0s'
-  isInTransition.value = false
 }
 
 function handleToolbarClick(param) {

@@ -121,33 +121,14 @@ function onSelectChange(date) {
 </script>
 
 <style lang="scss">
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-.app-container {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
 .animation-control-panel {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: 20px;
-  padding: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   max-width: 500px;
-  margin: 0 auto;
+  margin: 0 auto 20px;
   width: 100%;
 }
 
@@ -155,56 +136,59 @@ function onSelectChange(date) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .panel-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
-  color: #fff;
-  letter-spacing: 0.5px;
+  color: #303133;
 }
 
 .toggle-wrapper {
   .toggle-track {
-    width: 52px;
-    height: 28px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 14px;
+    width: 48px;
+    height: 26px;
+    background: #dcdfe6;
+    border-radius: 13px;
     position: relative;
     cursor: pointer;
     transition: background 0.3s ease;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.3);
+      background: #c0c4cc;
     }
 
     .toggle-thumb {
-      width: 22px;
-      height: 22px;
+      width: 20px;
+      height: 20px;
       background: #fff;
       border-radius: 50%;
       position: absolute;
       top: 3px;
       left: 3px;
       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
   }
 
   &.is-active {
     .toggle-track {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #409eff;
+
+      &:hover {
+        background: #66b1ff;
+      }
 
       .toggle-thumb {
-        transform: translateX(24px);
+        transform: translateX(22px);
       }
     }
   }
 }
 
 .panel-section {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 
   &:last-child {
     margin-bottom: 0;
@@ -215,24 +199,24 @@ function onSelectChange(date) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 12px;
+  font-size: 13px;
+  color: #909399;
+  margin-bottom: 10px;
   font-weight: 500;
 
   .duration-value {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
-    color: #fff;
-    background: rgba(255, 255, 255, 0.15);
-    padding: 4px 10px;
-    border-radius: 8px;
+    color: #409eff;
+    background: rgba(64, 158, 255, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
   }
 }
 
 .style-selector {
   display: flex;
-  gap: 12px;
+  gap: 10px;
 }
 
 .style-option {
@@ -240,19 +224,21 @@ function onSelectChange(date) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.1);
+  gap: 6px;
+  padding: 12px;
+  background: #f5f7fa;
   border: 2px solid transparent;
-  border-radius: 16px;
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 13px;
+  transition: all 0.2s ease;
+  color: #909399;
+  font-size: 12px;
   font-weight: 500;
+  outline: none;
 
   &:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.2);
+    background: #ecf5ff;
+    color: #409eff;
   }
 
   &:disabled {
@@ -261,20 +247,20 @@ function onSelectChange(date) {
   }
 
   &.is-active {
-    background: rgba(255, 255, 255, 0.25);
-    border-color: rgba(255, 255, 255, 0.4);
-    color: #fff;
+    background: #ecf5ff;
+    border-color: #409eff;
+    color: #409eff;
   }
 
   .style-icon {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
   }
 }
 
 .slider-container {
   position: relative;
-  padding: 10px 0;
+  padding: 8px 0;
 
   .slider-input {
     position: absolute;
@@ -294,14 +280,14 @@ function onSelectChange(date) {
 
   .slider-track {
     height: 4px;
-    background: rgba(255, 255, 255, 0.2);
+    background: #e4e7ed;
     border-radius: 2px;
     position: relative;
     pointer-events: none;
 
     .slider-fill {
       height: 100%;
-      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      background: #409eff;
       border-radius: 2px;
       position: relative;
       transition: width 0.1s ease;
@@ -312,11 +298,12 @@ function onSelectChange(date) {
         right: -6px;
         top: 50%;
         transform: translateY(-50%);
-        width: 16px;
-        height: 16px;
+        width: 14px;
+        height: 14px;
         background: #fff;
+        border: 2px solid #409eff;
         border-radius: 50%;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        box-sizing: border-box;
       }
     }
   }
@@ -324,12 +311,12 @@ function onSelectChange(date) {
   .slider-marks {
     display: flex;
     justify-content: space-between;
-    margin-top: 8px;
+    margin-top: 6px;
     pointer-events: none;
 
     .slider-mark {
-      font-size: 11px;
-      color: rgba(255, 255, 255, 0.5);
+      font-size: 10px;
+      color: #c0c4cc;
       transform: translateX(-50%);
       position: relative;
 
