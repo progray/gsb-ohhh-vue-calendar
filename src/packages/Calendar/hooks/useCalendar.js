@@ -1,9 +1,11 @@
-import { ref, computed, nextTick } from 'vue'
-import { createMonthDates, createWeekDates, isSameDay } from '../utils/index.js'
+import { ref, computed, nextTick, watch } from 'vue'
+import { createMonthDates, createWeekDates, isSameDay, addDays, addMonths, isSameMonth } from '../utils/index.js'
 
 export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit) {
   // 选中的日期
   const selected = ref(initialSelectedDate.value)
+  // 当前焦点日期
+  const focusedDate = ref(initialSelectedDate.value)
   // 当前渲染页年份
   const currentYear = ref(initialSelectedDate.value.getFullYear())
   // 当前渲染页月份(索引)
@@ -12,9 +14,16 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
   const viewMode = ref(initialViewMode.value)
   // 周视图下，当前展示的周索引
   const weekIndex = ref(0)
+  // 键盘导航是否可用
+  const keyboardNavigationEnabled = ref(true)
   nextTick(() => {
     _setWeekIndex()
   }).then()
+
+  // 当选中日期变化时，同步焦点日期
+  watch(selected, (newDate) => {
+    focusedDate.value = new Date(newDate)
+  })
 
   // 当前渲染页月日期
   const currentMonthDates = computed(() => {
@@ -221,8 +230,170 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     isInTransition.value = false
   }
 
+  // ==================== 键盘导航核心逻辑 ====================
+
+  // 向右移动焦点（下一天）
+  function focusNextDay() {
+    if (!keyboardNavigationEnabled.value || isInTransition.value) return
+    const nextDate = addDays(focusedDate.value, 1)
+    _handleFocusChange(nextDate)
+  }
+
+  // 向左移动焦点（上一天）
+  function focusPrevDay() {
+    if (!keyboardNavigationEnabled.value || isInTransition.value) return
+    const prevDate = addDays(focusedDate.value, -1)
+    _handleFocusChange(prevDate)
+  }
+
+  // 向上移动焦点（上一周同一天）
+  function focusPrevWeek() {
+    if (!keyboardNavigationEnabled.value || isInTransition.value) return
+    const prevDate = addDays(focusedDate.value, -7)
+    _handleFocusChange(prevDate)
+  }
+
+  // 向下移动焦点（下一周同一天）
+  function focusNextWeek() {
+    if (!keyboardNavigationEnabled.value || isInTransition.value) return
+    const nextDate = addDays(focusedDate.value, 7)
+    _handleFocusChange(nextDate)
+  }
+
+  // PageUp：切换到上一月或上一周
+  function focusPrevPage() {
+    if (!keyboardNavigationEnabled.value || isInTransition.value) return
+    let targetDate
+    if (viewMode.value === 'month') {
+      targetDate = addMonths(focusedDate.value, -1)
+      // 确保日期有效（比如3月31日减一个月可能变成3月3日）
+      const targetMonth = targetDate.getMonth()
+      const originalDay = focusedDate.value.getDate()
+      const daysInTargetMonth = new Date(targetDate.getFullYear(), targetMonth + 1, 0).getDate()
+      targetDate.setDate(Math.min(originalDay, daysInTargetMonth))
+    } else {
+      targetDate = addDays(focusedDate.value, -7)
+    }
+    _handleFocusChange(targetDate)
+  }
+
+  // PageDown：切换到下一月或下一周
+  function focusNextPage() {
+    if (!keyboardNavigationEnabled.value || isInTransition.value) return
+    let targetDate
+    if (viewMode.value === 'month') {
+      targetDate = addMonths(focusedDate.value, 1)
+      // 确保日期有效
+      const targetMonth = targetDate.getMonth()
+      const originalDay = focusedDate.value.getDate()
+      const daysInTargetMonth = new Date(targetDate.getFullYear(), targetMonth + 1, 0).getDate()
+      targetDate.setDate(Math.min(originalDay, daysInTargetMonth))
+    } else {
+      targetDate = addDays(focusedDate.value, 7)
+    }
+    _handleFocusChange(targetDate)
+  }
+
+  // Home：移动到当月第一天
+  function focusFirstDayOfMonth() {
+    if (!keyboardNavigationEnabled.value || isInTransition.value) return
+    const firstDay = new Date(focusedDate.value.getFullYear(), focusedDate.value.getMonth(), 1)
+    _handleFocusChange(firstDay)
+  }
+
+  // End：移动到当月最后一天
+  function focusLastDayOfMonth() {
+    if (!keyboardNavigationEnabled.value || isInTransition.value) return
+    const lastDay = new Date(focusedDate.value.getFullYear(), focusedDate.value.getMonth() + 1, 0)
+    _handleFocusChange(lastDay)
+  }
+
+  // 处理焦点日期变化
+  function _handleFocusChange(newDate) {
+    focusedDate.value = newDate
+    // 检查是否需要切换页面（月份或周）
+    if (!_isDateInCurrentView(newDate)) {
+      switchPageToTargetDate(newDate)
+    }
+  }
+
+  // 检查日期是否在当前视图中
+  function _isDateInCurrentView(date) {
+    if (viewMode.value === 'month') {
+      return isSameMonth(date, new Date(currentYear.value, currentMonth.value))
+    } else {
+      return currentWeekDates.value.some(d => isSameDay(d.date, date))
+    }
+  }
+
+  // 选中当前焦点日期
+  function selectFocusedDate() {
+    if (!keyboardNavigationEnabled.value) return
+    const dateToSelect = new Date(focusedDate.value)
+    return dateToSelect
+  }
+
+  // 键盘事件处理
+  function handleKeydown(event) {
+    if (!keyboardNavigationEnabled.value) return
+
+    let handled = false
+
+    switch (event.key) {
+      case 'ArrowRight':
+        event.preventDefault()
+        focusNextDay()
+        handled = true
+        break
+      case 'ArrowLeft':
+        event.preventDefault()
+        focusPrevDay()
+        handled = true
+        break
+      case 'ArrowUp':
+        event.preventDefault()
+        focusPrevWeek()
+        handled = true
+        break
+      case 'ArrowDown':
+        event.preventDefault()
+        focusNextWeek()
+        handled = true
+        break
+      case 'PageUp':
+        event.preventDefault()
+        focusPrevPage()
+        handled = true
+        break
+      case 'PageDown':
+        event.preventDefault()
+        focusNextPage()
+        handled = true
+        break
+      case 'Home':
+        event.preventDefault()
+        focusFirstDayOfMonth()
+        handled = true
+        break
+      case 'End':
+        event.preventDefault()
+        focusLastDayOfMonth()
+        handled = true
+        break
+      case 'Enter':
+      case ' ':
+        event.preventDefault()
+        // 由组件处理选中逻辑
+        handled = true
+        break
+    }
+
+    return handled
+  }
+
   return {
     selected,
+    focusedDate,
     viewMode,
     currentYear,
     currentMonth,
@@ -232,9 +403,23 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     transitionDuration,
     isInTransition,
     renderRows,
+    keyboardNavigationEnabled,
     switchPageToTargetDate,
     startTransitionAnimation,
     onTransitionEnd,
-    toggleViewMode
+    toggleViewMode,
+    // 键盘导航方法
+    focusNextDay,
+    focusPrevDay,
+    focusPrevWeek,
+    focusNextWeek,
+    focusPrevPage,
+    focusNextPage,
+    focusFirstDayOfMonth,
+    focusLastDayOfMonth,
+    selectFocusedDate,
+    handleKeydown,
+    // 工具方法
+    isSameDay
   }
 }

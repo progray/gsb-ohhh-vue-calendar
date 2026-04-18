@@ -138,3 +138,128 @@
   width: var(--calendar-footer-icon-size);
   height: var(--calendar-footer-icon-size);
 }
+
+// ==================== 无障碍和焦点样式 ====================
+
+// 屏幕阅读器专用样式（视觉上隐藏但屏幕阅读器可识别）
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+// 日历容器焦点状态
+.ohhh-calendar-container:focus-visible {
+  outline: none;
+}
+
+.ohhh-calendar-container:focus-within {
+  // 容器获得焦点时的样式
+}
+
+// 工具栏按钮样式
+.ohhh-calendar-toolbar--icon,
+.ohhh-calendar-footer--icon {
+  background: none;
+  border: none;
+  padding: 4px;
+  margin: 0;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.ohhh-calendar-toolbar--icon:hover,
+.ohhh-calendar-footer--icon:hover {
+  background-color: var(--calendar-focus-background);
+}
+
+.ohhh-calendar-toolbar--icon:focus-visible,
+.ohhh-calendar-footer--icon:focus-visible {
+  outline: var(--calendar-focus-outline);
+  outline-offset: var(--calendar-focus-ring-offset);
+}
+
+// 日期格子焦点状态
+.ohhh-calendar-day {
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.ohhh-calendar-day:focus-visible {
+  outline: none;
+}
+
+// 焦点状态样式（使用 is-focused 类）
+.ohhh-calendar-day.is-focused .ohhh-calendar-day--inner {
+  position: relative;
+}
+
+.ohhh-calendar-day.is-focused .ohhh-calendar-day--inner::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--calendar-focus-ring-offset));
+  border: var(--calendar-focus-outline);
+  border-radius: calc(var(--calendar-days-inner-radius) + var(--calendar-focus-ring-offset));
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+// 当天日期的焦点样式
+.ohhh-calendar-day.is-today.is-focused .ohhh-calendar-day--inner::after {
+  border-color: var(--calendar-focus-ring-color);
+}
+
+// 已选中日期的焦点样式
+.ohhh-calendar-day.is-selected.is-focused .ohhh-calendar-day--inner::after {
+  border-color: var(--calendar-focus-ring-color);
+  box-shadow: 0 0 0 1px var(--calendar-focus-ring-color) inset;
+}
+
+// 非当前月日期的焦点样式
+.ohhh-calendar-day.other-month.is-focused .ohhh-calendar-day--inner::after {
+  border-color: var(--calendar-text-color-level-5);
+  opacity: 0.7;
+}
+
+// 悬停状态增强
+.ohhh-calendar-day:hover:not(.is-selected) .ohhh-calendar-day--inner {
+  background-color: var(--calendar-focus-background);
+}
+
+.ohhh-calendar-day:hover.is-today:not(.is-selected) .ohhh-calendar-day--inner {
+  background-color: var(--calendar-days-today-background);
+}
+
+// 确保键盘导航时的可访问性
+.ohhh-calendar-day[tabindex="0"] {
+  // 可聚焦的日期格子
+}
+
+// 高对比度模式支持
+@media (prefers-contrast: high) {
+  .ohhh-calendar-day.is-focused .ohhh-calendar-day--inner::after {
+    border-width: 3px;
+  }
+  
+  .ohhh-calendar-toolbar--icon:focus-visible,
+  .ohhh-calendar-footer--icon:focus-visible {
+    outline-width: 3px;
+  }
+}
+
+// 减少动画模式支持
+@media (prefers-reduced-motion: reduce) {
+  .ohhh-calendar-day,
+  .ohhh-calendar-day .ohhh-calendar-day--inner::after,
+  .ohhh-calendar-toolbar--icon,
+  .ohhh-calendar-footer--icon {
+    transition: none;
+  }
+}
