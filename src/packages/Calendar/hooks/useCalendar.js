@@ -1,7 +1,19 @@
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, watch } from 'vue'
 import { createMonthDates, createWeekDates, isSameDay } from '../utils/index.js'
 
-export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit) {
+function debounce(fn, delay = 300) {
+  let timer = null
+  return function (...args) {
+    if (timer) {
+      clearTimeout(timer)
+    }
+    timer = setTimeout(() => {
+      fn.apply(this, args)
+    }, delay)
+  }
+}
+
+export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration, loadEvents, debounceTime }, emit) {
   // 选中的日期
   const selected = ref(initialSelectedDate.value)
   // 当前渲染页年份
@@ -12,8 +24,16 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
   const viewMode = ref(initialViewMode.value)
   // 周视图下，当前展示的周索引
   const weekIndex = ref(0)
+  // 是否正在加载事件
+  const isLoading = ref(false)
+  // 当前请求的ID，用于取消旧请求
+  const currentRequestId = ref(0)
+  // 异步加载的事件数据
+  const loadedEvents = ref([])
+
   nextTick(() => {
     _setWeekIndex()
+    _loadCurrentViewEvents()
   }).then()
 
   // 当前渲染页月日期
@@ -89,11 +109,80 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     nextWeekDates.value = createWeekDates(date, weekStart.value)
   }
 
+  // 获取当前视图的起止日期
+  function _getCurrentViewDateRange() {
+    const dates = currentRenderDates.value
+    if (!dates || dates.length === 0) {
+      const today = new Date()
+      return { startDate: today, endDate: today }
+    }
+    const startDate = new Date(dates[0].date)
+    startDate.setHours(0, 0, 0, 0)
+    const endDate = new Date(dates[dates.length - 1].date)
+    endDate.setHours(23, 59, 59, 999)
+    return { startDate, endDate }
+  }
+
+  // 核心加载函数
+  async function _executeLoadEvents() {
+    if (!loadEvents || typeof loadEvents.value !== 'function') {
+      return
+    }
+
+    // 生成新的请求ID，用于取消旧请求
+    const requestId = ++currentRequestId.value
+    isLoading.value = true
+
+    try {
+      const { startDate, endDate } = _getCurrentViewDateRange()
+      const result = await loadEvents.value({ startDate, endDate })
+
+      // 检查是否是最新的请求
+      if (currentRequestId.value !== requestId) {
+        return
+      }
+
+      // 更新加载的事件数据
+      loadedEvents.value = result || []
+      // 触发事件加载完成事件，将结果传递给外部
+      emit('events-loaded', result)
+    } catch (error) {
+      // 检查是否是最新的请求
+      if (currentRequestId.value !== requestId) {
+        return
+      }
+      emit('load-error', error)
+    } finally {
+      // 检查是否是最新的请求
+      if (currentRequestId.value === requestId) {
+        isLoading.value = false
+      }
+    }
+  }
+
+  // 防抖包装的加载函数
+  const _debouncedLoadEvents = ref(null)
+
+  // 初始化防抖函数
+  function _initDebouncedLoad() {
+    const delay = debounceTime?.value ?? 300
+    _debouncedLoadEvents.value = debounce(_executeLoadEvents, delay)
+  }
+
+  // 加载当前视图的事件
+  function _loadCurrentViewEvents() {
+    if (!_debouncedLoadEvents.value) {
+      _initDebouncedLoad()
+    }
+    _debouncedLoadEvents.value()
+  }
+
   // 切换视图模式
   function toggleViewMode() {
     viewMode.value = viewMode.value === 'week' ? 'month' : 'week'
     renderRows.value = currentRenderRows.value
     _setWeekIndex()
+    _loadCurrentViewEvents()
     emit('view-change', viewMode.value)
   }
 
@@ -219,6 +308,15 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     }
     _targetDate.value = null
     isInTransition.value = false
+    // 页面切换完成后加载事件
+    _loadCurrentViewEvents()
+  }
+
+  // 监听debounceTime变化，重新初始化防抖函数
+  if (debounceTime) {
+    watch(debounceTime, () => {
+      _initDebouncedLoad()
+    })
   }
 
   return {
@@ -231,10 +329,13 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     transformDistance,
     transitionDuration,
     isInTransition,
+    isLoading,
+    loadedEvents,
     renderRows,
     switchPageToTargetDate,
     startTransitionAnimation,
     onTransitionEnd,
-    toggleViewMode
+    toggleViewMode,
+    reloadEvents: _loadCurrentViewEvents
   }
 }
