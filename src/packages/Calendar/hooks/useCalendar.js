@@ -212,6 +212,8 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     // 设置currentYear/currentMonth
     currentYear.value = _targetDate.value.getFullYear()
     currentMonth.value = _targetDate.value.getMonth()
+    // 同步 focusedDate 到目标日期
+    focusedDate.value = new Date(_targetDate.value)
     renderRows.value = currentRenderRows.value
     transformDistance.value = '0px'
     if (viewMode.value === 'week') {
