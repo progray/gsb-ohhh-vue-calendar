@@ -3,6 +3,9 @@
     <ohhh-vue-calendar
       ref="calendarRef"
       :week-start="1"
+      :time-axis-start="8"
+      :time-axis-end="22"
+      :events="events"
       :initial-selected-date="currentDate"
       :marker-dates="markerDates"
       :events="events"
