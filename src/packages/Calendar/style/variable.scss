@@ -49,4 +49,22 @@
   --calendar-days-marker-top-gap: 4px;
   --calendar-days-marker-size: 4px;
   --calendar-days-marker-color: var(--calendar-theme-color);
+
+  --calendar-week-view-height: 500px;
+  --calendar-time-axis-width: 60px;
+  --calendar-time-axis-font-size: 12px;
+  --calendar-time-axis-color: var(--calendar-text-color-level-3);
+  --calendar-time-axis-background: #f5f7fa;
+
+  --calendar-week-day-header-height: 40px;
+  --calendar-week-day-date-font-size: 16px;
+  --calendar-week-day-border-color: #ebeef5;
+
+  --calendar-event-padding: 4px 8px;
+  --calendar-event-border-radius: 4px;
+  --calendar-event-title-font-size: 12px;
+  --calendar-event-title-color: #fff;
+  --calendar-event-time-font-size: 10px;
+  --calendar-event-time-color: rgba(255, 255, 255, 0.8);
+  --calendar-event-gap: 2px;
 }

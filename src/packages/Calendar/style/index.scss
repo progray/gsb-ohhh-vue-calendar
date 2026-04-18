@@ -138,3 +138,166 @@
   width: var(--calendar-footer-icon-size);
   height: var(--calendar-footer-icon-size);
 }
+
+// ==================== 周视图时间轴样式 ====================
+
+.ohhh-calendar-week-wrapper {
+  position: relative;
+  overflow: hidden;
+  height: var(--calendar-week-view-height);
+}
+
+.ohhh-calendar-week-page {
+  display: flex;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  transform: translate3d(var(--translate-distance), 0, 0);
+  transition: transform var(--transition-duration) ease;
+}
+
+// 时间轴左侧
+.ohhh-calendar-time-axis {
+  flex: none;
+  width: var(--calendar-time-axis-width);
+  background: var(--calendar-time-axis-background);
+  display: flex;
+  flex-direction: column;
+}
+
+.ohhh-calendar-time-axis--hour {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding-right: 8px;
+  padding-top: 0;
+  border-bottom: 1px solid var(--calendar-week-day-border-color);
+  box-sizing: border-box;
+}
+
+.ohhh-calendar-time-axis--hour-label {
+  font-size: var(--calendar-time-axis-font-size);
+  color: var(--calendar-time-axis-color);
+  transform: translateY(-50%);
+  margin-top: -1px;
+}
+
+// 日期列区域
+.ohhh-calendar-week-days {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  overflow: hidden;
+}
+
+.ohhh-calendar-week-day {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--calendar-week-day-border-color);
+  box-sizing: border-box;
+}
+
+.ohhh-calendar-week-day:last-child {
+  border-right: none;
+}
+
+// 日期头部
+.ohhh-calendar-week-day--header {
+  flex: none;
+  height: var(--calendar-week-day-header-height);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-bottom: 1px solid var(--calendar-week-day-border-color);
+  background: var(--calendar-background);
+}
+
+.ohhh-calendar-week-day--date {
+  font-size: var(--calendar-week-day-date-font-size);
+  color: var(--calendar-days-value-color);
+  font-weight: 500;
+}
+
+// 选中/今天状态
+.ohhh-calendar-week-day.is-today .ohhh-calendar-week-day--header {
+  background: var(--calendar-days-today-background);
+}
+
+.ohhh-calendar-week-day.is-today .ohhh-calendar-week-day--date {
+  color: var(--calendar-days-today-color);
+}
+
+.ohhh-calendar-week-day.is-selected .ohhh-calendar-week-day--header {
+  background: var(--calendar-days-selected-background);
+}
+
+.ohhh-calendar-week-day.is-selected .ohhh-calendar-week-day--date {
+  color: var(--calendar-days-selected-color);
+}
+
+.ohhh-calendar-week-day.other-month .ohhh-calendar-week-day--date {
+  color: var(--calendar-days-other-month-color);
+}
+
+// 时间网格
+.ohhh-calendar-week-day--grid {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.ohhh-calendar-week-day--grid-hour {
+  flex: 1;
+  border-bottom: 1px solid var(--calendar-week-day-border-color);
+  box-sizing: border-box;
+}
+
+// 事件层
+.ohhh-calendar-week-day--events {
+  position: absolute;
+  top: var(--calendar-week-day-header-height);
+  left: var(--calendar-event-gap);
+  right: var(--calendar-event-gap);
+  bottom: 0;
+  pointer-events: none;
+}
+
+// 事件卡片
+.ohhh-calendar-event {
+  position: absolute;
+  left: var(--calendar-event-gap);
+  right: var(--calendar-event-gap);
+  padding: var(--calendar-event-padding);
+  border-radius: var(--calendar-event-border-radius);
+  overflow: hidden;
+  cursor: pointer;
+  pointer-events: auto;
+  box-sizing: border-box;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ohhh-calendar-event:hover {
+  transform: scale(1.02);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+.ohhh-calendar-event--title {
+  font-size: var(--calendar-event-title-font-size);
+  color: var(--calendar-event-title-color);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ohhh-calendar-event--time {
+  font-size: var(--calendar-event-time-font-size);
+  color: var(--calendar-event-time-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
