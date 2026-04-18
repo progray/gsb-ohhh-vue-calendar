@@ -289,4 +289,30 @@ onMounted(() => {
   color: #606266;
   text-align: center;
 }
+
+:deep(.ohhh-calendar-wrapper) {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+:deep(.ohhh-calendar-days) {
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  right: auto !important;
+  transform: none !important;
+}
+
+:deep(.ohhh-calendar-days:nth-child(1)) {
+  left: -100% !important;
+}
+
+:deep(.ohhh-calendar-days:nth-child(2)) {
+  left: 0 !important;
+}
+
+:deep(.ohhh-calendar-days:nth-child(3)) {
+  left: 100% !important;
+}
 </style>
