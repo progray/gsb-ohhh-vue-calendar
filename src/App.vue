@@ -1,179 +1,224 @@
 <template>
   <div class="app-container">
-    <div class="range-picker-container">
-      <div class="calendar-column left-calendar">
-        <div class="calendar-header">
-          <span class="header-label">开始日期</span>
-          <div class="header-nav">
-            <button class="nav-btn" @click="navigateLeft('prev-year')">«</button>
-            <button class="nav-btn" @click="navigateLeft('prev-page')">‹</button>
-            <span class="header-date">{{ leftYear }}年{{ leftMonth + 1 }}月</span>
-            <button class="nav-btn" @click="navigateLeft('next-page')">›</button>
-            <button class="nav-btn" @click="navigateLeft('next-year')">»</button>
-          </div>
+    <div class="picker-wrapper">
+      <div class="calendar-box">
+        <div class="calendar-title">开始日期</div>
+        <div class="calendar-nav">
+          <button class="nav-btn" @click="leftPrevYear">«</button>
+          <button class="nav-btn" @click="leftPrevMonth">‹</button>
+          <span class="current-date">{{ leftYear }}年{{ leftMonth + 1 }}月</span>
+          <button class="nav-btn" @click="leftNextMonth">›</button>
+          <button class="nav-btn" @click="leftNextYear">»</button>
         </div>
         <ohhh-vue-calendar
-          ref="leftCalRef"
+          ref="leftCal"
           :week-start="1"
           :show-toolbar="false"
           :show-footer="false"
-          :initial-selected-date="leftInitialDate"
+          :initial-selected-date="leftStart"
           @select-change="onLeftSelect"
         />
       </div>
 
-      <div class="calendar-column right-calendar">
-        <div class="calendar-header">
-          <span class="header-label">结束日期</span>
-          <div class="header-nav">
-            <button class="nav-btn" :class="{ disabled: !canRightPrev }" @click="navigateRight('prev-year')">«</button>
-            <button class="nav-btn" :class="{ disabled: !canRightPrev }" @click="navigateRight('prev-page')">‹</button>
-            <span class="header-date">{{ rightYear }}年{{ rightMonth + 1 }}月</span>
-            <button class="nav-btn" @click="navigateRight('next-page')">›</button>
-            <button class="nav-btn" @click="navigateRight('next-year')">»</button>
-          </div>
+      <div class="calendar-box">
+        <div class="calendar-title">结束日期</div>
+        <div class="calendar-nav">
+          <button class="nav-btn" :class="{ 'btn-disabled': !canRightGoBack }" @click="rightPrevYear">«</button>
+          <button class="nav-btn" :class="{ 'btn-disabled': !canRightGoBack }" @click="rightPrevMonth">‹</button>
+          <span class="current-date">{{ rightYear }}年{{ rightMonth + 1 }}月</span>
+          <button class="nav-btn" @click="rightNextMonth">›</button>
+          <button class="nav-btn" @click="rightNextYear">»</button>
         </div>
         <ohhh-vue-calendar
-          ref="rightCalRef"
+          ref="rightCal"
           :week-start="1"
           :show-toolbar="false"
           :show-footer="false"
-          :initial-selected-date="rightInitialDate"
+          :initial-selected-date="rightStart"
           @select-change="onRightSelect"
         />
       </div>
     </div>
 
-    <div v-if="startDate && endDate" class="range-display">
-      已选择：{{ formatDate(startDate) }} 至 {{ formatDate(endDate) }}
+    <div v-if="startDate && endDate" class="range-info">
+      已选择：{{ displayStart }} 至 {{ displayEnd }}
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import OhhhVueCalendar from './packages/Calendar/Calendar.vue'
-import '/src/packages/Calendar/style/mobile/mobile.scss'
+import '/src/packages/Calendar/style/index.scss'
 
-const leftCalRef = ref(null)
-const rightCalRef = ref(null)
+const leftCal = ref(null)
+const rightCal = ref(null)
 
 const today = new Date()
-const leftInitialDate = new Date(today.getFullYear(), today.getMonth(), 1)
-const rightInitialDate = new Date(today.getFullYear(), today.getMonth() + 1, 1)
+const leftStart = new Date(today.getFullYear(), today.getMonth(), 1)
+const rightStart = new Date(today.getFullYear(), today.getMonth() + 1, 1)
 
 const startDate = ref(null)
 const endDate = ref(null)
 
-const leftYear = ref(leftInitialDate.getFullYear())
-const leftMonth = ref(leftInitialDate.getMonth())
-const rightYear = ref(rightInitialDate.getFullYear())
-const rightMonth = ref(rightInitialDate.getMonth())
+const leftYear = ref(leftStart.getFullYear())
+const leftMonth = ref(leftStart.getMonth())
+const rightYear = ref(rightStart.getFullYear())
+const rightMonth = ref(rightStart.getMonth())
 
-const canRightPrev = computed(() => {
-  const leftNextMonth = new Date(leftYear.value, leftMonth.value + 1, 1)
-  const rightCurrent = new Date(rightYear.value, rightMonth.value, 1)
-  return rightCurrent > leftNextMonth
+const canRightGoBack = computed(() => {
+  const leftNext = new Date(leftYear.value, leftMonth.value + 1, 1)
+  const rightNow = new Date(rightYear.value, rightMonth.value, 1)
+  return rightNow > leftNext
 })
 
-function isDateBefore(date, refDate) {
-  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-  const r = new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate())
-  return d < r
+const displayStart = computed(() => {
+  if (!startDate.value) return ''
+  const y = startDate.value.getFullYear()
+  const m = String(startDate.value.getMonth() + 1).padStart(2, '0')
+  const d = String(startDate.value.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+})
+
+const displayEnd = computed(() => {
+  if (!endDate.value) return ''
+  const y = endDate.value.getFullYear()
+  const m = String(endDate.value.getMonth() + 1).padStart(2, '0')
+  const d = String(endDate.value.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+})
+
+function isBefore(d1, d2) {
+  const a = new Date(d1.getFullYear(), d1.getMonth(), d1.getDate())
+  const b = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate())
+  return a < b
 }
 
-function isDateAfter(date, refDate) {
-  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-  const r = new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate())
-  return d > r
+function isAfter(d1, d2) {
+  const a = new Date(d1.getFullYear(), d1.getMonth(), d1.getDate())
+  const b = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate())
+  return a > b
 }
 
-function navigateLeft(direction) {
-  let newYear = leftYear.value
-  let newMonth = leftMonth.value
-
-  if (direction === 'prev-page') {
-    newMonth -= 1
-  } else if (direction === 'next-page') {
-    newMonth += 1
-  } else if (direction === 'prev-year') {
-    newYear -= 1
-  } else if (direction === 'next-year') {
-    newYear += 1
-  }
-
-  const newDate = new Date(newYear, newMonth, 1)
-  leftYear.value = newDate.getFullYear()
-  leftMonth.value = newDate.getMonth()
-
-  if (leftCalRef.value) {
-    leftCalRef.value.changePageTo(newDate)
-  }
-
-  const rightTarget = new Date(newDate.getFullYear(), newDate.getMonth() + 1, 1)
-  rightYear.value = rightTarget.getFullYear()
-  rightMonth.value = rightTarget.getMonth()
-
-  if (rightCalRef.value) {
-    rightCalRef.value.changePageTo(rightTarget)
+function syncRightToLeftNext() {
+  const target = new Date(leftYear.value, leftMonth.value + 1, 1)
+  rightYear.value = target.getFullYear()
+  rightMonth.value = target.getMonth()
+  if (rightCal.value) {
+    rightCal.value.changePageTo(target)
   }
 }
 
-function navigateRight(direction) {
-  if ((direction === 'prev-page' || direction === 'prev-year') && !canRightPrev.value) {
-    return
+function leftPrevYear() {
+  leftYear.value -= 1
+  const target = new Date(leftYear.value, leftMonth.value, 1)
+  if (leftCal.value) {
+    leftCal.value.changePageTo(target)
   }
+  syncRightToLeftNext()
+}
 
-  let newYear = rightYear.value
-  let newMonth = rightMonth.value
-
-  if (direction === 'prev-page') {
-    newMonth -= 1
-  } else if (direction === 'next-page') {
-    newMonth += 1
-  } else if (direction === 'prev-year') {
-    newYear -= 1
-  } else if (direction === 'next-year') {
-    newYear += 1
+function leftPrevMonth() {
+  leftMonth.value -= 1
+  const target = new Date(leftYear.value, leftMonth.value, 1)
+  leftYear.value = target.getFullYear()
+  leftMonth.value = target.getMonth()
+  if (leftCal.value) {
+    leftCal.value.changePageTo(target)
   }
+  syncRightToLeftNext()
+}
 
-  const newDate = new Date(newYear, newMonth, 1)
-  const leftNextMonth = new Date(leftYear.value, leftMonth.value + 1, 1)
+function leftNextMonth() {
+  leftMonth.value += 1
+  const target = new Date(leftYear.value, leftMonth.value, 1)
+  leftYear.value = target.getFullYear()
+  leftMonth.value = target.getMonth()
+  if (leftCal.value) {
+    leftCal.value.changePageTo(target)
+  }
+  syncRightToLeftNext()
+}
 
-  if (newDate >= leftNextMonth) {
-    rightYear.value = newDate.getFullYear()
-    rightMonth.value = newDate.getMonth()
+function leftNextYear() {
+  leftYear.value += 1
+  const target = new Date(leftYear.value, leftMonth.value, 1)
+  if (leftCal.value) {
+    leftCal.value.changePageTo(target)
+  }
+  syncRightToLeftNext()
+}
 
-    if (rightCalRef.value) {
-      rightCalRef.value.changePageTo(newDate)
+function rightPrevYear() {
+  if (!canRightGoBack.value) return
+  rightYear.value -= 1
+  const target = new Date(rightYear.value, rightMonth.value, 1)
+  const leftNext = new Date(leftYear.value, leftMonth.value + 1, 1)
+  if (target >= leftNext) {
+    if (rightCal.value) {
+      rightCal.value.changePageTo(target)
     }
+  } else {
+    rightYear.value += 1
+  }
+}
+
+function rightPrevMonth() {
+  if (!canRightGoBack.value) return
+  rightMonth.value -= 1
+  const target = new Date(rightYear.value, rightMonth.value, 1)
+  rightYear.value = target.getFullYear()
+  rightMonth.value = target.getMonth()
+  const leftNext = new Date(leftYear.value, leftMonth.value + 1, 1)
+  if (target >= leftNext) {
+    if (rightCal.value) {
+      rightCal.value.changePageTo(target)
+    }
+  } else {
+    rightMonth.value += 1
+    const reset = new Date(rightYear.value, rightMonth.value, 1)
+    rightYear.value = reset.getFullYear()
+    rightMonth.value = reset.getMonth()
+  }
+}
+
+function rightNextMonth() {
+  rightMonth.value += 1
+  const target = new Date(rightYear.value, rightMonth.value, 1)
+  rightYear.value = target.getFullYear()
+  rightMonth.value = target.getMonth()
+  if (rightCal.value) {
+    rightCal.value.changePageTo(target)
+  }
+}
+
+function rightNextYear() {
+  rightYear.value += 1
+  const target = new Date(rightYear.value, rightMonth.value, 1)
+  if (rightCal.value) {
+    rightCal.value.changePageTo(target)
   }
 }
 
 function onLeftSelect(date) {
-  if (endDate.value && isDateAfter(date, endDate.value)) {
+  if (endDate.value && isAfter(date, endDate.value)) {
     return
   }
-
   startDate.value = new Date(date)
-
-  if (endDate.value && isDateBefore(endDate.value, startDate.value)) {
+  if (endDate.value && isBefore(endDate.value, startDate.value)) {
     endDate.value = null
   }
-
   emitRange()
 }
 
 function onRightSelect(date) {
-  if (startDate.value && isDateBefore(date, startDate.value)) {
+  if (startDate.value && isBefore(date, startDate.value)) {
     return
   }
-
   if (!startDate.value) {
     startDate.value = new Date(date)
     return
   }
-
   endDate.value = new Date(date)
   emitRange()
 }
@@ -186,63 +231,45 @@ function emitRange() {
     })
   }
 }
-
-function formatDate(d) {
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
-}
-
-onMounted(() => {
-  leftYear.value = leftInitialDate.getFullYear()
-  leftMonth.value = leftInitialDate.getMonth()
-  rightYear.value = rightInitialDate.getFullYear()
-  rightMonth.value = rightInitialDate.getMonth()
-})
 </script>
 
 <style scoped>
 .app-container {
-  padding: 20px;
-  background: #f0f2f5;
+  padding: 24px;
+  background-color: #f5f7fa;
   min-height: 100vh;
 }
 
-.range-picker-container {
+.picker-wrapper {
   display: flex;
-  background: #ffffff;
+  background-color: #ffffff;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
-.calendar-column {
+.calendar-box {
   width: 50%;
+  padding: 16px;
   box-sizing: border-box;
 }
 
-.left-calendar {
-  border-right: 1px solid #e4e7ed;
+.calendar-box:first-child {
+  border-right: 1px solid #ebeef5;
 }
 
-.calendar-header {
-  padding: 16px 20px 12px;
-  border-bottom: 1px solid #e4e7ed;
-  background: #fafafa;
-}
-
-.header-label {
-  display: block;
+.calendar-title {
   font-size: 14px;
   font-weight: 600;
   color: #303133;
-  margin-bottom: 8px;
   text-align: center;
+  margin-bottom: 12px;
 }
 
-.header-nav {
+.calendar-nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .nav-btn {
@@ -250,7 +277,7 @@ onMounted(() => {
   height: 28px;
   border: 1px solid #dcdfe6;
   border-radius: 4px;
-  background: #fff;
+  background-color: #ffffff;
   color: #606266;
   font-size: 14px;
   cursor: pointer;
@@ -261,58 +288,39 @@ onMounted(() => {
   padding: 0;
 }
 
-.nav-btn:hover:not(.disabled) {
+.nav-btn:hover:not(.btn-disabled) {
   border-color: #409eff;
   color: #409eff;
-  background: #ecf5ff;
+  background-color: #ecf5ff;
 }
 
-.nav-btn.disabled {
+.nav-btn.btn-disabled {
   color: #c0c4cc;
   cursor: not-allowed;
   opacity: 0.5;
 }
 
-.header-date {
+.current-date {
   font-size: 16px;
   font-weight: 500;
   color: #303133;
-  white-space: nowrap;
 }
 
-.range-display {
+.range-info {
   margin-top: 16px;
   padding: 12px 20px;
-  background: #f5f7fa;
+  background-color: #f5f7fa;
   border-radius: 6px;
   font-size: 14px;
   color: #606266;
   text-align: center;
 }
+</style>
 
-:deep(.ohhh-calendar-wrapper) {
-  position: relative !important;
-  overflow: hidden !important;
-}
-
-:deep(.ohhh-calendar-days) {
-  position: absolute !important;
-  top: 0 !important;
-  bottom: 0 !important;
-  width: 100% !important;
+<style>
+.ohhh-calendar-days {
+  inset-inline-end: auto !important;
   right: auto !important;
   transform: none !important;
-}
-
-:deep(.ohhh-calendar-days:nth-child(1)) {
-  left: -100% !important;
-}
-
-:deep(.ohhh-calendar-days:nth-child(2)) {
-  left: 0 !important;
-}
-
-:deep(.ohhh-calendar-days:nth-child(3)) {
-  left: 100% !important;
 }
 </style>
