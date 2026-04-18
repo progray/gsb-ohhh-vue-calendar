@@ -1,21 +1,33 @@
 <template>
   <div
     class="ohhh-calendar-container"
+    :class="{
+      'is-animating-view': isAnimatingViewChange,
+      'is-animating-page': isAnimatingPageChange,
+      'page-style-slide': pageAnimationStyle === 'slide',
+      'page-style-stack': pageAnimationStyle === 'stack',
+      'expanding': viewChangeDirection === 'expanding',
+      'collapsing': viewChangeDirection === 'collapsing'
+    }"
     :style="{
       '--calendar-rows': renderRows,
-      '--calendar-transition-duration': duration,
+      '--calendar-transition-duration': actualDuration,
       '--translate-distance': transformDistance,
-      '--transition-duration': transitionDuration
+      '--transition-duration': pageTransitionDuration,
+      '--view-change-duration': viewChangeDuration,
+      '--current-week-index': currentWeekIndex,
+      '--ripple-x': rippleX,
+      '--ripple-y': rippleY
     }"
   >
     <!-- 顶部工具栏 -->
     <div v-if="showToolbar" class="ohhh-calendar-toolbar">
       <slot name="toolbar" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
-        <div v-html="icons.arrowDoubleLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-year')" />
-        <div v-html="icons.arrowLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-page')" />
+        <div v-html="icons.arrowDoubleLeft" class="ohhh-calendar-toolbar--icon" @click="handleToolbarClick('prev-year')" />
+        <div v-html="icons.arrowLeft" class="ohhh-calendar-toolbar--icon" @click="handleToolbarClick('prev-page')" />
         <div class="ohhh-calendar-toolbar--text">{{ headerLabel }}</div>
-        <div v-html="icons.arrowRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-page')" />
-        <div v-html="icons.arrowDoubleRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-year')" />
+        <div v-html="icons.arrowRight" class="ohhh-calendar-toolbar--icon" @click="handleToolbarClick('next-page')" />
+        <div v-html="icons.arrowDoubleRight" class="ohhh-calendar-toolbar--icon" @click="handleToolbarClick('next-year')" />
       </slot>
     </div>
 
@@ -29,30 +41,52 @@
     <!-- 日历主体 -->
     <div ref="swp" class="ohhh-calendar-wrapper">
       <div
-        v-for="(item, index) in allRenderDates"
-        :key="index"
-        :style="{ left: 100 * (index - 1) + '%' }"
+        v-for="(dates, pageIndex) in allRenderDates"
+        :key="pageIndex"
+        :style="{ left: 100 * (pageIndex - 1) + '%' }"
         class="ohhh-calendar-days"
-        @transitionend="onTransitionEnd"
+        :class="{
+          'is-prev-page': pageIndex === 0,
+          'is-current-page': pageIndex === 1,
+          'is-next-page': pageIndex === 2,
+          'page-exit': isAnimatingPageChange && pageIndex === 1 && pageDirection !== 'none',
+          'page-enter': isAnimatingPageChange && ((pageDirection === 'left' && pageIndex === 2) || (pageDirection === 'right' && pageIndex === 0))
+        }"
+        @transitionend="onPageTransitionEnd"
+        @animationend="onPageAnimationEnd"
       >
         <div
-          v-for="dateObj in item"
-          :key="dateObj.key"
-          class="ohhh-calendar-day"
+          v-for="(week, weekIdx) in getPageRows(dates)"
+          :key="weekIdx"
+          class="ohhh-calendar-week-row"
           :class="{
-            'is-selected': isSameDay(dateObj.date, selected),
-            'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'is-current-week': weekIdx === currentWeekIndex,
+            'is-above-current': weekIdx < currentWeekIndex,
+            'is-below-current': weekIdx > currentWeekIndex
           }"
-          @click="changeSelectedDate(dateObj.date)"
+          :data-week-index="weekIdx"
         >
-          <div class="ohhh-calendar-day--inner">
-            <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
-            <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
-              <slot name="day-label" :date="dateObj.date" />
+          <div
+            v-for="dateObj in week"
+            :key="dateObj.key"
+            class="ohhh-calendar-day"
+            :class="{
+              'is-selected': isSameDay(dateObj.date, selected),
+              'is-today': isSameDay(dateObj.date, new Date()),
+              'other-month': !dateObj.current,
+              'has-ripple': rippleActive && rippleTargetDate && isSameDay(dateObj.date, rippleTargetDate)
+            }"
+            @click="onDayClick($event, dateObj)"
+          >
+            <div class="ohhh-calendar-day--inner">
+              <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
+              <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
+                <slot name="day-label" :date="dateObj.date" />
+              </div>
             </div>
+            <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+            <div class="ohhh-calendar-day--ripple"></div>
           </div>
-          <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
         </div>
       </div>
     </div>
@@ -63,7 +97,7 @@
         <div
           v-html="viewMode === 'week' ? icons.arrowDown : icons.arrowUp"
           class="ohhh-calendar-footer--icon"
-          @click="toggleViewMode"
+          @click="handleViewModeToggle"
         />
       </slot>
     </div>
@@ -71,7 +105,7 @@
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref, watch, nextTick } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
 import { isSameDay, createWeekdays } from './utils'
@@ -82,49 +116,49 @@ const swipeRef = useTemplateRef('swp')
 const emit = defineEmits(['select-change', 'view-change'])
 
 const props = defineProps({
-  // 初始选中的日期
   initialSelectedDate: {
     type: Date,
     default: () => new Date()
   },
-  // 初始视图模式
   initialViewMode: {
     type: String,
-    default: 'month' // month or week
+    default: 'month'
   },
-  // 以周几作为每周的起始
   weekStart: {
     type: Number,
-    default: 0 // 0: Sunday, 1: Monday, etc.
+    default: 0
   },
-  // 标记的日期
   markerDates: {
     type: Array,
     default: () => []
   },
-  // 是否显示顶部工具栏
   showToolbar: {
     type: Boolean,
     default: true
   },
-  // 是否显示底部工具栏
   showFooter: {
     type: Boolean,
     default: true
   },
-  // 是否显示weekdays栏
   showWeekdays: {
     type: Boolean,
     default: true
   },
-  // 过渡动画时长
   duration: {
     type: String,
     default: '0.3s'
+  },
+  animationEnabled: {
+    type: Boolean,
+    default: true
+  },
+  pageAnimationStyle: {
+    type: String,
+    default: 'slide'
   }
 })
 
-const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration } = toRefs(props)
+const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration, animationEnabled, pageAnimationStyle } = toRefs(props)
 
 const {
   selected,
@@ -140,14 +174,50 @@ const {
   switchPageToTargetDate,
   startTransitionAnimation,
   onTransitionEnd,
-  toggleViewMode
+  toggleViewMode,
+  weekIndex,
+  currentMonthDates,
+  currentWeekDates,
+  _targetDate,
+  _setPrevMonthDates,
+  _setNextMonthDates,
+  _setPrevWeekDates,
+  _setNextWeekDates,
+  _setWeekIndex
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
 
-// 顶部工具栏标题
+const isAnimatingViewChange = ref(false)
+const isAnimatingPageChange = ref(false)
+const viewChangeDirection = ref('none')
+const pageDirection = ref('none')
+const pageTransitionDuration = ref('0s')
+const viewChangeDuration = ref('0.3s')
+
+const currentWeekIndex = computed(() => {
+  return weekIndex.value
+})
+
+const actualDuration = computed(() => {
+  if (!animationEnabled.value) return '0s'
+  return duration.value
+})
+
+watch(actualDuration, (val) => {
+  viewChangeDuration.value = val
+})
+
+watch(animationEnabled, () => {
+  if (!animationEnabled.value) {
+    isAnimatingViewChange.value = false
+    isAnimatingPageChange.value = false
+    viewChangeDirection.value = 'none'
+    pageDirection.value = 'none'
+  }
+}, { immediate: true })
+
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
-// 星期栏
 const weekdays = createWeekdays(weekStart.value)
-// 标记日期
+
 const markerDateList = computed(() =>
   markerDates.value.map(item => ({
     date: new Date(typeof item === 'object' && item.date ? item.date : item),
@@ -155,31 +225,61 @@ const markerDateList = computed(() =>
   }))
 )
 
-// 监听滑动事件
+function getPageRows(dates) {
+  const rows = []
+  for (let i = 0; i < dates.length; i += 7) {
+    rows.push(dates.slice(i, i + 7))
+  }
+  return rows
+}
+
+const rippleX = ref('50%')
+const rippleY = ref('50%')
+const rippleActive = ref(false)
+const rippleTargetDate = ref(null)
+
+function onDayClick(event, dateObj) {
+  const rect = event.currentTarget.getBoundingClientRect()
+  rippleX.value = `${event.clientX - rect.left}px`
+  rippleY.value = `${event.clientY - rect.top}px`
+
+  rippleTargetDate.value = new Date(dateObj.date)
+  rippleActive.value = false
+
+  nextTick(() => {
+    rippleActive.value = true
+    const durationMs = parseFloat(actualDuration.value) * 1000 * 1.5
+    setTimeout(() => {
+      rippleActive.value = false
+      rippleTargetDate.value = null
+    }, durationMs)
+  })
+
+  changeSelectedDate(dateObj.date)
+}
+
 const { lengthX } = useSwipe(swipeRef, {
-  // 滑动阈值
   threshold: 0,
-  // 手指滑动过程中
   onSwipe: () => {
+    if (isAnimatingPageChange.value || isAnimatingViewChange.value || !animationEnabled.value) return
     if (isInTransition.value) return
     transformDistance.value = -lengthX.value + 'px'
   },
-  // 手指抬起滑动结束，开始滑动动画
   onSwipeEnd: (_, direction) => {
+    if (isAnimatingPageChange.value || isAnimatingViewChange.value) return
     if (isInTransition.value) return
     if (direction === 'left') {
-      changePageTo('next-page')
+      handlePageChange('next-page')
     } else if (direction === 'right') {
-      changePageTo('prev-page')
+      handlePageChange('prev-page')
     } else {
-      // 如果方向不是左右，则将页面复位
-      startTransitionAnimation(direction)
+      if (animationEnabled.value) {
+        startTransitionAnimation(direction)
+      }
     }
   }
 })
 
-// 归一化参数
-// 支持 'prev-page', 'next-page', 'prev-year', 'next-year', 以及合法的日期
 function _normalize(param) {
   if (!param) {
     throw new Error('参数不能为空')
@@ -215,13 +315,124 @@ function _normalize(param) {
   throw new Error('日期不合法')
 }
 
-// 切换日历页面
-function changePageTo(param) {
+function handlePageChange(param) {
   const targetDate = _normalize(param)
-  switchPageToTargetDate(targetDate)
+
+  if (viewMode.value === 'week') {
+    if (currentRenderDates.value.some(item => isSameDay(item.date, targetDate))) {
+      if (targetDate.getFullYear() === currentYear.value && targetDate.getMonth() === currentMonth.value) {
+        return
+      }
+      currentYear.value = targetDate.getFullYear()
+      currentMonth.value = targetDate.getMonth()
+      return
+    }
+  } else if (viewMode.value === 'month') {
+    if (targetDate.getFullYear() === currentYear.value && targetDate.getMonth() === currentMonth.value) {
+      return
+    }
+  }
+
+  if (!animationEnabled.value) {
+    switchPageToTargetDate(targetDate)
+    return
+  }
+
+  let dir
+  if (viewMode.value === 'week') {
+    dir = targetDate < currentRenderDates.value[0].date ? 'right' : 'left'
+  } else {
+    if (targetDate.getFullYear() < currentYear.value ||
+        (targetDate.getFullYear() === currentYear.value && targetDate.getMonth() < currentMonth.value)) {
+      dir = 'right'
+    } else {
+      dir = 'left'
+    }
+  }
+
+  if (pageAnimationStyle.value === 'stack') {
+    isAnimatingPageChange.value = true
+    pageDirection.value = dir
+    pageTransitionDuration.value = actualDuration.value
+
+    if (viewMode.value === 'week') {
+      if (dir === 'right') {
+        _setPrevWeekDates(targetDate)
+      } else {
+        _setNextWeekDates(targetDate)
+      }
+    } else {
+      if (dir === 'right') {
+        _setPrevMonthDates(targetDate)
+      } else {
+        _setNextMonthDates(targetDate)
+      }
+    }
+
+    _targetDate.value = targetDate
+    isInTransition.value = true
+  } else {
+    switchPageToTargetDate(targetDate)
+  }
 }
 
-// 切换选中的日期
+function onPageTransitionEnd() {
+  onTransitionEnd()
+}
+
+function onPageAnimationEnd() {
+  if (!isAnimatingPageChange.value) return
+
+  onTransitionEnd()
+
+  isAnimatingPageChange.value = false
+  pageDirection.value = 'none'
+  pageTransitionDuration.value = '0s'
+}
+
+function handleToolbarClick(param) {
+  if (isAnimatingPageChange.value || isAnimatingViewChange.value) return
+  handlePageChange(param)
+}
+
+function changePageTo(param) {
+  if (isAnimatingPageChange.value || isAnimatingViewChange.value) return
+  handlePageChange(param)
+}
+
+function handleViewModeToggle() {
+  if (isAnimatingPageChange.value || isAnimatingViewChange.value) return
+
+  if (!animationEnabled.value) {
+    toggleViewMode()
+    return
+  }
+
+  const newMode = viewMode.value === 'week' ? 'month' : 'week'
+
+  if (newMode === 'month') {
+    viewChangeDirection.value = 'expanding'
+  } else {
+    viewChangeDirection.value = 'collapsing'
+  }
+
+  isAnimatingViewChange.value = true
+
+  if (newMode === 'week') {
+    renderRows.value = 1
+  } else {
+    renderRows.value = Math.ceil(currentMonthDates.value.length / 7)
+  }
+
+  const durationMs = parseFloat(actualDuration.value) * 1000 * 1.5
+
+  setTimeout(() => {
+    toggleViewMode()
+    isAnimatingViewChange.value = false
+    viewChangeDirection.value = 'none'
+  }, durationMs)
+}
+
 function changeSelectedDate(date) {
   changePageTo(date)
   if (!isSameDay(new Date(date), selected.value)) {
@@ -230,17 +441,13 @@ function changeSelectedDate(date) {
   }
 }
 
-// 获取 marker 颜色
 function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
 defineExpose({
-  // 切换周/月视图
   toggleViewMode,
-  // 切换日历页
   changePageTo,
-  // 切换选中日期
   changeSelectedDate
 })
 </script>
