@@ -1,11 +1,13 @@
 <template>
   <div
     class="ohhh-calendar-container"
+    :class="{ 'spotlight-mode': spotlightEnabled }"
     :style="{
       '--calendar-rows': renderRows,
       '--calendar-transition-duration': duration,
       '--translate-distance': transformDistance,
-      '--transition-duration': transitionDuration
+      '--transition-duration': transitionDuration,
+      '--spotlight-transition-duration': spotlightTransitionDuration
     }"
   >
     <!-- 顶部工具栏 -->
@@ -44,6 +46,7 @@
             'is-today': isSameDay(dateObj.date, new Date()),
             'other-month': !dateObj.current
           }"
+          :style="_getSpotlightStyle(dateObj)"
           @click="changeSelectedDate(dateObj.date)"
         >
           <div class="ohhh-calendar-day--inner">
@@ -59,19 +62,25 @@
 
     <!-- 底部工具栏 -->
     <div v-if="showFooter" class="ohhh-calendar-footer">
-      <slot name="footer" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
+      <slot name="footer" :year="currentYear" :month="currentMonth" :viewMode="viewMode" :spotlightEnabled="spotlightEnabled">
         <div
           v-html="viewMode === 'week' ? icons.arrowDown : icons.arrowUp"
           class="ohhh-calendar-footer--icon"
           @click="toggleViewMode"
         />
+        <div class="ohhh-calendar-footer--spotlight-switch" @click="toggleSpotlight">
+          <span class="spotlight-label">聚光灯</span>
+          <span class="spotlight-toggle" :class="{ 'is-active': spotlightEnabled }">
+            <span class="spotlight-toggle-dot"></span>
+          </span>
+        </div>
       </slot>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
 import { isSameDay, createWeekdays } from './utils'
@@ -121,10 +130,25 @@ const props = defineProps({
   duration: {
     type: String,
     default: '0.3s'
+  },
+  // 是否启用聚光灯模式
+  initialSpotlightEnabled: {
+    type: Boolean,
+    default: false
+  },
+  // 聚光灯过渡动画时长
+  spotlightDuration: {
+    type: String,
+    default: '0.4s'
+  },
+  // 聚光灯渐暗半径（周围几个格子开始暗淡）
+  spotlightRadius: {
+    type: Number,
+    default: 2
   }
 })
 
-const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration } = toRefs(props)
+const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration, initialSpotlightEnabled, spotlightDuration, spotlightRadius } = toRefs(props)
 
 const {
   selected,
@@ -142,6 +166,17 @@ const {
   onTransitionEnd,
   toggleViewMode
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
+
+// 聚光灯模式开关
+const spotlightEnabled = ref(initialSpotlightEnabled.value)
+
+// 聚光灯过渡时长
+const spotlightTransitionDuration = computed(() => spotlightDuration.value)
+
+// 切换聚光灯模式
+function toggleSpotlight() {
+  spotlightEnabled.value = !spotlightEnabled.value
+}
 
 // 顶部工具栏标题
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
@@ -235,12 +270,64 @@ function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
+// 计算两个日期之间的曼哈顿距离（用于聚光灯效果）
+function _calculateDateDistance(date1, date2) {
+  if (!date1 || !date2) return 0
+  const diffTime = Math.abs(date1.getTime() - date2.getTime())
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+}
+
+// 获取聚光灯样式
+function _getSpotlightStyle(dateObj) {
+  if (!spotlightEnabled.value) {
+    return {}
+  }
+  
+  const isSelectedInCurrentView = currentRenderDates.value.some(d => isSameDay(d.date, selected.value))
+  
+  if (!isSelectedInCurrentView) {
+    return {}
+  }
+  
+  const distance = _calculateDateDistance(dateObj.date, selected.value)
+  const radius = spotlightRadius.value
+  
+  if (distance === 0) {
+    return {
+      '--spotlight-opacity': '1',
+      '--spotlight-scale': '1.05',
+      '--spotlight-glow-intensity': '1'
+    }
+  }
+  
+  if (distance <= radius) {
+    const opacity = 1 - (distance * 0.15) / radius
+    const scale = 1 - (distance * 0.03) / radius
+    const glowIntensity = 1 - (distance * 0.5) / radius
+    return {
+      '--spotlight-opacity': opacity.toString(),
+      '--spotlight-scale': scale.toString(),
+      '--spotlight-glow-intensity': glowIntensity.toString()
+    }
+  }
+  
+  return {
+    '--spotlight-opacity': '0.4',
+    '--spotlight-scale': '0.95',
+    '--spotlight-glow-intensity': '0'
+  }
+}
+
 defineExpose({
   // 切换周/月视图
   toggleViewMode,
   // 切换日历页
   changePageTo,
   // 切换选中日期
-  changeSelectedDate
+  changeSelectedDate,
+  // 切换聚光灯模式
+  toggleSpotlight,
+  // 聚光灯模式状态
+  spotlightEnabled
 })
 </script>

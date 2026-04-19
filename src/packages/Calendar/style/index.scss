@@ -79,6 +79,9 @@
   align-items: center;
   height: var(--calendar-row-height);
   cursor: pointer;
+  transition:
+    opacity var(--spotlight-transition-duration, 0.4s) ease,
+    transform var(--spotlight-transition-duration, 0.4s) ease;
 }
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-label {
@@ -97,6 +100,35 @@
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-label {
   color: var(--calendar-days-selected-color);
+}
+
+.ohhh-calendar-container.spotlight-mode .ohhh-calendar-day {
+  opacity: var(--spotlight-opacity, 1);
+  transform: scale(var(--spotlight-scale, 1));
+}
+
+.ohhh-calendar-container.spotlight-mode .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner {
+  box-shadow:
+    0 0 calc(var(--spotlight-glow-size, 20px) * var(--spotlight-glow-intensity, 1))
+      calc(var(--spotlight-glow-size, 20px) * 0.5 * var(--spotlight-glow-intensity, 1))
+      var(--spotlight-glow-color, var(--calendar-theme-color));
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 calc(var(--spotlight-glow-size, 20px) * 0.8 * var(--spotlight-glow-intensity, 1))
+        calc(var(--spotlight-glow-size, 20px) * 0.3 * var(--spotlight-glow-intensity, 1))
+        var(--spotlight-glow-color, var(--calendar-theme-color));
+  }
+  50% {
+    box-shadow:
+      0 0 calc(var(--spotlight-glow-size, 20px) * 1.2 * var(--spotlight-glow-intensity, 1))
+        calc(var(--spotlight-glow-size, 20px) * 0.5 * var(--spotlight-glow-intensity, 1))
+        var(--spotlight-glow-color, var(--calendar-theme-color));
+  }
 }
 
 .ohhh-calendar-day--inner {
@@ -129,6 +161,8 @@
 .ohhh-calendar-footer {
   display: flex;
   justify-content: center;
+  align-items: center;
+  column-gap: 24px;
   padding: var(--calendar-footer-padding);
 }
 .ohhh-calendar-footer--icon {
@@ -137,4 +171,51 @@
 .ohhh-calendar-footer--icon svg {
   width: var(--calendar-footer-icon-size);
   height: var(--calendar-footer-icon-size);
+}
+
+.ohhh-calendar-footer--spotlight-switch {
+  display: flex;
+  align-items: center;
+  column-gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.spotlight-label {
+  font-size: 14px;
+  color: var(--calendar-text-color-level-2);
+  transition: color var(--spotlight-transition-duration, 0.4s) ease;
+}
+
+.ohhh-calendar-container.spotlight-mode .spotlight-label {
+  color: var(--calendar-theme-color);
+}
+
+.spotlight-toggle {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  background: var(--calendar-text-color-level-5);
+  border-radius: 11px;
+  transition: background var(--spotlight-transition-duration, 0.4s) ease;
+}
+
+.spotlight-toggle.is-active {
+  background: var(--calendar-theme-color);
+}
+
+.spotlight-toggle-dot {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform var(--spotlight-transition-duration, 0.4s) ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.spotlight-toggle.is-active .spotlight-toggle-dot {
+  transform: translateX(18px);
 }
