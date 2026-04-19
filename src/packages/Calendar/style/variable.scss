@@ -49,4 +49,9 @@
   --calendar-days-marker-top-gap: 4px;
   --calendar-days-marker-size: 4px;
   --calendar-days-marker-color: var(--calendar-theme-color);
+
+  --spotlight-glow-color: var(--calendar-theme-color);
+  --spotlight-glow-size: 20px;
+  --spotlight-dim-opacity: 0.4;
+  --spotlight-transition-duration: 0.4s;
 }
