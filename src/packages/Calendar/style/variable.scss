@@ -49,4 +49,17 @@
   --calendar-days-marker-top-gap: 4px;
   --calendar-days-marker-size: 4px;
   --calendar-days-marker-color: var(--calendar-theme-color);
+
+  --spotlight-glow-color: var(--calendar-theme-color);
+  --spotlight-glow-size: 80px;
+  --spotlight-dim-opacity: 0.1;
+  --spotlight-transition-duration: 0.5s;
+  --spotlight-wrapper-padding: 30px;
+  
+  --spotlight-glow-color-alpha-60: #{rgba(#409eff, 0.6)};
+  --spotlight-glow-color-alpha-50: #{rgba(#409eff, 0.5)};
+  --spotlight-glow-color-alpha-40: #{rgba(#409eff, 0.4)};
+  --spotlight-glow-color-alpha-30: #{rgba(#409eff, 0.3)};
+  --spotlight-glow-color-alpha-10: #{rgba(#409eff, 0.1)};
+  --spotlight-white-alpha-30: #{rgba(#ffffff, 0.3)};
 }

@@ -63,6 +63,14 @@
   height: calc(var(--calendar-rows) * var(--calendar-row-height));
   transition: height var(--calendar-transition-duration) ease;
 }
+
+.ohhh-calendar-container.spotlight-mode .ohhh-calendar-wrapper {
+  padding: var(--spotlight-wrapper-padding, 30px);
+  margin: calc(var(--spotlight-wrapper-padding, 30px) * -1);
+  overflow: visible;
+  height: calc(var(--calendar-rows) * var(--calendar-row-height) + var(--spotlight-wrapper-padding, 30px) * 2);
+}
+
 .ohhh-calendar-days {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -72,6 +80,12 @@
   transform: translate3d(var(--translate-distance), 0, 0);
   transition: transform var(--transition-duration) ease;
 }
+
+.ohhh-calendar-container.spotlight-mode .ohhh-calendar-days {
+  inset: var(--spotlight-wrapper-padding, 30px);
+  width: calc(100% - var(--spotlight-wrapper-padding, 30px) * 2);
+  height: calc(100% - var(--spotlight-wrapper-padding, 30px) * 2);
+}
 .ohhh-calendar-day {
   display: flex;
   flex-direction: column;
@@ -79,6 +93,9 @@
   align-items: center;
   height: var(--calendar-row-height);
   cursor: pointer;
+  transition:
+    opacity var(--spotlight-transition-duration, 0.4s) ease,
+    transform var(--spotlight-transition-duration, 0.4s) ease;
 }
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-label {
@@ -97,6 +114,102 @@
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-label {
   color: var(--calendar-days-selected-color);
+}
+
+.ohhh-calendar-container.spotlight-mode .ohhh-calendar-day {
+  opacity: var(--spotlight-opacity, 1);
+  transform: scale(var(--spotlight-scale, 1));
+  z-index: var(--spotlight-z-index, 1);
+}
+
+.ohhh-calendar-container.spotlight-mode .ohhh-calendar-day.is-selected {
+  position: relative;
+  z-index: 10;
+}
+
+.ohhh-calendar-container.spotlight-mode .ohhh-calendar-day.is-selected::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--spotlight-glow-size, 80px);
+  height: var(--spotlight-glow-size, 80px);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    var(--spotlight-glow-color, #409eff) 0%,
+    var(--spotlight-glow-color, #409eff) 15%,
+    var(--spotlight-glow-color-alpha-60, rgba(64, 158, 255, 0.6)) 30%,
+    var(--spotlight-glow-color-alpha-30, rgba(64, 158, 255, 0.3)) 50%,
+    var(--spotlight-glow-color-alpha-10, rgba(64, 158, 255, 0.1)) 70%,
+    transparent 100%
+  );
+  opacity: var(--spotlight-glow-intensity, 0);
+  transition: 
+    opacity var(--spotlight-transition-duration, 0.5s) ease,
+    transform var(--spotlight-transition-duration, 0.5s) ease;
+  pointer-events: none;
+  z-index: -1;
+  animation: spotlight-pulse 3s ease-in-out infinite;
+}
+
+.ohhh-calendar-container.spotlight-mode .ohhh-calendar-day.is-selected::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--spotlight-glow-size, 80px) * 1.5);
+  height: calc(var(--spotlight-glow-size, 80px) * 1.5);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    var(--spotlight-white-alpha-30, rgba(255, 255, 255, 0.3)) 0%,
+    transparent 40%
+  );
+  opacity: var(--spotlight-glow-intensity, 0);
+  transition: 
+    opacity var(--spotlight-transition-duration, 0.5s) ease,
+    transform var(--spotlight-transition-duration, 0.5s) ease;
+  pointer-events: none;
+  z-index: -2;
+}
+
+.ohhh-calendar-container.spotlight-mode .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner {
+  position: relative;
+  z-index: 2;
+  box-shadow:
+    0 0 20px 5px var(--spotlight-glow-color, #409eff),
+    0 0 40px 10px var(--spotlight-glow-color-alpha-50, rgba(64, 158, 255, 0.5)),
+    0 0 60px 15px var(--spotlight-glow-color-alpha-30, rgba(64, 158, 255, 0.3));
+  animation: inner-glow-pulse 2s ease-in-out infinite;
+}
+
+@keyframes spotlight-pulse {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+}
+
+@keyframes inner-glow-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 20px 5px var(--spotlight-glow-color, #409eff),
+      0 0 40px 10px var(--spotlight-glow-color-alpha-50, rgba(64, 158, 255, 0.5)),
+      0 0 60px 15px var(--spotlight-glow-color-alpha-30, rgba(64, 158, 255, 0.3));
+  }
+  50% {
+    box-shadow:
+      0 0 25px 8px var(--spotlight-glow-color, #409eff),
+      0 0 50px 15px var(--spotlight-glow-color-alpha-60, rgba(64, 158, 255, 0.6)),
+      0 0 70px 20px var(--spotlight-glow-color-alpha-40, rgba(64, 158, 255, 0.4));
+  }
 }
 
 .ohhh-calendar-day--inner {
@@ -129,6 +242,8 @@
 .ohhh-calendar-footer {
   display: flex;
   justify-content: center;
+  align-items: center;
+  column-gap: 24px;
   padding: var(--calendar-footer-padding);
 }
 .ohhh-calendar-footer--icon {
@@ -137,4 +252,51 @@
 .ohhh-calendar-footer--icon svg {
   width: var(--calendar-footer-icon-size);
   height: var(--calendar-footer-icon-size);
+}
+
+.ohhh-calendar-footer--spotlight-switch {
+  display: flex;
+  align-items: center;
+  column-gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.spotlight-label {
+  font-size: 14px;
+  color: var(--calendar-text-color-level-2);
+  transition: color var(--spotlight-transition-duration, 0.4s) ease;
+}
+
+.ohhh-calendar-container.spotlight-mode .spotlight-label {
+  color: var(--calendar-theme-color);
+}
+
+.spotlight-toggle {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  background: var(--calendar-text-color-level-5);
+  border-radius: 11px;
+  transition: background var(--spotlight-transition-duration, 0.4s) ease;
+}
+
+.spotlight-toggle.is-active {
+  background: var(--calendar-theme-color);
+}
+
+.spotlight-toggle-dot {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform var(--spotlight-transition-duration, 0.4s) ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.spotlight-toggle.is-active .spotlight-toggle-dot {
+  transform: translateX(18px);
 }
