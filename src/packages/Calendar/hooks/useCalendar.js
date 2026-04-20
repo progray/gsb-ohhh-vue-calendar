@@ -181,16 +181,22 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
 
   // 开始播放过渡动画
   function startTransitionAnimation(direction) {
-    transitionDuration.value = duration.value
-    isInTransition.value = true
     if (direction === 'left') {
+      transitionDuration.value = duration.value
+      isInTransition.value = true
       transformDistance.value = '-100%'
       renderRows.value = nextRenderRows.value
     } else if (direction === 'right') {
+      transitionDuration.value = duration.value
+      isInTransition.value = true
       transformDistance.value = '100%'
       renderRows.value = prevRenderRows.value
     } else {
-      transformDistance.value = '0px'
+      // direction 为 null 时，直接复位，不设置过渡状态
+      transitionDuration.value = duration.value
+      transformDistance.value = '0%'
+      // 注意：不设置 isInTransition = true，因为没有实际的过渡动画
+      // 会在 onTransitionEnd 或手动重置
     }
   }
 
@@ -204,7 +210,7 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     currentYear.value = _targetDate.value.getFullYear()
     currentMonth.value = _targetDate.value.getMonth()
     renderRows.value = currentRenderRows.value
-    transformDistance.value = '0px'
+    transformDistance.value = '0%'
     if (viewMode.value === 'week') {
       _setWeekIndex(_targetDate.value)
       _setPrevWeekDates(
