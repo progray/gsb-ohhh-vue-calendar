@@ -1,6 +1,7 @@
 <template>
   <div
     class="ohhh-calendar-container"
+    :class="{ 'heatmap-mode': showHeatmap }"
     :style="{
       '--calendar-rows': renderRows,
       '--calendar-transition-duration': duration,
@@ -17,6 +18,24 @@
         <div v-html="icons.arrowRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-page')" />
         <div v-html="icons.arrowDoubleRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-year')" />
       </slot>
+    </div>
+
+    <!-- 热力图图例 -->
+    <div v-if="showHeatmap && showHeatmapLegend" class="ohhh-calendar-heatmap-legend">
+      <span class="heatmap-legend--label">少</span>
+      <div
+        v-for="(item, index) in legendData"
+        :key="index"
+        class="heatmap-legend--color-block"
+        :class="{ 'is-selected': selectedIntervalIndex === item.colorIndex }"
+        :style="{ backgroundColor: item.color }"
+        @click="handleLegendClick(item)"
+        :title="item.label + (item.count > 0 ? ` (${item.count}天)` : '')"
+      />
+      <span class="heatmap-legend--label">多</span>
+      <span v-if="selectedIntervalIndex !== null" class="heatmap-legend--clear" @click="clearFilter">
+        清除筛选
+      </span>
     </div>
 
     <!-- 星期栏 -->
@@ -42,9 +61,15 @@
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'heatmap-highlighted': showHeatmap && isDateHighlighted(dateObj.date),
+            'heatmap-dimmed': showHeatmap && !isDateHighlighted(dateObj.date),
+            'is-hovered': showHeatmap && hoveredDate && isSameDay(dateObj.date, hoveredDate)
           }"
+          :style="showHeatmap ? { backgroundColor: getHeatmapColor(dateObj.date) } : {}"
           @click="changeSelectedDate(dateObj.date)"
+          @mouseenter="handleDateHover(dateObj.date)"
+          @mouseleave="handleDateLeave"
         >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
@@ -52,10 +77,33 @@
               <slot name="day-label" :date="dateObj.date" />
             </div>
           </div>
-          <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+          <div v-if="!showHeatmap" class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
         </div>
       </div>
     </div>
+
+    <!-- 热力图悬停提示 -->
+    <Teleport to="body">
+      <div
+        v-if="showHeatmap && hoveredDateValue !== null"
+        class="ohhh-calendar-heatmap-tooltip"
+        :class="[`placement-${tooltipPlacement}`]"
+        :style="{
+          left: tooltipPosition.x + 'px',
+          top: tooltipPosition.y + 'px'
+        }"
+      >
+        <slot name="heatmap-tooltip" :date="hoveredDate" :value="hoveredDateValue">
+          <div class="heatmap-tooltip--content">
+            <div class="heatmap-tooltip--date">{{ formatTooltipDate(hoveredDate) }}</div>
+            <div class="heatmap-tooltip--value">
+              <span class="heatmap-tooltip--label">数值:</span>
+              <span class="heatmap-tooltip--number">{{ hoveredDateValue }}</span>
+            </div>
+          </div>
+        </slot>
+      </div>
+    </Teleport>
 
     <!-- 底部工具栏 -->
     <div v-if="showFooter" class="ohhh-calendar-footer">
@@ -71,56 +119,69 @@
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref, watch } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
+import { useHeatmap } from './hooks/useHeatmap.js'
 import { isSameDay, createWeekdays } from './utils'
 import { icons } from './utils/icons.js'
 
 const swipeRef = useTemplateRef('swp')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'heatmap-hover', 'heatmap-filter-change'])
 
 const props = defineProps({
-  // 初始选中的日期
   initialSelectedDate: {
     type: Date,
     default: () => new Date()
   },
-  // 初始视图模式
   initialViewMode: {
     type: String,
-    default: 'month' // month or week
+    default: 'month'
   },
-  // 以周几作为每周的起始
   weekStart: {
     type: Number,
-    default: 0 // 0: Sunday, 1: Monday, etc.
+    default: 0
   },
-  // 标记的日期
   markerDates: {
     type: Array,
     default: () => []
   },
-  // 是否显示顶部工具栏
   showToolbar: {
     type: Boolean,
     default: true
   },
-  // 是否显示底部工具栏
   showFooter: {
     type: Boolean,
     default: true
   },
-  // 是否显示weekdays栏
   showWeekdays: {
     type: Boolean,
     default: true
   },
-  // 过渡动画时长
   duration: {
     type: String,
     default: '0.3s'
+  },
+  showHeatmap: {
+    type: Boolean,
+    default: false
+  },
+  heatmapData: {
+    type: Array,
+    default: () => []
+  },
+  colorScale: {
+    type: Array,
+    default: null
+  },
+  levels: {
+    type: Number,
+    default: null
+  },
+  showHeatmapLegend: {
+    type: Boolean,
+    default: true
   }
 })
 
@@ -143,11 +204,25 @@ const {
   toggleViewMode
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
 
-// 顶部工具栏标题
+const {
+  showHeatmap,
+  selectedIntervalIndex,
+  hoveredDateValue,
+  hoveredDate,
+  legendData,
+  getHeatmapColor,
+  isDateHighlighted,
+  handleDateHover: _handleDateHover,
+  handleDateLeave: _handleDateLeave,
+  handleLegendClick,
+  clearFilter
+} = useHeatmap(props, emit)
+
+const tooltipPosition = ref({ x: 0, y: 0 })
+const tooltipPlacement = ref('bottom')
+
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
-// 星期栏
 const weekdays = createWeekdays(weekStart.value)
-// 标记日期
 const markerDateList = computed(() =>
   markerDates.value.map(item => ({
     date: new Date(typeof item === 'object' && item.date ? item.date : item),
@@ -155,16 +230,12 @@ const markerDateList = computed(() =>
   }))
 )
 
-// 监听滑动事件
 const { lengthX } = useSwipe(swipeRef, {
-  // 滑动阈值
   threshold: 0,
-  // 手指滑动过程中
   onSwipe: () => {
     if (isInTransition.value) return
     transformDistance.value = -lengthX.value + 'px'
   },
-  // 手指抬起滑动结束，开始滑动动画
   onSwipeEnd: (_, direction) => {
     if (isInTransition.value) return
     if (direction === 'left') {
@@ -172,14 +243,11 @@ const { lengthX } = useSwipe(swipeRef, {
     } else if (direction === 'right') {
       changePageTo('prev-page')
     } else {
-      // 如果方向不是左右，则将页面复位
       startTransitionAnimation(direction)
     }
   }
 })
 
-// 归一化参数
-// 支持 'prev-page', 'next-page', 'prev-year', 'next-year', 以及合法的日期
 function _normalize(param) {
   if (!param) {
     throw new Error('参数不能为空')
@@ -215,13 +283,11 @@ function _normalize(param) {
   throw new Error('日期不合法')
 }
 
-// 切换日历页面
 function changePageTo(param) {
   const targetDate = _normalize(param)
   switchPageToTargetDate(targetDate)
 }
 
-// 切换选中的日期
 function changeSelectedDate(date) {
   changePageTo(date)
   if (!isSameDay(new Date(date), selected.value)) {
@@ -230,17 +296,71 @@ function changeSelectedDate(date) {
   }
 }
 
-// 获取 marker 颜色
 function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
+function formatTooltipDate(date) {
+  if (!date) return ''
+  const d = new Date(date)
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
+}
+
+function handleDateHover(date) {
+  _handleDateHover(date)
+  updateTooltipPosition()
+}
+
+function handleDateLeave() {
+  _handleDateLeave()
+}
+
+function updateTooltipPosition() {
+  if (typeof window === 'undefined' || !event) return
+  
+  const x = event.clientX
+  const y = event.clientY
+  const margin = 10
+  const tooltipWidth = 200
+  const tooltipHeight = 60
+  
+  let finalX = x + 15
+  let finalY = y + 15
+  let placement = 'bottom'
+  
+  if (finalX + tooltipWidth > window.innerWidth - margin) {
+    finalX = window.innerWidth - tooltipWidth - margin
+  }
+  if (finalX < margin) {
+    finalX = margin
+  }
+  
+  if (finalY + tooltipHeight > window.innerHeight - margin) {
+    finalY = y - tooltipHeight - 15
+    placement = 'top'
+  }
+  if (finalY < margin) {
+    finalY = margin
+    placement = 'bottom'
+  }
+  
+  tooltipPosition.value = {
+    x: finalX,
+    y: finalY
+  }
+  tooltipPlacement.value = placement
+}
+
+watch(hoveredDate, () => {
+  updateTooltipPosition()
+})
+
 defineExpose({
-  // 切换周/月视图
   toggleViewMode,
-  // 切换日历页
   changePageTo,
-  // 切换选中日期
-  changeSelectedDate
+  changeSelectedDate,
+  clearFilter,
+  getHeatmapColor,
+  isDateHighlighted
 })
 </script>

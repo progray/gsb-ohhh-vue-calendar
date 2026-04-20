@@ -49,4 +49,30 @@
   --calendar-days-marker-top-gap: 4px;
   --calendar-days-marker-size: 4px;
   --calendar-days-marker-color: var(--calendar-theme-color);
+
+  --heatmap-day-value-color: rgba(0, 0, 0, 0.85);
+  --heatmap-day-label-color: rgba(0, 0, 0, 0.6);
+  --heatmap-day-value-text-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
+  --heatmap-day-today-color: var(--calendar-theme-color);
+  --heatmap-day-today-dot-color: var(--calendar-theme-color);
+  --heatmap-day-selected-border-color: var(--calendar-theme-color);
+  --heatmap-day-selected-value-color: rgba(0, 0, 0, 0.9);
+  --heatmap-day-hover-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  --heatmap-day-hovered-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --heatmap-day-dimmed-opacity: 0.15;
+  --heatmap-day-other-month-opacity: 0.4;
+
+  --heatmap-legend-selected-border-color: var(--calendar-theme-color);
+  --heatmap-legend-selected-shadow: 0 0 0 2px rgba(64, 158, 255, 0.3);
+  --heatmap-legend-clear-background: #f0f0f0;
+  --heatmap-legend-clear-hover-background: #e0e0e0;
+  --heatmap-legend-clear-color: var(--calendar-text-color-level-2);
+  --heatmap-legend-clear-hover-color: var(--calendar-text-color-level-1);
+
+  --heatmap-tooltip-background: rgba(0, 0, 0, 0.85);
+  --heatmap-tooltip-text-color: #ffffff;
+  --heatmap-tooltip-label-color: rgba(255, 255, 255, 0.7);
+  --heatmap-tooltip-number-color: #40c463;
+  --heatmap-tooltip-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --heatmap-tooltip-arrow-color: rgba(0, 0, 0, 0.85);
 }
