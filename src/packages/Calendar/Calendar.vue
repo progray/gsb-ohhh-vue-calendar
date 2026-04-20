@@ -260,14 +260,17 @@ function endDrag() {
 
   // 如果是点击（滑动距离很小）或垂直滑动为主
   if (!currentSwipeOccurred.value || absDeltaY > absDeltaX) {
-    startTransitionAnimation(null)
+    // 显式重置状态，确保干净
+    transitionDuration.value = '0s'
+    transformDistance.value = '0%'
     currentSwipeOccurred.value = false
     return
   }
 
   const containerWidth = getContainerWidth()
   if (containerWidth === 0) {
-    startTransitionAnimation(null)
+    transitionDuration.value = '0s'
+    transformDistance.value = '0%'
     currentSwipeOccurred.value = false
     return
   }
