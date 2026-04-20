@@ -34,6 +34,10 @@
       @touchmove="onTouchMove"
       @touchend="onTouchEnd"
       @touchcancel="onTouchEnd"
+      @mousedown="onMouseDown"
+      @mousemove="onMouseMove"
+      @mouseup="onMouseUp"
+      @mouseleave="onMouseUp"
     >
       <div
         v-for="(item, index) in allRenderDates"
@@ -167,8 +171,8 @@ const touchStartY = ref(0)
 const touchCurrentX = ref(0)
 const touchCurrentY = ref(0)
 const isDragging = ref(false)
-// 是否发生了滑动（用于判断是否阻止点击）
-const hasSwiped = ref(false)
+// 用于跟踪当前触摸操作是否发生了滑动
+const currentSwipeOccurred = ref(false)
 
 // 滑动阈值（像素）- 小于此值视为点击
 const SWIPE_THRESHOLD = 10
@@ -203,32 +207,30 @@ function calculateDampedOffset(deltaX, containerWidth) {
   return sign * (dampingStartPercent + dampedExcess)
 }
 
-// 触摸开始
-function onTouchStart(event) {
+// 开始拖动（触摸/鼠标共用）
+function startDrag(clientX, clientY) {
   if (isInTransition.value) return
-  const touch = event.touches[0]
-  touchStartX.value = touch.clientX
-  touchStartY.value = touch.clientY
-  touchCurrentX.value = touch.clientX
-  touchCurrentY.value = touch.clientY
+  touchStartX.value = clientX
+  touchStartY.value = clientY
+  touchCurrentX.value = clientX
+  touchCurrentY.value = clientY
   isDragging.value = true
-  hasSwiped.value = false
+  currentSwipeOccurred.value = false
   transitionDuration.value = '0s'
 }
 
-// 触摸移动
-function onTouchMove(event) {
+// 拖动中（触摸/鼠标共用）
+function doDrag(clientX, clientY) {
   if (!isDragging.value || isInTransition.value) return
-  const touch = event.touches[0]
-  touchCurrentX.value = touch.clientX
-  touchCurrentY.value = touch.clientY
+  touchCurrentX.value = clientX
+  touchCurrentY.value = clientY
 
   const deltaX = touchCurrentX.value - touchStartX.value
   const deltaY = touchCurrentY.value - touchStartY.value
 
   // 检测是否发生了滑动（超过阈值）
   if (Math.abs(deltaX) > SWIPE_THRESHOLD || Math.abs(deltaY) > SWIPE_THRESHOLD) {
-    hasSwiped.value = true
+    currentSwipeOccurred.value = true
   }
 
   // 主要是水平滑动时才处理偏移
@@ -242,8 +244,8 @@ function onTouchMove(event) {
   }
 }
 
-// 触摸结束
-function onTouchEnd() {
+// 结束拖动（触摸/鼠标共用）
+function endDrag() {
   if (!isDragging.value || isInTransition.value) {
     isDragging.value = false
     return
@@ -257,14 +259,16 @@ function onTouchEnd() {
   const absDeltaY = Math.abs(deltaY)
 
   // 如果是点击（滑动距离很小）或垂直滑动为主
-  if (!hasSwiped.value || absDeltaY > absDeltaX) {
+  if (!currentSwipeOccurred.value || absDeltaY > absDeltaX) {
     startTransitionAnimation(null)
+    currentSwipeOccurred.value = false
     return
   }
 
   const containerWidth = getContainerWidth()
   if (containerWidth === 0) {
     startTransitionAnimation(null)
+    currentSwipeOccurred.value = false
     return
   }
 
@@ -284,12 +288,49 @@ function onTouchEnd() {
     // 未达到切换阈值，复位
     startTransitionAnimation(null)
   }
+
+  // 重置滑动标志
+  currentSwipeOccurred.value = false
+}
+
+// 触摸开始
+function onTouchStart(event) {
+  const touch = event.touches[0]
+  startDrag(touch.clientX, touch.clientY)
+}
+
+// 触摸移动
+function onTouchMove(event) {
+  const touch = event.touches[0]
+  doDrag(touch.clientX, touch.clientY)
+}
+
+// 触摸结束
+function onTouchEnd() {
+  endDrag()
+}
+
+// 鼠标按下
+function onMouseDown(event) {
+  startDrag(event.clientX, event.clientY)
+}
+
+// 鼠标移动
+function onMouseMove(event) {
+  if (isDragging.value) {
+    doDrag(event.clientX, event.clientY)
+  }
+}
+
+// 鼠标松开
+function onMouseUp(event) {
+  endDrag()
 }
 
 // 处理日期点击
 function handleDayClick(dateObj) {
   // 只有当没有发生滑动时才触发点击
-  if (!hasSwiped.value) {
+  if (!currentSwipeOccurred.value) {
     changeSelectedDate(dateObj.date)
   }
 }
