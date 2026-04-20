@@ -24,7 +24,7 @@
         <span class="ohhh-calendar-history-panel--btn-shortcut">Ctrl+U</span>
       </button>
     </div>
-    <div class="ohhh-calendar-history-panel--list" ref="listRef">
+    <div class="ohhh-calendar-history-panel--list">
       <div
         v-for="(item, index) in historyList"
         :key="item.id"
@@ -55,8 +55,6 @@
 </template>
 
 <script setup>
-import { watch, useTemplateRef, nextTick } from 'vue'
-
 const props = defineProps({
   isOpen: {
     type: Boolean,
@@ -81,20 +79,6 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'undo', 'redo', 'jump'])
-
-const listRef = useTemplateRef('listRef')
-
-watch(
-  () => props.currentIndex,
-  () => {
-    nextTick(() => {
-      const items = listRef.value?.querySelectorAll('.ohhh-calendar-history-panel--item')
-      if (items && items[props.currentIndex]) {
-        items[props.currentIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-      }
-    })
-  }
-)
 
 function closePanel() {
   emit('close')

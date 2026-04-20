@@ -157,15 +157,15 @@
 
 .ohhh-calendar-history-panel {
   position: absolute;
-  top: 100%;
-  right: 0;
-  width: 280px;
-  max-height: 400px;
-  margin-top: 8px;
+  top: 0;
+  right: 100%;
+  width: 260px;
+  height: 100%;
+  margin-right: 8px;
   background: var(--calendar-background);
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-  transform: translateY(-10px);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
+  transform: translateX(-10px);
   opacity: 0;
   pointer-events: none;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -175,7 +175,7 @@
   flex-direction: column;
 }
 .ohhh-calendar-history-panel.is-open {
-  transform: translateY(0);
+  transform: translateX(0);
   opacity: 1;
   pointer-events: auto;
 }

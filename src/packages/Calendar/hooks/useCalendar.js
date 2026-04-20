@@ -138,15 +138,22 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
   }
 
   const _targetDate = ref(null)
+  const _pendingActions = ref([])
 
   function _switchPageToTargetDateInMonthView(date) {
-    if (date.getFullYear() === currentYear.value && date.getMonth() === currentMonth.value) {
+    const targetYear = date.getFullYear()
+    const targetMonth = date.getMonth()
+
+    if (targetYear === currentYear.value && targetMonth === currentMonth.value) {
       return
     }
+
+    const previousState = _getCurrentState()
+
     let direction
     if (
-      date.getFullYear() < currentYear.value ||
-      (date.getFullYear() === currentYear.value && date.getMonth() < currentMonth.value)
+      targetYear < currentYear.value ||
+      (targetYear === currentYear.value && targetMonth < currentMonth.value)
     ) {
       direction = 'right'
       _setPrevMonthDates(date)
@@ -154,7 +161,32 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
       direction = 'left'
       _setNextMonthDates(date)
     }
+
+    const isYearChange = targetYear !== currentYear.value
+    const action = isYearChange ? 'change-year' : 'change-month'
+
+    const targetState = {
+      selected: selected.value ? new Date(selected.value) : null,
+      year: targetYear,
+      month: targetMonth,
+      viewMode: viewMode.value,
+      weekIndex: weekIndex.value
+    }
+
+    if (isInTransition.value) {
+      _pendingActions.value.push({
+        date: date,
+        targetState: targetState,
+        previousState: previousState,
+        action: action,
+        direction: direction
+      })
+      pushHistory(action, targetState, previousState)
+      return
+    }
+
     _targetDate.value = date
+    pushHistory(action, targetState, previousState)
     startTransitionAnimation(direction)
   }
 
@@ -163,11 +195,22 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
       if (date.getFullYear() === currentYear.value && date.getMonth() === currentMonth.value) {
         return
       }
+      const previousState = _getCurrentState()
       currentYear.value = date.getFullYear()
       currentMonth.value = date.getMonth()
       _setWeekIndex(date)
+
+      const targetYear = date.getFullYear()
+      const isYearChange = targetYear !== previousState.year
+      const action = isYearChange ? 'change-year' : 'change-month'
+      pushHistory(action, _getCurrentState(), previousState)
       return
     }
+
+    const previousState = _getCurrentState()
+    const targetYear = date.getFullYear()
+    const targetMonth = date.getMonth()
+
     let direction
     if (date < currentWeekDates.value[0].date) {
       direction = 'right'
@@ -176,34 +219,42 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
       direction = 'left'
       _setNextWeekDates(date)
     }
+
+    const isYearChange = targetYear !== currentYear.value
+    const action = isYearChange ? 'change-year' : 'change-month'
+
+    const targetState = {
+      selected: selected.value ? new Date(selected.value) : null,
+      year: targetYear,
+      month: targetMonth,
+      viewMode: viewMode.value,
+      weekIndex: weekIndex.value
+    }
+
+    if (isInTransition.value) {
+      _pendingActions.value.push({
+        date: date,
+        targetState: targetState,
+        previousState: previousState,
+        action: action,
+        direction: direction
+      })
+      pushHistory(action, targetState, previousState)
+      return
+    }
+
     _targetDate.value = date
+    pushHistory(action, targetState, previousState)
     startTransitionAnimation(direction)
   }
 
-  let pendingPageChange = null
-
   function switchPageToTargetDate(date) {
     if (isRestoringFromHistory) return
-
-    const previousState = _getCurrentState()
 
     if (viewMode.value === 'week') {
       _switchPageToTargetDateInWeekView(date)
     } else if (viewMode.value === 'month') {
       _switchPageToTargetDateInMonthView(date)
-    }
-
-    const targetYear = date.getFullYear()
-    const targetMonth = date.getMonth()
-    const isYearChange = targetYear !== currentYear.value
-    const isMonthChange = targetMonth !== currentMonth.value
-
-    if (isYearChange || isMonthChange) {
-      pendingPageChange = {
-        date: date,
-        previousState: previousState,
-        action: isYearChange ? 'change-year' : 'change-month'
-      }
     }
   }
 
@@ -237,13 +288,17 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
 
   function onTransitionEnd() {
     transitionDuration.value = '0s'
+
     if (!_targetDate.value) {
-      return (isInTransition.value = false)
+      isInTransition.value = false
+      return
     }
+
     currentYear.value = _targetDate.value.getFullYear()
     currentMonth.value = _targetDate.value.getMonth()
     renderRows.value = currentRenderRows.value
     transformDistance.value = '0px'
+
     if (viewMode.value === 'week') {
       _setWeekIndex(_targetDate.value)
       _setPrevWeekDates(
@@ -257,13 +312,38 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
       _setNextMonthDates(new Date(currentYear.value, currentMonth.value + 1))
     }
 
-    if (pendingPageChange) {
-      pushHistory(pendingPageChange.action, _getCurrentState(), pendingPageChange.previousState)
-      pendingPageChange = null
-    }
-
     _targetDate.value = null
     isInTransition.value = false
+
+    if (_pendingActions.value.length > 0) {
+      const nextAction = _pendingActions.value.shift()
+      _targetDate.value = nextAction.date
+
+      let direction
+      if (viewMode.value === 'month') {
+        if (
+          nextAction.date.getFullYear() < currentYear.value ||
+          (nextAction.date.getFullYear() === currentYear.value &&
+            nextAction.date.getMonth() < currentMonth.value)
+        ) {
+          direction = 'right'
+          _setPrevMonthDates(nextAction.date)
+        } else {
+          direction = 'left'
+          _setNextMonthDates(nextAction.date)
+        }
+      } else {
+        if (nextAction.date < currentWeekDates.value[0].date) {
+          direction = 'right'
+          _setPrevWeekDates(nextAction.date)
+        } else {
+          direction = 'left'
+          _setNextWeekDates(nextAction.date)
+        }
+      }
+
+      startTransitionAnimation(direction)
+    }
   }
 
   function recordSelectDate(newSelectedDate, previousState) {
