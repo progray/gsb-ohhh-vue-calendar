@@ -87,6 +87,7 @@
       <div
         v-if="showHeatmap && hoveredDateValue !== null"
         class="ohhh-calendar-heatmap-tooltip"
+        :class="[`placement-${tooltipPlacement}`]"
         :style="{
           left: tooltipPosition.x + 'px',
           top: tooltipPosition.y + 'px'
@@ -218,6 +219,7 @@ const {
 } = useHeatmap(props, emit)
 
 const tooltipPosition = ref({ x: 0, y: 0 })
+const tooltipPlacement = ref('bottom')
 
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
 const weekdays = createWeekdays(weekStart.value)
@@ -314,13 +316,39 @@ function handleDateLeave() {
 }
 
 function updateTooltipPosition() {
-  if (typeof window === 'undefined') return
-  const x = event?.clientX || 0
-  const y = event?.clientY || 0
-  tooltipPosition.value = {
-    x: x + 15,
-    y: y + 15
+  if (typeof window === 'undefined' || !event) return
+  
+  const x = event.clientX
+  const y = event.clientY
+  const margin = 10
+  const tooltipWidth = 200
+  const tooltipHeight = 60
+  
+  let finalX = x + 15
+  let finalY = y + 15
+  let placement = 'bottom'
+  
+  if (finalX + tooltipWidth > window.innerWidth - margin) {
+    finalX = window.innerWidth - tooltipWidth - margin
   }
+  if (finalX < margin) {
+    finalX = margin
+  }
+  
+  if (finalY + tooltipHeight > window.innerHeight - margin) {
+    finalY = y - tooltipHeight - 15
+    placement = 'top'
+  }
+  if (finalY < margin) {
+    finalY = margin
+    placement = 'bottom'
+  }
+  
+  tooltipPosition.value = {
+    x: finalX,
+    y: finalY
+  }
+  tooltipPlacement.value = placement
 }
 
 watch(hoveredDate, () => {

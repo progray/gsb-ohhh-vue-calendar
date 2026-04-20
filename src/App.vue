@@ -54,7 +54,6 @@
 import { ref, computed } from 'vue'
 import OhhhVueCalendar from './packages/Calendar/Calendar.vue'
 import '/src/packages/Calendar/style/mobile/mobile.scss'
-import '/src/packages/Calendar/style/heatmap.scss'
 
 const calendarRef = ref(null)
 const currentFilter = ref(null)
