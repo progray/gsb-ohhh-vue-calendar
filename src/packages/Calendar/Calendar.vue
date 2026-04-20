@@ -167,16 +167,40 @@ const touchStartY = ref(0)
 const touchCurrentX = ref(0)
 const touchCurrentY = ref(0)
 const isDragging = ref(false)
-const shouldTriggerClick = ref(true)
+// 是否发生了滑动（用于判断是否阻止点击）
+const hasSwiped = ref(false)
 
 // 滑动阈值（像素）- 小于此值视为点击
 const SWIPE_THRESHOLD = 10
-// 切换阈值（百分比）- 滑动超过容器宽度的此比例时触发月份切换
+// 切换阈值（百分比）- 滑动超过容器宽度的此比例时触发月份/周切换
 const SWITCH_THRESHOLD = 0.3
+// 阻尼开始阈值（百分比）- 滑动超过此比例后应用阻尼效果
+const DAMPING_START_THRESHOLD = 0.5
+// 阻尼系数 - 超过阻尼阈值后，实际偏移 = 阻尼阈值 + (剩余偏移 * 阻尼系数)
+const DAMPING_FACTOR = 0.3
 
 // 获取容器宽度
 function getContainerWidth() {
   return swipeRef.value?.offsetWidth || 0
+}
+
+// 计算带阻尼的偏移百分比
+function calculateDampedOffset(deltaX, containerWidth) {
+  const rawPercent = (deltaX / containerWidth) * 100
+  const absRawPercent = Math.abs(rawPercent)
+
+  // 如果在阻尼阈值内，直接返回原始偏移
+  if (absRawPercent <= DAMPING_START_THRESHOLD * 100) {
+    return rawPercent
+  }
+
+  // 超过阻尼阈值后应用阻尼
+  const sign = deltaX >= 0 ? 1 : -1
+  const dampingStartPercent = DAMPING_START_THRESHOLD * 100
+  const excessPercent = absRawPercent - dampingStartPercent
+  const dampedExcess = excessPercent * DAMPING_FACTOR
+
+  return sign * (dampingStartPercent + dampedExcess)
 }
 
 // 触摸开始
@@ -188,7 +212,7 @@ function onTouchStart(event) {
   touchCurrentX.value = touch.clientX
   touchCurrentY.value = touch.clientY
   isDragging.value = true
-  shouldTriggerClick.value = true
+  hasSwiped.value = false
   transitionDuration.value = '0s'
 }
 
@@ -202,18 +226,17 @@ function onTouchMove(event) {
   const deltaX = touchCurrentX.value - touchStartX.value
   const deltaY = touchCurrentY.value - touchStartY.value
 
-  // 检测是否为点击（滑动距离是否超过阈值）
+  // 检测是否发生了滑动（超过阈值）
   if (Math.abs(deltaX) > SWIPE_THRESHOLD || Math.abs(deltaY) > SWIPE_THRESHOLD) {
-    shouldTriggerClick.value = false
+    hasSwiped.value = true
   }
 
-  // 主要是水平滑动时才处理
+  // 主要是水平滑动时才处理偏移
   if (Math.abs(deltaX) > Math.abs(deltaY)) {
-    event.preventDefault()
     const containerWidth = getContainerWidth()
     if (containerWidth > 0) {
-      // 计算偏移百分比
-      const offsetPercent = (deltaX / containerWidth) * 100
+      // 计算带阻尼的偏移百分比
+      const offsetPercent = calculateDampedOffset(deltaX, containerWidth)
       transformDistance.value = `${offsetPercent}%`
     }
   }
@@ -230,8 +253,11 @@ function onTouchEnd() {
   const deltaX = touchCurrentX.value - touchStartX.value
   const deltaY = touchCurrentY.value - touchStartY.value
 
-  // 如果是点击或垂直滑动，复位
-  if (shouldTriggerClick.value || Math.abs(deltaX) <= Math.abs(deltaY)) {
+  const absDeltaX = Math.abs(deltaX)
+  const absDeltaY = Math.abs(deltaY)
+
+  // 如果是点击（滑动距离很小）或垂直滑动为主
+  if (!hasSwiped.value || absDeltaY > absDeltaX) {
     startTransitionAnimation(null)
     return
   }
@@ -242,16 +268,16 @@ function onTouchEnd() {
     return
   }
 
-  // 计算滑动距离占容器宽度的比例
-  const swipeRatio = Math.abs(deltaX) / containerWidth
+  // 计算实际滑动距离占容器宽度的比例（使用原始距离，而非带阻尼的距离）
+  const swipeRatio = absDeltaX / containerWidth
 
-  // 超过切换阈值才触发月份切换
+  // 超过切换阈值才触发月份/周切换
   if (swipeRatio >= SWITCH_THRESHOLD) {
     if (deltaX < 0) {
-      // 向左滑动，切换到下一个月
+      // 向左滑动，切换到下一个月/周
       changePageTo('next-page')
     } else {
-      // 向右滑动，切换到上一个月
+      // 向右滑动，切换到上一个月/周
       changePageTo('prev-page')
     }
   } else {
@@ -262,8 +288,8 @@ function onTouchEnd() {
 
 // 处理日期点击
 function handleDayClick(dateObj) {
-  // 只有当滑动距离很小时才触发点击
-  if (shouldTriggerClick.value) {
+  // 只有当没有发生滑动时才触发点击
+  if (!hasSwiped.value) {
     changeSelectedDate(dateObj.date)
   }
 }
