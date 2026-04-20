@@ -295,26 +295,29 @@ function _getSpotlightStyle(dateObj) {
   if (distance === 0) {
     return {
       '--spotlight-opacity': '1',
-      '--spotlight-scale': '1.05',
-      '--spotlight-glow-intensity': '1'
+      '--spotlight-scale': '1.1',
+      '--spotlight-glow-intensity': '1',
+      '--spotlight-z-index': '10'
     }
   }
   
   if (distance <= radius) {
-    const opacity = 1 - (distance * 0.15) / radius
-    const scale = 1 - (distance * 0.03) / radius
-    const glowIntensity = 1 - (distance * 0.5) / radius
+    const opacity = 0.1 + (distance * 0.2) / radius
+    const scale = 0.95 + (distance * 0.05) / radius
+    const glowIntensity = 1 - (distance * 0.7) / radius
     return {
       '--spotlight-opacity': opacity.toString(),
       '--spotlight-scale': scale.toString(),
-      '--spotlight-glow-intensity': glowIntensity.toString()
+      '--spotlight-glow-intensity': '0',
+      '--spotlight-z-index': Math.max(5 - distance, 1).toString()
     }
   }
   
   return {
-    '--spotlight-opacity': '0.4',
-    '--spotlight-scale': '0.95',
-    '--spotlight-glow-intensity': '0'
+    '--spotlight-opacity': '0.1',
+    '--spotlight-scale': '0.9',
+    '--spotlight-glow-intensity': '0',
+    '--spotlight-z-index': '1'
   }
 }
 
