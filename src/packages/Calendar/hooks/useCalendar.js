@@ -190,7 +190,7 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
       transformDistance.value = '100%'
       renderRows.value = prevRenderRows.value
     } else {
-      transformDistance.value = '0px'
+      transformDistance.value = '0%'
     }
   }
 
@@ -204,7 +204,7 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     currentYear.value = _targetDate.value.getFullYear()
     currentMonth.value = _targetDate.value.getMonth()
     renderRows.value = currentRenderRows.value
-    transformDistance.value = '0px'
+    transformDistance.value = '0%'
     if (viewMode.value === 'week') {
       _setWeekIndex(_targetDate.value)
       _setPrevWeekDates(
