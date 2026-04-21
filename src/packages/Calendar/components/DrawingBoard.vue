@@ -6,70 +6,76 @@
         <button class="drawing-board-close" @click="$emit('close')">×</button>
       </div>
       
-      <div class="drawing-board-canvas-container">
-        <canvas
-          ref="canvasRef"
-          :width="canvasWidth"
-          :height="canvasHeight"
-          @mousedown="startDrawing"
-          @mousemove="draw"
-          @mouseup="stopDrawing"
-          @mouseleave="stopDrawing"
-          @touchstart.prevent="startDrawingTouch"
-          @touchmove.prevent="drawTouch"
-          @touchend.prevent="stopDrawing"
-        ></canvas>
+      <div class="drawing-board-canvas-wrapper">
+        <div class="drawing-board-canvas-container">
+          <canvas
+            ref="canvasRef"
+            :width="canvasWidth"
+            :height="canvasHeight"
+            @mousedown="startDrawing"
+            @mousemove="draw"
+            @mouseup="stopDrawing"
+            @mouseleave="stopDrawing"
+            @touchstart.prevent="startDrawingTouch"
+            @touchmove.prevent="drawTouch"
+            @touchend.prevent="stopDrawing"
+          ></canvas>
+        </div>
       </div>
 
       <div class="drawing-board-tools">
-        <div class="tool-group">
-          <button
-            class="tool-btn"
-            :class="{ active: tool === 'pen' }"
-            @click="tool = 'pen'"
-          >
-            ✏️ 画笔
-          </button>
-          <button
-            class="tool-btn"
-            :class="{ active: tool === 'eraser' }"
-            @click="tool = 'eraser'"
-          >
-            🧹 橡皮
-          </button>
-        </div>
-
-        <div class="tool-group">
-          <span class="tool-label">颜色:</span>
-          <div class="color-picker">
+        <div class="tool-row">
+          <div class="tool-group">
             <button
-              v-for="c in colors"
-              :key="c"
-              class="color-btn"
-              :class="{ active: color === c }"
-              :style="{ background: c }"
-              @click="color = c"
-            ></button>
+              class="tool-btn"
+              :class="{ active: tool === 'pen' }"
+              @click="tool = 'pen'"
+            >
+              ✏️ 画笔
+            </button>
+            <button
+              class="tool-btn"
+              :class="{ active: tool === 'eraser' }"
+              @click="tool = 'eraser'"
+            >
+              🧹 橡皮
+            </button>
+          </div>
+
+          <div class="tool-group size-group">
+            <span class="tool-label">粗细:</span>
+            <div class="size-picker">
+              <button
+                v-for="s in sizes"
+                :key="s"
+                class="size-btn"
+                :class="{ active: size === s }"
+                :style="{ '--line-size': s + 'px' }"
+                @click="size = s"
+              ></button>
+            </div>
           </div>
         </div>
 
-        <div class="tool-group">
-          <span class="tool-label">粗细:</span>
-          <div class="size-picker">
-            <button
-              v-for="s in sizes"
-              :key="s"
-              class="size-btn"
-              :class="{ active: size === s }"
-              :style="{ '--line-size': s + 'px' }"
-              @click="size = s"
-            ></button>
+        <div class="tool-row bottom-row">
+          <div class="tool-group color-group">
+            <span class="tool-label">颜色:</span>
+            <div class="color-picker">
+              <button
+                v-for="c in colors"
+                :key="c"
+                class="color-btn"
+                :class="{ active: color === c }"
+                :style="{ background: c }"
+                @click="color = c"
+              ></button>
+            </div>
           </div>
-        </div>
 
-        <div class="tool-group actions">
-          <button class="action-btn clear" @click="clearCanvas">清空</button>
-          <button class="action-btn save" @click="saveDrawing">保存</button>
+          <div class="tool-group actions">
+            <button class="action-btn clear" @click="clearCanvas">清空</button>
+            <button class="action-btn save" @click="saveDrawing">保存</button>
+          </div>
         </div>
       </div>
     </div>
@@ -232,75 +238,111 @@ function saveDrawing() {
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 .drawing-board {
   background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  width: 90%;
-  max-width: 450px;
-  max-height: 90vh;
+  border-radius: 16px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 520px;
+  max-height: calc(100vh - 32px);
+  min-height: 480px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .drawing-board-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #eee;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  flex-shrink: 0;
 }
 
 .drawing-board-title {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
-  color: #333;
+  color: #1f1f1f;
 }
 
 .drawing-board-close {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border: none;
   background: #f5f5f5;
   border-radius: 50%;
-  font-size: 20px;
+  font-size: 22px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #666;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .drawing-board-close:hover {
-  background: #eee;
+  background: #e8e8e8;
   color: #333;
 }
 
-.drawing-board-canvas-container {
-  padding: 16px;
+.drawing-board-canvas-wrapper {
+  flex: 1;
+  min-height: 0;
   display: flex;
   justify-content: center;
+  align-items: center;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.drawing-board-canvas-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
 }
 
 canvas {
-  border: 2px solid #eee;
-  border-radius: 8px;
+  border: 2px solid #e8e8e8;
+  border-radius: 12px;
   background: #fff;
   cursor: crosshair;
   touch-action: none;
   max-width: 100%;
+  max-height: 100%;
+  width: auto;
   height: auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .drawing-board-tools {
-  padding: 12px 16px 16px;
-  border-top: 1px solid #eee;
+  padding: 12px 16px 14px;
+  border-top: 1px solid #f0f0f0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  flex-shrink: 0;
+  background: #fafafa;
+}
+
+.tool-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tool-row.bottom-row {
+  justify-content: space-between;
+  align-items: center;
 }
 
 .tool-group {
@@ -309,125 +351,226 @@ canvas {
   gap: 8px;
 }
 
+.tool-group.size-group {
+  justify-content: flex-end;
+}
+
+.tool-group.color-group {
+  flex: 1;
+  min-width: 0;
+}
+
 .tool-label {
-  font-size: 14px;
-  color: #666;
-  min-width: 40px;
+  font-size: 13px;
+  color: #888;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .tool-btn {
-  padding: 8px 16px;
-  border: 1px solid #ddd;
-  background: #f9f9f9;
-  border-radius: 6px;
+  padding: 10px 16px;
+  border: 1.5px solid #e0e0e0;
+  background: #fff;
+  border-radius: 10px;
   cursor: pointer;
   font-size: 14px;
-  transition: all 0.2s;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  color: #555;
 }
 
 .tool-btn:hover {
-  background: #f0f0f0;
-  border-color: #ccc;
+  background: #f8f8f8;
+  border-color: #d0d0d0;
 }
 
 .tool-btn.active {
   background: #4a9eff;
   border-color: #4a9eff;
   color: #fff;
+  box-shadow: 0 2px 8px rgba(74, 158, 255, 0.3);
 }
 
 .color-picker {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .color-btn {
   width: 28px;
   height: 28px;
-  border: 2px solid #ddd;
+  border: 2px solid #e0e0e0;
   border-radius: 50%;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .color-btn:hover {
   transform: scale(1.1);
+  border-color: #bbb;
 }
 
 .color-btn.active {
   border-color: #333;
   transform: scale(1.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .size-picker {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
 }
 
 .size-btn {
-  width: 32px;
-  height: 32px;
-  border: 1px solid #ddd;
+  width: 30px;
+  height: 30px;
+  border: 1.5px solid #e0e0e0;
   border-radius: 50%;
   cursor: pointer;
   background: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .size-btn::before {
   content: '';
   width: var(--line-size);
   height: var(--line-size);
-  background: #333;
+  background: #444;
   border-radius: 50%;
 }
 
 .size-btn:hover {
-  border-color: #999;
-  background: #f9f9f9;
+  border-color: #b0b0b0;
+  background: #fafafa;
 }
 
 .size-btn.active {
   border-color: #4a9eff;
   background: #f0f7ff;
+  box-shadow: 0 2px 8px rgba(74, 158, 255, 0.25);
+}
+
+.size-btn.active::before {
+  background: #4a9eff;
 }
 
 .actions {
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 8px;
+  flex-shrink: 0;
 }
 
 .action-btn {
-  padding: 10px 20px;
+  padding: 10px 24px;
   border: none;
-  border-radius: 6px;
+  border-radius: 10px;
   cursor: pointer;
   font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .action-btn.clear {
-  background: #f5f5f5;
+  background: #fff;
   color: #666;
+  border: 1.5px solid #e0e0e0;
 }
 
 .action-btn.clear:hover {
-  background: #eee;
-  color: #333;
+  background: #f5f5f5;
+  border-color: #d0d0d0;
+  color: #444;
 }
 
 .action-btn.save {
-  background: #4a9eff;
+  background: linear-gradient(135deg, #4a9eff 0%, #3388ee 100%);
   color: #fff;
+  box-shadow: 0 3px 10px rgba(74, 158, 255, 0.35);
 }
 
 .action-btn.save:hover {
-  background: #3388ee;
+  background: linear-gradient(135deg, #3388ee 0%, #2277dd 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(74, 158, 255, 0.45);
+}
+
+@media (max-width: 480px) {
+  .drawing-board-overlay {
+    padding: 8px;
+  }
+
+  .drawing-board {
+    max-height: calc(100vh - 16px);
+    min-height: auto;
+    border-radius: 12px;
+  }
+
+  .drawing-board-header {
+    padding: 12px 16px;
+  }
+
+  .drawing-board-title {
+    font-size: 15px;
+  }
+
+  .drawing-board-canvas-wrapper {
+    padding: 12px;
+  }
+
+  .drawing-board-tools {
+    padding: 10px 12px 12px;
+    gap: 8px;
+  }
+
+  .tool-row {
+    gap: 8px;
+  }
+
+  .tool-btn {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  .color-btn {
+    width: 24px;
+    height: 24px;
+  }
+
+  .size-btn {
+    width: 26px;
+    height: 26px;
+  }
+
+  .action-btn {
+    padding: 8px 18px;
+    font-size: 13px;
+  }
+
+  .tool-label {
+    font-size: 12px;
+  }
+}
+
+@media (max-height: 600px) {
+  .drawing-board-canvas-wrapper {
+    padding: 8px;
+  }
+
+  .drawing-board-tools {
+    padding: 8px 12px 10px;
+    gap: 6px;
+  }
+
+  .drawing-board-header {
+    padding: 10px 16px;
+  }
 }
 </style>
