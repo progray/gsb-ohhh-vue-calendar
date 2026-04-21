@@ -117,11 +117,6 @@ watch(() => props.viewMode, (newMode, oldMode) => {
 
 function handleClick() {
   emit('select', props.dateObj.date)
-  
-  if (props.viewMode === 'both') {
-    isFlipped.value = !isFlipped.value
-  }
-  
   emit('click', {
     date: props.dateObj.date,
     isFlipped: isFlipped.value
