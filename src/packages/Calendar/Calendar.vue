@@ -39,12 +39,17 @@
           v-for="dateObj in item"
           :key="dateObj.key"
           class="ohhh-calendar-day"
-          :class="{
-            'is-selected': isSameDay(dateObj.date, selected),
-            'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
-          }"
-          @click="changeSelectedDate(dateObj.date)"
+          :class="[
+            {
+              'is-selected': isSameDay(dateObj.date, selected),
+              'is-today': isSameDay(dateObj.date, new Date()),
+              'other-month': !dateObj.current,
+              'animate-heartbeat': animatedDateKey === dateObj.key && clickEffect === 'heartbeat',
+              'animate-shake': animatedDateKey === dateObj.key && clickEffect === 'shake',
+              'animate-confetti': animatedDateKey === dateObj.key && clickEffect === 'confetti'
+            }
+          ]"
+          @click="handleDateClick(dateObj)"
         >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
@@ -53,6 +58,16 @@
             </div>
           </div>
           <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+          
+          <!-- 彩花碎片容器 -->
+          <div v-if="clickEffect === 'confetti'" class="confetti-container">
+            <div
+              v-for="i in 12"
+              :key="i"
+              class="confetti-piece"
+              :style="getConfettiStyle(i)"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -71,7 +86,7 @@
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, ref, useTemplateRef, toRefs } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
 import { isSameDay, createWeekdays } from './utils'
@@ -121,10 +136,20 @@ const props = defineProps({
   duration: {
     type: String,
     default: '0.3s'
+  },
+  // 点击动效类型: 'confetti' | 'heartbeat' | 'shake'
+  clickEffect: {
+    type: String,
+    default: 'confetti'
   }
 })
 
-const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration } = toRefs(props)
+const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration, clickEffect } = toRefs(props)
+
+const animatedDateKey = ref(null)
+const animationTimeout = ref(null)
+
+const confettiColors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7', '#fd79a8', '#00b894', '#e17055']
 
 const {
   selected,
@@ -227,6 +252,60 @@ function changeSelectedDate(date) {
   if (!isSameDay(new Date(date), selected.value)) {
     selected.value = new Date(date)
     emit('select-change', selected.value)
+  }
+}
+
+// 处理日期点击（触发动画）
+function handleDateClick(dateObj) {
+  if (animationTimeout.value) {
+    clearTimeout(animationTimeout.value)
+  }
+  
+  animatedDateKey.value = null
+  
+  setTimeout(() => {
+    animatedDateKey.value = dateObj.key
+  }, 10)
+  
+  const animationDuration = getAnimationDuration()
+  animationTimeout.value = setTimeout(() => {
+    animatedDateKey.value = null
+  }, animationDuration)
+  
+  changeSelectedDate(dateObj.date)
+}
+
+// 获取动画持续时间
+function getAnimationDuration() {
+  switch (clickEffect.value) {
+    case 'heartbeat':
+      return 800
+    case 'shake':
+      return 600
+    case 'confetti':
+      return 1000
+    default:
+      return 600
+  }
+}
+
+// 获取彩花碎片样式
+function getConfettiStyle(index) {
+  const color = confettiColors[index % confettiColors.length]
+  const angle = (index / 12) * 360
+  const distance = 30 + Math.random() * 40
+  const size = 6 + Math.random() * 6
+  const delay = Math.random() * 0.1
+  const translateX = Math.cos(angle * Math.PI / 180) * distance
+  const translateY = Math.sin(angle * Math.PI / 180) * distance
+  
+  return {
+    backgroundColor: color,
+    '--confetti-translate-x': `${translateX}px`,
+    '--confetti-translate-y': `${translateY}px`,
+    '--confetti-size': `${size}px`,
+    '--confetti-delay': `${delay}s`,
+    '--confetti-rotation': `${angle + Math.random() * 360}deg`
   }
 }
 
