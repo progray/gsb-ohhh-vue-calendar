@@ -25,7 +25,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 
 const props = defineProps({
   visible: {
@@ -67,6 +67,8 @@ function initCanvas() {
 }
 
 function initParticles() {
+  if (!canvas) return
+  
   const weatherType = props.weatherData?.weatherType || 'sunny'
   
   particles.clouds = []
@@ -517,8 +519,9 @@ function handleResize() {
   }
 }
 
-watch(() => props.visible, (newVal) => {
+watch(() => props.visible, async (newVal) => {
   if (newVal) {
+    await nextTick()
     initCanvas()
     animate()
   } else {
@@ -527,7 +530,7 @@ watch(() => props.visible, (newVal) => {
 })
 
 watch(() => props.weatherData, () => {
-  if (props.visible) {
+  if (props.visible && canvas) {
     initParticles()
   }
 })
