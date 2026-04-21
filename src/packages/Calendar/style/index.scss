@@ -138,3 +138,106 @@
   width: var(--calendar-footer-icon-size);
   height: var(--calendar-footer-icon-size);
 }
+
+// ==================== 点击动效样式 ====================
+
+// 彩花爆开容器
+.ohhh-calendar-day {
+  position: relative;
+  overflow: visible;
+}
+
+.confetti-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.confetti-piece {
+  position: absolute;
+  width: var(--confetti-size, 8px);
+  height: var(--confetti-size, 8px);
+  border-radius: 2px;
+  background-color: #409eff;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+}
+
+// 彩花爆开动画
+.ohhh-calendar-day.animate-confetti .confetti-piece {
+  animation: confetti-fly 0.8s ease-out forwards;
+  animation-delay: var(--confetti-delay, 0s);
+}
+
+@keyframes confetti-fly {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(
+      calc(-50% + var(--confetti-translate-x, 30px)),
+      calc(-50% + var(--confetti-translate-y, 30px))
+    ) scale(1.2) rotate(var(--confetti-rotation, 180deg));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(
+      calc(-50% + var(--confetti-translate-x, 30px)),
+      calc(-50% + var(--confetti-translate-y, 30px) + 40px)
+    ) scale(0.5) rotate(calc(var(--confetti-rotation, 180deg) + 180deg));
+  }
+}
+
+// 心跳脉冲动画
+.ohhh-calendar-day.animate-heartbeat .ohhh-calendar-day--inner {
+  animation: heartbeat 0.8s ease-in-out;
+}
+
+@keyframes heartbeat {
+  0% {
+    transform: scale(1);
+  }
+  14% {
+    transform: scale(1.15);
+  }
+  28% {
+    transform: scale(1);
+  }
+  42% {
+    transform: scale(1.15);
+  }
+  70% {
+    transform: scale(1);
+  }
+}
+
+// 震动抖动动画
+.ohhh-calendar-day.animate-shake .ohhh-calendar-day--inner {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-5px);
+  }
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(5px);
+  }
+}
