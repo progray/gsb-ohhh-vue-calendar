@@ -1,53 +1,55 @@
 <template>
-  <div class="ohhh-calendar-history-panel" :class="{ 'is-open': isOpen }">
-    <div class="ohhh-calendar-history-panel--header">
-      <span class="ohhh-calendar-history-panel--title">操作记录</span>
-      <button class="ohhh-calendar-history-panel--close" @click="closePanel">×</button>
-    </div>
-    <div class="ohhh-calendar-history-panel--toolbar">
-      <button
-        class="ohhh-calendar-history-panel--btn"
-        :class="{ 'is-disabled': !canUndo }"
-        @click="$emit('undo')"
-      >
-        <span class="ohhh-calendar-history-panel--btn-icon">↩</span>
-        <span class="ohhh-calendar-history-panel--btn-text">撤销</span>
-        <span class="ohhh-calendar-history-panel--btn-shortcut">Ctrl+Z</span>
-      </button>
-      <button
-        class="ohhh-calendar-history-panel--btn"
-        :class="{ 'is-disabled': !canRedo }"
-        @click="$emit('redo')"
-      >
-        <span class="ohhh-calendar-history-panel--btn-icon">↪</span>
-        <span class="ohhh-calendar-history-panel--btn-text">重做</span>
-        <span class="ohhh-calendar-history-panel--btn-shortcut">Ctrl+U</span>
-      </button>
-    </div>
-    <div class="ohhh-calendar-history-panel--list">
-      <div
-        v-for="(item, index) in historyList"
-        :key="item.id"
-        class="ohhh-calendar-history-panel--item"
-        :class="{
-          'is-current': index === currentIndex,
-          'is-future': index > currentIndex
-        }"
-        @click="handleItemClick(index)"
-      >
-        <div class="ohhh-calendar-history-panel--item-left">
-          <div class="ohhh-calendar-history-panel--item-dot">
-            <span
-              v-if="index === currentIndex"
-              class="ohhh-calendar-history-panel--item-dot-current"
-            ></span>
-            <span v-else class="ohhh-calendar-history-panel--item-dot-normal"></span>
+  <div v-if="isOpen" class="ohhh-calendar-history-overlay" @click="$emit('close')">
+    <div class="ohhh-calendar-history-panel" @click.stop>
+      <div class="ohhh-calendar-history-panel--header">
+        <span class="ohhh-calendar-history-panel--title">操作记录</span>
+        <button class="ohhh-calendar-history-panel--close" @click="closePanel">×</button>
+      </div>
+      <div class="ohhh-calendar-history-panel--toolbar">
+        <button
+          class="ohhh-calendar-history-panel--btn"
+          :class="{ 'is-disabled': !canUndo }"
+          @click="$emit('undo')"
+        >
+          <span class="ohhh-calendar-history-panel--btn-icon">↩</span>
+          <span class="ohhh-calendar-history-panel--btn-text">撤销</span>
+          <span class="ohhh-calendar-history-panel--btn-shortcut">Ctrl+Z</span>
+        </button>
+        <button
+          class="ohhh-calendar-history-panel--btn"
+          :class="{ 'is-disabled': !canRedo }"
+          @click="$emit('redo')"
+        >
+          <span class="ohhh-calendar-history-panel--btn-icon">↪</span>
+          <span class="ohhh-calendar-history-panel--btn-text">重做</span>
+          <span class="ohhh-calendar-history-panel--btn-shortcut">Ctrl+U</span>
+        </button>
+      </div>
+      <div class="ohhh-calendar-history-panel--list">
+        <div
+          v-for="(item, index) in historyList"
+          :key="item.id"
+          class="ohhh-calendar-history-panel--item"
+          :class="{
+            'is-current': index === currentIndex,
+            'is-future': index > currentIndex
+          }"
+          @click="handleItemClick(index)"
+        >
+          <div class="ohhh-calendar-history-panel--item-left">
+            <div class="ohhh-calendar-history-panel--item-dot">
+              <span
+                v-if="index === currentIndex"
+                class="ohhh-calendar-history-panel--item-dot-current"
+              ></span>
+              <span v-else class="ohhh-calendar-history-panel--item-dot-normal"></span>
+            </div>
+            <div class="ohhh-calendar-history-panel--item-line" v-if="index < historyList.length - 1"></div>
           </div>
-          <div class="ohhh-calendar-history-panel--item-line" v-if="index < historyList.length - 1"></div>
-        </div>
-        <div class="ohhh-calendar-history-panel--item-content">
-          <div class="ohhh-calendar-history-panel--item-name">{{ item.displayName }}</div>
-          <div class="ohhh-calendar-history-panel--item-time">{{ _formatTime(item.timestamp) }}</div>
+          <div class="ohhh-calendar-history-panel--item-content">
+            <div class="ohhh-calendar-history-panel--item-name">{{ item.displayName }}</div>
+            <div class="ohhh-calendar-history-panel--item-time">{{ _formatTime(item.timestamp) }}</div>
+          </div>
         </div>
       </div>
     </div>
