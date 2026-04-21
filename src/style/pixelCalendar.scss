@@ -1,0 +1,238 @@
+@use '../packages/Calendar/style/index.scss';
+
+.pixel-calendar-container {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family:
+    Open Sans,
+    -apple-system,
+    BlinkMacSystemFont,
+    Helvetica Neue,
+    Helvetica,
+    Segoe UI,
+    Arial,
+    Roboto,
+    PingFang SC,
+    miui,
+    Hiragino Sans GB,
+    Microsoft Yahei,
+    sans-serif;
+}
+
+.template-selector {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.template-button {
+  padding: 10px 20px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.template-button:hover {
+  border-color: #409eff;
+  background: #f0f7ff;
+}
+
+.template-button.active {
+  border-color: #409eff;
+  background: #409eff;
+  color: #fff;
+}
+
+.calendar-wrapper {
+  position: relative;
+}
+
+.pixel-day-wrapper {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.pixel-day-wrapper .ohhh-calendar-day--inner {
+  position: relative;
+  z-index: 2;
+  transition: background-color 0.3s ease;
+}
+
+.pixel-day-wrapper.locked .ohhh-calendar-day--inner {
+  background: #e0e0e0;
+}
+
+.pixel-day-wrapper.unlocked .ohhh-calendar-day--inner {
+  transition: background-color 0.5s ease;
+}
+
+.pixel-day-wrapper.is-pixel.locked .ohhh-calendar-day--inner {
+  background: #d0d0d0;
+}
+
+.pixel-day-wrapper.is-pixel.unlocked .ohhh-calendar-day--inner {
+  background: var(--pixel-color);
+}
+
+.pixel-day-wrapper.other-month .ohhh-calendar-day--inner {
+  background: #f8f8f8;
+}
+
+.pixel-ripple {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: var(--pixel-color);
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.pixel-ripple.animating {
+  animation: ripple-expand 0.6s ease-out forwards;
+}
+
+@keyframes ripple-expand {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 1;
+  }
+  100% {
+    width: 200px;
+    height: 200px;
+    opacity: 0;
+  }
+}
+
+.progress-section {
+  margin-top: 20px;
+  padding: 20px;
+  background: #f5f5f5;
+  border-radius: 12px;
+}
+
+.progress-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #333;
+}
+
+.progress-bar {
+  height: 24px;
+  background: #e0e0e0;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #409eff, #67c23a);
+  border-radius: 12px;
+  transition: width 0.5s ease;
+}
+
+.progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.preview-section {
+  margin-top: 20px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+.preview-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #333;
+  text-align: center;
+}
+
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.preview-pixel {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.preview-pixel.bg {
+  background: #f0f0f0;
+}
+
+.preview-pixel.locked {
+  background: #d0d0d0;
+}
+
+.preview-pixel.unlocked {
+  background: var(--pixel-color);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #999;
+  font-size: 16px;
+}
+
+.complete-message {
+  text-align: center;
+  padding: 20px;
+  margin-top: 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+.pixel-day-wrapper.is-today .ohhh-calendar-day--inner {
+  box-shadow: 0 0 0 2px #409eff;
+}
+
+.pixel-day-wrapper.is-today.unlocked .ohhh-calendar-day--inner {
+  box-shadow: 0 0 0 2px #409eff;
+}
