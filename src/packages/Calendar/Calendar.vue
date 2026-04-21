@@ -79,7 +79,7 @@ import { icons } from './utils/icons.js'
 
 const swipeRef = useTemplateRef('swp')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'page-change'])
 
 const props = defineProps({
   // 初始选中的日期
