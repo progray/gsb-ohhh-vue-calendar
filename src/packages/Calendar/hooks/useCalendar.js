@@ -217,6 +217,11 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
       _setPrevMonthDates(new Date(currentYear.value, currentMonth.value - 1))
       _setNextMonthDates(new Date(currentYear.value, currentMonth.value + 1))
     }
+    // 触发页面切换事件，通知父组件
+    emit('page-change', {
+      year: currentYear.value,
+      month: currentMonth.value + 1
+    })
     _targetDate.value = null
     isInTransition.value = false
   }

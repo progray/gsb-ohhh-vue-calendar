@@ -10,6 +10,7 @@
       :week-start="1" 
       :show-footer="false"
       @select-change="onSelectChange"
+      @page-change="onPageChange"
     >
       <template #day-label="{ date }">
         <div class="tomato-day-label">
@@ -102,6 +103,12 @@ function onTomatoComplete(date) {
   console.log('番茄完成:', date)
   currentYear.value = date.getFullYear()
   currentMonth.value = date.getMonth() + 1
+}
+
+function onPageChange({ year, month }) {
+  console.log('页面切换:', year, month)
+  currentYear.value = year
+  currentMonth.value = month
 }
 
 onMounted(() => {
