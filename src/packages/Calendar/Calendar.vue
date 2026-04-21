@@ -53,12 +53,10 @@
               <slot name="day-label" :date="dateObj.date" />
             </div>
           </div>
-          <div class="ohhh-calendar-day--bottom">
-            <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
-            <div v-if="hasDiary(dateObj.date)" class="ohhh-calendar-day--diary-preview">
-              <span class="ohhh-calendar-day--diary-icon" v-html="icons.pen"></span>
-              <span class="ohhh-calendar-day--diary-text">{{ getDiaryPreview(dateObj.date) }}</span>
-            </div>
+          <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+          <div v-if="hasDiary(dateObj.date)" class="ohhh-calendar-day--diary-preview">
+            <span class="ohhh-calendar-day--diary-icon" v-html="icons.pen"></span>
+            <span class="ohhh-calendar-day--diary-text">{{ getDiaryPreview(dateObj.date) }}</span>
           </div>
         </div>
       </div>
