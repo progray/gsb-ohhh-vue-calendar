@@ -73,6 +73,7 @@
   transition: transform var(--transition-duration) ease;
 }
 .ohhh-calendar-day {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -126,10 +127,45 @@
   border-radius: 50%;
 }
 
+.ohhh-calendar-day.has-drawing .ohhh-calendar-day--inner {
+  box-shadow: 0 0 0 2px var(--calendar-theme-color, #4a9eff);
+}
+
+.ohhh-calendar-day--drawing {
+  position: absolute;
+  bottom: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #ddd;
+  background: #fff;
+}
+
+.ohhh-calendar-day--drawing img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .ohhh-calendar-footer {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: center;
   padding: var(--calendar-footer-padding);
+}
+.ohhh-calendar-footer--stats {
+  flex: 1;
+  text-align: center;
+}
+.ohhh-calendar-footer--stats-text {
+  font-size: 14px;
+  color: #666;
+}
+.ohhh-calendar-footer--stats-text strong {
+  color: var(--calendar-theme-color, #4a9eff);
+  font-size: 18px;
+  margin: 0 4px;
 }
 .ohhh-calendar-footer--icon {
   fill: var(--calendar-footer-icon-color);

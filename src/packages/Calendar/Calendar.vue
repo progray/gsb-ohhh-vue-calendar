@@ -42,15 +42,19 @@
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'has-drawing': hasDrawing(dateObj.date)
           }"
-          @click="changeSelectedDate(dateObj.date)"
+          @click="openDrawingBoard(dateObj.date)"
         >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
             <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
               <slot name="day-label" :date="dateObj.date" />
             </div>
+          </div>
+          <div class="ohhh-calendar-day--drawing" v-if="hasDrawing(dateObj.date)">
+            <img :src="getDrawing(dateObj.date)" alt="drawing" />
           </div>
           <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
         </div>
@@ -59,7 +63,12 @@
 
     <!-- 底部工具栏 -->
     <div v-if="showFooter" class="ohhh-calendar-footer">
-      <slot name="footer" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
+      <slot name="footer" :year="currentYear" :month="currentMonth" :viewMode="viewMode" :drawingCount="monthDrawingCount">
+        <div class="ohhh-calendar-footer--stats">
+          <span class="ohhh-calendar-footer--stats-text">
+            🎨 本月已涂鸦: <strong>{{ monthDrawingCount }}</strong> 天
+          </span>
+        </div>
         <div
           v-html="viewMode === 'week' ? icons.arrowDown : icons.arrowUp"
           class="ohhh-calendar-footer--icon"
@@ -67,57 +76,66 @@
         />
       </slot>
     </div>
+
+    <!-- 涂鸦画板 -->
+    <DrawingBoard
+      v-if="showDrawingBoard"
+      :selected-date="drawingBoardDate"
+      :initial-drawing="initialDrawing"
+      @close="closeDrawingBoard"
+      @save="onDrawingSave"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref, watch, onMounted } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
 import { isSameDay, createWeekdays } from './utils'
 import { icons } from './utils/icons.js'
+import DrawingBoard from './components/DrawingBoard.vue'
+import { 
+  saveDrawing, 
+  getDrawing, 
+  hasDrawing, 
+  getMonthDrawingCount,
+  initRandomDrawingsForCurrentMonth
+} from './utils/drawingStorage.js'
 
 const swipeRef = useTemplateRef('swp')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'drawing-save'])
 
 const props = defineProps({
-  // 初始选中的日期
   initialSelectedDate: {
     type: Date,
     default: () => new Date()
   },
-  // 初始视图模式
   initialViewMode: {
     type: String,
-    default: 'month' // month or week
+    default: 'month'
   },
-  // 以周几作为每周的起始
   weekStart: {
     type: Number,
-    default: 0 // 0: Sunday, 1: Monday, etc.
+    default: 0
   },
-  // 标记的日期
   markerDates: {
     type: Array,
     default: () => []
   },
-  // 是否显示顶部工具栏
   showToolbar: {
     type: Boolean,
     default: true
   },
-  // 是否显示底部工具栏
   showFooter: {
     type: Boolean,
     default: true
   },
-  // 是否显示weekdays栏
   showWeekdays: {
     type: Boolean,
     default: true
   },
-  // 过渡动画时长
   duration: {
     type: String,
     default: '0.3s'
@@ -143,11 +161,12 @@ const {
   toggleViewMode
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
 
-// 顶部工具栏标题
+const showDrawingBoard = ref(false)
+const drawingBoardDate = ref(new Date())
+
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
-// 星期栏
 const weekdays = createWeekdays(weekStart.value)
-// 标记日期
+
 const markerDateList = computed(() =>
   markerDates.value.map(item => ({
     date: new Date(typeof item === 'object' && item.date ? item.date : item),
@@ -155,16 +174,20 @@ const markerDateList = computed(() =>
   }))
 )
 
-// 监听滑动事件
+const monthDrawingCount = computed(() => {
+  return getMonthDrawingCount(currentYear.value, currentMonth.value)
+})
+
+const initialDrawing = computed(() => {
+  return getDrawing(drawingBoardDate.value)
+})
+
 const { lengthX } = useSwipe(swipeRef, {
-  // 滑动阈值
   threshold: 0,
-  // 手指滑动过程中
   onSwipe: () => {
     if (isInTransition.value) return
     transformDistance.value = -lengthX.value + 'px'
   },
-  // 手指抬起滑动结束，开始滑动动画
   onSwipeEnd: (_, direction) => {
     if (isInTransition.value) return
     if (direction === 'left') {
@@ -172,14 +195,15 @@ const { lengthX } = useSwipe(swipeRef, {
     } else if (direction === 'right') {
       changePageTo('prev-page')
     } else {
-      // 如果方向不是左右，则将页面复位
       startTransitionAnimation(direction)
     }
   }
 })
 
-// 归一化参数
-// 支持 'prev-page', 'next-page', 'prev-year', 'next-year', 以及合法的日期
+onMounted(() => {
+  initRandomDrawingsForCurrentMonth()
+})
+
 function _normalize(param) {
   if (!param) {
     throw new Error('参数不能为空')
@@ -215,13 +239,11 @@ function _normalize(param) {
   throw new Error('日期不合法')
 }
 
-// 切换日历页面
 function changePageTo(param) {
   const targetDate = _normalize(param)
   switchPageToTargetDate(targetDate)
 }
 
-// 切换选中的日期
 function changeSelectedDate(date) {
   changePageTo(date)
   if (!isSameDay(new Date(date), selected.value)) {
@@ -230,17 +252,34 @@ function changeSelectedDate(date) {
   }
 }
 
-// 获取 marker 颜色
 function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
+function openDrawingBoard(date) {
+  changeSelectedDate(date)
+  drawingBoardDate.value = new Date(date)
+  showDrawingBoard.value = true
+}
+
+function closeDrawingBoard() {
+  showDrawingBoard.value = false
+}
+
+function onDrawingSave(imageData) {
+  saveDrawing(drawingBoardDate.value, imageData)
+  emit('drawing-save', {
+    date: new Date(drawingBoardDate.value),
+    imageData
+  })
+}
+
 defineExpose({
-  // 切换周/月视图
   toggleViewMode,
-  // 切换日历页
   changePageTo,
-  // 切换选中日期
-  changeSelectedDate
+  changeSelectedDate,
+  getDrawing,
+  hasDrawing,
+  saveDrawing
 })
 </script>
