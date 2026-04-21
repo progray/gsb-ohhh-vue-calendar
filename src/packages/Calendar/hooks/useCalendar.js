@@ -1,115 +1,159 @@
 import { ref, computed, nextTick } from 'vue'
 import { createMonthDates, createWeekDates, isSameDay } from '../utils/index.js'
+import { useHistory } from './useHistory.js'
 
 export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit) {
-  // 选中的日期
   const selected = ref(initialSelectedDate.value)
-  // 当前渲染页年份
   const currentYear = ref(initialSelectedDate.value.getFullYear())
-  // 当前渲染页月份(索引)
   const currentMonth = ref(initialSelectedDate.value.getMonth())
-  // 当前渲染视图模式
   const viewMode = ref(initialViewMode.value)
-  // 周视图下，当前展示的周索引
   const weekIndex = ref(0)
+
+  const {
+    historyStack,
+    currentIndex: historyCurrentIndex,
+    canUndo,
+    canRedo,
+    currentHistory,
+    historyList,
+    pushHistory,
+    undo: historyUndo,
+    redo: historyRedo,
+    jumpTo: historyJumpTo,
+    clearHistory,
+    initializeWithState,
+    updateCurrentState
+  } = useHistory()
+
   nextTick(() => {
     _setWeekIndex()
-  }).then()
+    initializeWithState(_getCurrentState())
+  })
 
-  // 当前渲染页月日期
+  function _getCurrentState() {
+    return {
+      selected: selected.value ? new Date(selected.value) : null,
+      year: currentYear.value,
+      month: currentMonth.value,
+      viewMode: viewMode.value,
+      weekIndex: weekIndex.value
+    }
+  }
+
+  function _restoreState(state) {
+    if (!state) return
+
+    if (state.selected) {
+      selected.value = new Date(state.selected)
+    }
+    currentYear.value = state.year
+    currentMonth.value = state.month
+    viewMode.value = state.viewMode
+    weekIndex.value = state.weekIndex
+
+    _setPrevMonthDates(new Date(currentYear.value, currentMonth.value - 1))
+    _setNextMonthDates(new Date(currentYear.value, currentMonth.value + 1))
+    _setWeekIndex()
+
+    if (viewMode.value === 'week') {
+      _setPrevWeekDates(
+        new Date(new Date(currentWeekDates.value[0].date).setDate(currentWeekDates.value[0].date.getDate() - 1))
+      )
+      _setNextWeekDates(
+        new Date(new Date(currentWeekDates.value[6].date).setDate(currentWeekDates.value[6].date.getDate() + 1))
+      )
+    }
+
+    renderRows.value = currentRenderRows.value
+  }
+
   const currentMonthDates = computed(() => {
     return createMonthDates(new Date(currentYear.value, currentMonth.value), weekStart.value)
   })
-  // 当前渲染页周日期
   const currentWeekDates = computed(() => {
     return currentMonthDates.value.slice(weekIndex.value * 7, weekIndex.value * 7 + 7)
   })
-  // 根据视图模式计算当前渲染页实际渲染的日期
   const currentRenderDates = computed(() => {
     return viewMode.value === 'week' ? currentWeekDates.value : currentMonthDates.value
   })
-  // 根据视图模式计算当前渲染页的行数
   const currentRenderRows = computed(() => {
     return viewMode.value === 'week' ? 1 : Math.ceil(currentMonthDates.value.length / 7)
   })
 
-  // 上一渲染页月日期 (初始化取上月)
   const prevMonthDates = ref([])
   _setPrevMonthDates(new Date(currentYear.value, currentMonth.value - 1))
-  // 上一渲染页周日期 (初始化取上周)
   const prevWeekDates = ref([])
   _setPrevWeekDates(
     new Date(new Date(currentWeekDates.value[0].date).setDate(currentWeekDates.value[0].date.getDate() - 1))
   )
-  // 根据视图模式计算上一渲染页实际渲染的日期
   const prevRenderDates = computed(() => {
     return viewMode.value === 'week' ? prevWeekDates.value : prevMonthDates.value
   })
-  // 根据视图模式计算上一渲染页的行数
   const prevRenderRows = computed(() => {
     return viewMode.value === 'week' ? 1 : Math.ceil(prevMonthDates.value.length / 7)
   })
 
-  // 下一渲染页月日期 (初始化取下月)
   const nextMonthDates = ref([])
   _setNextMonthDates(new Date(currentYear.value, currentMonth.value + 1))
-  // 下一渲染页周日期 (初始化取下周)
   const nextWeekDates = ref([])
   _setNextWeekDates(
     new Date(new Date(currentWeekDates.value[6].date).setDate(currentWeekDates.value[6].date.getDate() + 1))
   )
-  // 根据视图模式计算下一渲染页实际渲染的日期
   const nextRenderDates = computed(() => {
     return viewMode.value === 'week' ? nextWeekDates.value : nextMonthDates.value
   })
-  // 根据视图模式计算下一渲染页的行数
   const nextRenderRows = computed(() => {
     return viewMode.value === 'week' ? 1 : Math.ceil(nextMonthDates.value.length / 7)
   })
 
-  // 拼接了上一页、当前页、下一页的渲染日期
   const allRenderDates = computed(() => {
     return [prevRenderDates.value, currentRenderDates.value, nextRenderDates.value]
   })
 
-  // 设置上一渲染页的月日期
   function _setPrevMonthDates(date) {
     prevMonthDates.value = createMonthDates(date, weekStart.value)
   }
-  // 设置下一渲染页的月日期
   function _setNextMonthDates(date) {
     nextMonthDates.value = createMonthDates(date, weekStart.value)
   }
-  // 设置上一渲染页的周日期
   function _setPrevWeekDates(date) {
     prevWeekDates.value = createWeekDates(date, weekStart.value)
   }
-  // 设置下一渲染页的周日期
   function _setNextWeekDates(date) {
     nextWeekDates.value = createWeekDates(date, weekStart.value)
   }
 
-  // 切换视图模式
+  let isRestoringFromHistory = false
+
   function toggleViewMode() {
+    if (isRestoringFromHistory) return
+
+    const previousState = _getCurrentState()
     viewMode.value = viewMode.value === 'week' ? 'month' : 'week'
     renderRows.value = currentRenderRows.value
     _setWeekIndex()
     emit('view-change', viewMode.value)
+
+    pushHistory('change-view', _getCurrentState(), previousState)
   }
 
-  // 切换的目标日期
   const _targetDate = ref(null)
+  const _pendingActions = ref([])
 
-  // 月视图下切换页面到指定日期
   function _switchPageToTargetDateInMonthView(date) {
-    if (date.getFullYear() === currentYear.value && date.getMonth() === currentMonth.value) {
+    const targetYear = date.getFullYear()
+    const targetMonth = date.getMonth()
+
+    if (targetYear === currentYear.value && targetMonth === currentMonth.value) {
       return
     }
-    // 1、设置prevMonthDates/nextMonthDates
+
+    const previousState = _getCurrentState()
+
     let direction
     if (
-      date.getFullYear() < currentYear.value ||
-      (date.getFullYear() === currentYear.value && date.getMonth() < currentMonth.value)
+      targetYear < currentYear.value ||
+      (targetYear === currentYear.value && targetMonth < currentMonth.value)
     ) {
       direction = 'right'
       _setPrevMonthDates(date)
@@ -117,25 +161,56 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
       direction = 'left'
       _setNextMonthDates(date)
     }
+
+    const isYearChange = targetYear !== currentYear.value
+    const action = isYearChange ? 'change-year' : 'change-month'
+
+    const targetState = {
+      selected: selected.value ? new Date(selected.value) : null,
+      year: targetYear,
+      month: targetMonth,
+      viewMode: viewMode.value,
+      weekIndex: weekIndex.value
+    }
+
+    if (isInTransition.value) {
+      _pendingActions.value.push({
+        date: date,
+        targetState: targetState,
+        previousState: previousState,
+        action: action,
+        direction: direction
+      })
+      pushHistory(action, targetState, previousState)
+      return
+    }
+
     _targetDate.value = date
-    // 2、开启切换动画
+    pushHistory(action, targetState, previousState)
     startTransitionAnimation(direction)
-    // 3、监听动画结束事件，并执行相应回调
   }
 
-  // 周视图下切换页面到指定日期
   function _switchPageToTargetDateInWeekView(date) {
     if (currentWeekDates.value.some(item => isSameDay(item.date, date))) {
       if (date.getFullYear() === currentYear.value && date.getMonth() === currentMonth.value) {
         return
       }
-      // 目标日期在当前周内，但可能不在当前月份，若不在当前月份需手动设置currentYear/currentMonth
+      const previousState = _getCurrentState()
       currentYear.value = date.getFullYear()
       currentMonth.value = date.getMonth()
       _setWeekIndex(date)
+
+      const targetYear = date.getFullYear()
+      const isYearChange = targetYear !== previousState.year
+      const action = isYearChange ? 'change-year' : 'change-month'
+      pushHistory(action, _getCurrentState(), previousState)
       return
     }
-    // 1、设置prevWeekDates/nextWeekDates
+
+    const previousState = _getCurrentState()
+    const targetYear = date.getFullYear()
+    const targetMonth = date.getMonth()
+
     let direction
     if (date < currentWeekDates.value[0].date) {
       direction = 'right'
@@ -144,14 +219,38 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
       direction = 'left'
       _setNextWeekDates(date)
     }
+
+    const isYearChange = targetYear !== currentYear.value
+    const action = isYearChange ? 'change-year' : 'change-month'
+
+    const targetState = {
+      selected: selected.value ? new Date(selected.value) : null,
+      year: targetYear,
+      month: targetMonth,
+      viewMode: viewMode.value,
+      weekIndex: weekIndex.value
+    }
+
+    if (isInTransition.value) {
+      _pendingActions.value.push({
+        date: date,
+        targetState: targetState,
+        previousState: previousState,
+        action: action,
+        direction: direction
+      })
+      pushHistory(action, targetState, previousState)
+      return
+    }
+
     _targetDate.value = date
-    // 2、开启切换动画
+    pushHistory(action, targetState, previousState)
     startTransitionAnimation(direction)
-    // 3、监听动画结束事件，并执行相应回调
   }
 
-  // 切换页面到指定日期 (根据当前视图自动判断切月或切周)
   function switchPageToTargetDate(date) {
+    if (isRestoringFromHistory) return
+
     if (viewMode.value === 'week') {
       _switchPageToTargetDateInWeekView(date)
     } else if (viewMode.value === 'month') {
@@ -159,8 +258,6 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     }
   }
 
-  // 设置周索引
-  // 查找传入的date或selected所在周的周索引，若找不到则默认为0
   function _setWeekIndex(date) {
     const targetDate = date || selected.value
     if (viewMode.value === 'week') {
@@ -170,16 +267,11 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     }
   }
 
-  // 移动的距离
   const transformDistance = ref('0px')
-  // 动画时间
   const transitionDuration = ref('0s')
-  // 是否正在过渡动画过程中
   const isInTransition = ref(false)
-  // 页面实际渲染的行数
   const renderRows = ref(currentRenderRows.value)
 
-  // 开始播放过渡动画
   function startTransitionAnimation(direction) {
     transitionDuration.value = duration.value
     isInTransition.value = true
@@ -194,17 +286,19 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     }
   }
 
-  // 监听过渡动画结束
   function onTransitionEnd() {
     transitionDuration.value = '0s'
+
     if (!_targetDate.value) {
-      return (isInTransition.value = false)
+      isInTransition.value = false
+      return
     }
-    // 设置currentYear/currentMonth
+
     currentYear.value = _targetDate.value.getFullYear()
     currentMonth.value = _targetDate.value.getMonth()
     renderRows.value = currentRenderRows.value
     transformDistance.value = '0px'
+
     if (viewMode.value === 'week') {
       _setWeekIndex(_targetDate.value)
       _setPrevWeekDates(
@@ -217,8 +311,78 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
       _setPrevMonthDates(new Date(currentYear.value, currentMonth.value - 1))
       _setNextMonthDates(new Date(currentYear.value, currentMonth.value + 1))
     }
+
     _targetDate.value = null
     isInTransition.value = false
+
+    if (_pendingActions.value.length > 0) {
+      const nextAction = _pendingActions.value.shift()
+      _targetDate.value = nextAction.date
+
+      let direction
+      if (viewMode.value === 'month') {
+        if (
+          nextAction.date.getFullYear() < currentYear.value ||
+          (nextAction.date.getFullYear() === currentYear.value &&
+            nextAction.date.getMonth() < currentMonth.value)
+        ) {
+          direction = 'right'
+          _setPrevMonthDates(nextAction.date)
+        } else {
+          direction = 'left'
+          _setNextMonthDates(nextAction.date)
+        }
+      } else {
+        if (nextAction.date < currentWeekDates.value[0].date) {
+          direction = 'right'
+          _setPrevWeekDates(nextAction.date)
+        } else {
+          direction = 'left'
+          _setNextWeekDates(nextAction.date)
+        }
+      }
+
+      startTransitionAnimation(direction)
+    }
+  }
+
+  function recordSelectDate(newSelectedDate, previousState) {
+    if (isRestoringFromHistory) return
+    pushHistory('select-date', _getCurrentState(), previousState)
+  }
+
+  function undo() {
+    if (!canUndo.value) return
+
+    const historyItem = historyUndo()
+    if (historyItem) {
+      isRestoringFromHistory = true
+      _restoreState(historyItem.state)
+      isRestoringFromHistory = false
+      emit('select-change', selected.value)
+    }
+  }
+
+  function redo() {
+    if (!canRedo.value) return
+
+    const historyItem = historyRedo()
+    if (historyItem) {
+      isRestoringFromHistory = true
+      _restoreState(historyItem.state)
+      isRestoringFromHistory = false
+      emit('select-change', selected.value)
+    }
+  }
+
+  function jumpToHistory(index) {
+    const historyItem = historyJumpTo(index)
+    if (historyItem) {
+      isRestoringFromHistory = true
+      _restoreState(historyItem.state)
+      isRestoringFromHistory = false
+      emit('select-change', selected.value)
+    }
   }
 
   return {
@@ -235,6 +399,14 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     switchPageToTargetDate,
     startTransitionAnimation,
     onTransitionEnd,
-    toggleViewMode
+    toggleViewMode,
+    recordSelectDate,
+    canUndo,
+    canRedo,
+    undo,
+    redo,
+    jumpToHistory,
+    historyList,
+    historyCurrentIndex
   }
 }
