@@ -1,28 +1,34 @@
 <template>
   <div class="app-container">
-    <ohhh-vue-calendar ref="calendarRef" :week-start="1" :markerDates @select-change="onSelectChange" />
+    <day-night-calendar ref="calendarRef" :week-start="1" @select-change="onSelectChange" />
   </div>
 </template>
 
 <script setup>
 import { useTemplateRef } from 'vue'
-import OhhhVueCalendar from './packages/Calendar/Calendar.vue'
-import '/src/packages/Calendar/style/mobile/mobile.scss'
+import DayNightCalendar from './packages/Calendar/DayNightCalendar.vue'
+import '/src/packages/Calendar/style/day-night.scss'
 
 const calendarRef = useTemplateRef('calendarRef')
 
-const markerDates = [
-  '2025-08-04',
-  '2025-08-05',
-  '2025-08-06',
-  '2025-08-07',
-  {
-    date: '2025-08-08',
-    color: '#ff6a6a'
-  }
-]
-
 function onSelectChange(date) {
-  console.log(date)
+  console.log('Selected date:', date)
 }
 </script>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  height: 100%;
+  overflow: hidden;
+}
+
+.app-container {
+  height: 100%;
+}
+</style>
