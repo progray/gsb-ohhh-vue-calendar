@@ -138,3 +138,77 @@
   width: var(--calendar-footer-icon-size);
   height: var(--calendar-footer-icon-size);
 }
+
+.weather-location {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--calendar-text-color-level-3);
+  margin-left: 8px;
+}
+
+.weather-location .location-icon {
+  font-size: 14px;
+}
+
+.weather-location .location-name {
+  white-space: nowrap;
+}
+
+.ohhh-calendar-day.has-weather {
+  cursor: pointer;
+}
+
+.ohhh-calendar-day--weather {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-top: 4px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.ohhh-calendar-day--weather:hover {
+  transform: scale(1.1);
+}
+
+.ohhh-calendar-day--weather .weather-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.ohhh-calendar-day--weather .weather-temp {
+  font-size: 10px;
+  color: var(--calendar-text-color-level-3);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.ohhh-calendar-day.is-today .ohhh-calendar-day--weather .weather-temp,
+.ohhh-calendar-day.is-selected .ohhh-calendar-day--weather .weather-temp {
+  color: inherit;
+  opacity: 0.8;
+}
+
+.ohhh-calendar-day.other-month .ohhh-calendar-day--weather {
+  opacity: 0.5;
+}
+
+.ohhh-calendar-day.has-weather .ohhh-calendar-day--inner {
+  height: auto;
+  min-height: var(--calendar-days-inner-height);
+  width: auto;
+  min-width: var(--calendar-days-inner-width);
+  border-radius: 12px;
+  padding: 6px 8px;
+}
+
+.ohhh-calendar-day.has-weather.is-today .ohhh-calendar-day--inner {
+  background: var(--calendar-days-today-background);
+}
+
+.ohhh-calendar-day.has-weather.is-selected .ohhh-calendar-day--inner {
+  background: var(--calendar-days-selected-background);
+}

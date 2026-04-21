@@ -14,6 +14,10 @@
         <div v-html="icons.arrowDoubleLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-year')" />
         <div v-html="icons.arrowLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-page')" />
         <div class="ohhh-calendar-toolbar--text">{{ headerLabel }}</div>
+        <div class="weather-location" v-if="showWeather && location.name">
+          <span class="location-icon">📍</span>
+          <span class="location-name">{{ location.name }}</span>
+        </div>
         <div v-html="icons.arrowRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-page')" />
         <div v-html="icons.arrowDoubleRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-year')" />
       </slot>
@@ -42,14 +46,26 @@
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'has-weather': getWeatherForDate(dateObj.date)
           }"
-          @click="changeSelectedDate(dateObj.date)"
+          @click="handleDayClick(dateObj.date)"
         >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
             <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
               <slot name="day-label" :date="dateObj.date" />
+            </div>
+            <!-- 天气信息 -->
+            <div
+              v-if="showWeather && getWeatherForDate(dateObj.date)"
+              class="ohhh-calendar-day--weather"
+              @click.stop="showWeatherAnimation(dateObj.date)"
+            >
+              <span class="weather-icon">{{ getWeatherForDate(dateObj.date).icon }}</span>
+              <span class="weather-temp">
+                {{ Math.round(getWeatherForDate(dateObj.date).tempMax) }}°/{{ Math.round(getWeatherForDate(dateObj.date).tempMin) }}°
+              </span>
             </div>
           </div>
           <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
@@ -67,64 +83,74 @@
         />
       </slot>
     </div>
+
+    <!-- 天气动画组件 -->
+    <WeatherAnimation
+      v-if="showWeather"
+      :visible="weatherAnimationVisible"
+      :weather-data="selectedWeatherData"
+      @close="closeWeatherAnimation"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref, onMounted } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
+import { useWeather } from './hooks/useWeather.js'
 import { isSameDay, createWeekdays } from './utils'
 import { icons } from './utils/icons.js'
+import WeatherAnimation from './components/WeatherAnimation.vue'
 
 const swipeRef = useTemplateRef('swp')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'weather-animation-open'])
 
 const props = defineProps({
-  // 初始选中的日期
   initialSelectedDate: {
     type: Date,
     default: () => new Date()
   },
-  // 初始视图模式
   initialViewMode: {
     type: String,
-    default: 'month' // month or week
+    default: 'month'
   },
-  // 以周几作为每周的起始
   weekStart: {
     type: Number,
-    default: 0 // 0: Sunday, 1: Monday, etc.
+    default: 0
   },
-  // 标记的日期
   markerDates: {
     type: Array,
     default: () => []
   },
-  // 是否显示顶部工具栏
   showToolbar: {
     type: Boolean,
     default: true
   },
-  // 是否显示底部工具栏
   showFooter: {
     type: Boolean,
     default: true
   },
-  // 是否显示weekdays栏
   showWeekdays: {
     type: Boolean,
     default: true
   },
-  // 过渡动画时长
   duration: {
     type: String,
     default: '0.3s'
+  },
+  showWeather: {
+    type: Boolean,
+    default: true
+  },
+  useUserLocation: {
+    type: Boolean,
+    default: false
   }
 })
 
-const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration } = toRefs(props)
+const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration, showWeather, useUserLocation } = toRefs(props)
 
 const {
   selected,
@@ -143,11 +169,21 @@ const {
   toggleViewMode
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
 
-// 顶部工具栏标题
+const {
+  location,
+  hasWeatherData,
+  fetchWeather,
+  getUserLocation,
+  getWeatherForDate,
+  BEIJING_LAT,
+  BEIJING_LNG
+} = useWeather()
+
+const weatherAnimationVisible = ref(false)
+const selectedWeatherData = ref(null)
+
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
-// 星期栏
 const weekdays = createWeekdays(weekStart.value)
-// 标记日期
 const markerDateList = computed(() =>
   markerDates.value.map(item => ({
     date: new Date(typeof item === 'object' && item.date ? item.date : item),
@@ -155,16 +191,31 @@ const markerDateList = computed(() =>
   }))
 )
 
-// 监听滑动事件
+onMounted(async () => {
+  if (showWeather.value) {
+    await initWeather()
+  }
+})
+
+async function initWeather() {
+  let lat = BEIJING_LAT
+  let lng = BEIJING_LNG
+  
+  if (useUserLocation.value) {
+    const userLoc = await getUserLocation()
+    lat = userLoc.lat
+    lng = userLoc.lng
+  }
+  
+  await fetchWeather(lat, lng)
+}
+
 const { lengthX } = useSwipe(swipeRef, {
-  // 滑动阈值
   threshold: 0,
-  // 手指滑动过程中
   onSwipe: () => {
     if (isInTransition.value) return
     transformDistance.value = -lengthX.value + 'px'
   },
-  // 手指抬起滑动结束，开始滑动动画
   onSwipeEnd: (_, direction) => {
     if (isInTransition.value) return
     if (direction === 'left') {
@@ -172,14 +223,11 @@ const { lengthX } = useSwipe(swipeRef, {
     } else if (direction === 'right') {
       changePageTo('prev-page')
     } else {
-      // 如果方向不是左右，则将页面复位
       startTransitionAnimation(direction)
     }
   }
 })
 
-// 归一化参数
-// 支持 'prev-page', 'next-page', 'prev-year', 'next-year', 以及合法的日期
 function _normalize(param) {
   if (!param) {
     throw new Error('参数不能为空')
@@ -215,13 +263,11 @@ function _normalize(param) {
   throw new Error('日期不合法')
 }
 
-// 切换日历页面
 function changePageTo(param) {
   const targetDate = _normalize(param)
   switchPageToTargetDate(targetDate)
 }
 
-// 切换选中的日期
 function changeSelectedDate(date) {
   changePageTo(date)
   if (!isSameDay(new Date(date), selected.value)) {
@@ -230,17 +276,40 @@ function changeSelectedDate(date) {
   }
 }
 
-// 获取 marker 颜色
+function handleDayClick(date) {
+  const weatherData = getWeatherForDate(date)
+  if (weatherData && showWeather.value) {
+    showWeatherAnimation(date)
+  }
+  changeSelectedDate(date)
+}
+
+function showWeatherAnimation(date) {
+  const weatherData = getWeatherForDate(date)
+  if (weatherData) {
+    selectedWeatherData.value = weatherData
+    weatherAnimationVisible.value = true
+    emit('weather-animation-open', weatherData)
+  }
+}
+
+function closeWeatherAnimation() {
+  weatherAnimationVisible.value = false
+  selectedWeatherData.value = null
+}
+
 function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
 defineExpose({
-  // 切换周/月视图
   toggleViewMode,
-  // 切换日历页
   changePageTo,
-  // 切换选中日期
-  changeSelectedDate
+  changeSelectedDate,
+  initWeather,
+  fetchWeather,
+  getWeatherForDate,
+  showWeatherAnimation,
+  closeWeatherAnimation
 })
 </script>
