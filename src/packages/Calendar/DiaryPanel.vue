@@ -136,6 +136,7 @@ function handleDelete() {
   justify-content: center;
   align-items: center;
   z-index: 999;
+  box-sizing: border-box;
 }
 
 .ohhh-diary-panel {
@@ -147,6 +148,7 @@ function handleDelete() {
   flex-direction: column;
   max-height: 80vh;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
 }
 
 .ohhh-diary-panel--header {
@@ -156,6 +158,7 @@ function handleDelete() {
   padding: 16px 20px;
   border-bottom: 1px solid #f0f0f0;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .ohhh-diary-panel--header-date {
@@ -180,6 +183,7 @@ function handleDelete() {
   min-height: 200px;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 .ohhh-diary-panel--textarea {
@@ -216,17 +220,17 @@ function handleDelete() {
 
 .ohhh-diary-panel--footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   padding: 12px 20px 20px;
   border-top: 1px solid #f0f0f0;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .ohhh-diary-panel--btn-group {
   display: flex;
   gap: 12px;
-  margin-left: auto;
 }
 
 .ohhh-diary-panel--btn {
@@ -260,6 +264,7 @@ function handleDelete() {
   background: transparent;
   color: #f56c6c;
   padding: 10px 0;
+  margin-right: auto;
 }
 
 .ohhh-diary-panel--btn-delete:hover {

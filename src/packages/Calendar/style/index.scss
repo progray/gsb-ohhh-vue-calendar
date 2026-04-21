@@ -79,7 +79,6 @@
   align-items: center;
   height: var(--calendar-row-height);
   cursor: pointer;
-  position: relative;
 }
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-label {
@@ -118,13 +117,6 @@
 .ohhh-calendar-day--inner-label {
   font-size: var(--calendar-days-label-font-size);
   color: var(--calendar-days-label-color);
-}
-
-.ohhh-calendar-day--bottom {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
 }
 
 .ohhh-calendar-day--marker {
