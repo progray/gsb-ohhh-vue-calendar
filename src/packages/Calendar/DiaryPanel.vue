@@ -195,6 +195,7 @@ function handleDelete() {
   outline: none;
   transition: border-color 0.2s;
   font-family: inherit;
+  box-sizing: border-box;
 }
 
 .ohhh-diary-panel--textarea:focus {
@@ -225,6 +226,7 @@ function handleDelete() {
 .ohhh-diary-panel--btn-group {
   display: flex;
   gap: 12px;
+  margin-left: auto;
 }
 
 .ohhh-diary-panel--btn {

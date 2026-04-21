@@ -119,6 +119,7 @@
   font-size: var(--calendar-days-label-font-size);
   color: var(--calendar-days-label-color);
 }
+
 .ohhh-calendar-day--bottom {
   display: flex;
   flex-direction: column;
@@ -143,6 +144,8 @@
   color: var(--calendar-theme-color);
   max-width: 100%;
   overflow: hidden;
+  box-sizing: border-box;
+  padding: 0 2px;
 }
 
 .ohhh-calendar-day--diary-icon {
