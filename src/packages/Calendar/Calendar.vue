@@ -46,13 +46,15 @@
           }"
           @click="changeSelectedDate(dateObj.date)"
         >
-          <div class="ohhh-calendar-day--inner">
-            <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
-            <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
-              <slot name="day-label" :date="dateObj.date" />
+          <slot name="day" :date="dateObj.date" :dateObj="dateObj" :isSelected="isSameDay(dateObj.date, selected)" :isToday="isSameDay(dateObj.date, new Date())" :isOtherMonth="!dateObj.current">
+            <div class="ohhh-calendar-day--inner">
+              <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
+              <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
+                <slot name="day-label" :date="dateObj.date" />
+              </div>
             </div>
-          </div>
-          <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+            <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+          </slot>
         </div>
       </div>
     </div>
