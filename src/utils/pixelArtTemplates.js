@@ -11,8 +11,7 @@ export const pixelArtTemplates = [
       [1, 1, 1, 1, 1, 1, 1],
       [1, 1, 1, 1, 1, 1, 1],
       [0, 1, 1, 1, 1, 1, 0],
-      [0, 0, 1, 1, 1, 0, 0],
-      [0, 0, 0, 1, 0, 0, 0]
+      [0, 0, 1, 1, 1, 0, 0]
     ]
   },
   {
@@ -27,8 +26,7 @@ export const pixelArtTemplates = [
       [0, 0, 1, 1, 1, 0, 0],
       [1, 1, 1, 1, 1, 1, 1],
       [0, 1, 1, 1, 1, 1, 0],
-      [0, 1, 0, 0, 0, 1, 0],
-      [1, 0, 0, 0, 0, 0, 1]
+      [0, 1, 0, 0, 0, 1, 0]
     ]
   },
   {
@@ -43,8 +41,7 @@ export const pixelArtTemplates = [
       [1, 0, 0, 0, 0, 0, 1],
       [1, 0, 1, 0, 1, 0, 1],
       [1, 0, 0, 0, 0, 0, 1],
-      [1, 0, 1, 1, 1, 0, 1],
-      [0, 1, 0, 0, 0, 1, 0]
+      [1, 0, 1, 1, 1, 0, 1]
     ]
   },
   {
@@ -59,17 +56,25 @@ export const pixelArtTemplates = [
       [0, 1, 0, 1, 0, 1, 0],
       [1, 0, 1, 1, 1, 0, 1],
       [0, 1, 0, 1, 0, 1, 0],
-      [0, 0, 1, 0, 1, 0, 0],
-      [0, 0, 0, 1, 0, 0, 0]
+      [0, 0, 1, 0, 1, 0, 0]
     ]
   }
 ]
 
-export function getPixelColor(template, weekIndex, dayIndex, isUnlocked) {
-  if (weekIndex >= template.grid.length || dayIndex >= template.grid[0].length) {
-    return isUnlocked ? template.colors.pixel : template.colors.bg
+export function getDatePositionInGrid(dayOfMonth) {
+  if (dayOfMonth < 1 || dayOfMonth > 31) return null
+  return {
+    row: Math.floor((dayOfMonth - 1) / 7),
+    col: (dayOfMonth - 1) % 7
   }
-  const isPixel = template.grid[weekIndex][dayIndex] === 1
+}
+
+export function getPixelColor(template, dayOfMonth, isUnlocked) {
+  const pos = getDatePositionInGrid(dayOfMonth)
+  if (!pos || pos.row >= template.grid.length || pos.col >= template.grid[0].length) {
+    return template.colors.bg
+  }
+  const isPixel = template.grid[pos.row][pos.col] === 1
   if (!isPixel) {
     return template.colors.bg
   }
@@ -78,10 +83,18 @@ export function getPixelColor(template, weekIndex, dayIndex, isUnlocked) {
 
 export function getTotalPixels(template) {
   let count = 0
-  for (let week of template.grid) {
-    for (let pixel of week) {
+  for (let row of template.grid) {
+    for (let pixel of row) {
       if (pixel === 1) count++
     }
   }
   return count
+}
+
+export function isPixelDate(template, dayOfMonth) {
+  const pos = getDatePositionInGrid(dayOfMonth)
+  if (!pos || pos.row >= template.grid.length || pos.col >= template.grid[0].length) {
+    return false
+  }
+  return template.grid[pos.row][pos.col] === 1
 }
