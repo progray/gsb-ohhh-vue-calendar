@@ -131,13 +131,14 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  margin-top: 2px;
+  margin-top: var(--calendar-days-marker-top-gap);
   font-size: 10px;
   color: var(--calendar-theme-color);
   max-width: 100%;
   overflow: hidden;
   box-sizing: border-box;
   padding: 0 2px;
+  flex: none;
 }
 
 .ohhh-calendar-day--diary-icon {
