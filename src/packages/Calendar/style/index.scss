@@ -79,6 +79,7 @@
   align-items: center;
   height: var(--calendar-row-height);
   cursor: pointer;
+  position: relative;
 }
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-label {
@@ -118,6 +119,13 @@
   font-size: var(--calendar-days-label-font-size);
   color: var(--calendar-days-label-color);
 }
+.ohhh-calendar-day--bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
 .ohhh-calendar-day--marker {
   flex: none;
   margin-top: var(--calendar-days-marker-top-gap);
@@ -126,10 +134,44 @@
   border-radius: 50%;
 }
 
+.ohhh-calendar-day--diary-preview {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 2px;
+  font-size: 10px;
+  color: var(--calendar-theme-color);
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.ohhh-calendar-day--diary-icon {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.ohhh-calendar-day--diary-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .ohhh-calendar-footer {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: center;
   padding: var(--calendar-footer-padding);
+}
+.ohhh-calendar-footer--info {
+  flex: 1;
+}
+.ohhh-calendar-footer--info-diary {
+  font-size: 14px;
+  color: var(--calendar-text-color-level-2);
+}
+.ohhh-calendar-footer--info-count {
+  font-weight: 600;
+  color: var(--calendar-theme-color);
 }
 .ohhh-calendar-footer--icon {
   fill: var(--calendar-footer-icon-color);

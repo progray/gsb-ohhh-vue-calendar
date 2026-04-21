@@ -9,7 +9,7 @@
   --calendar-toolbar-column-gap: 32px;
   --calendar-toolbar-padding: 24px 32px;
 
-  --calendar-footer-padding: 24px;
+  --calendar-footer-padding: 24px 32px;
 
   --calendar-weekdays-height: 60px;
   --calendar-weekdays-font-size: 28px;
@@ -22,4 +22,14 @@
 
   --calendar-days-marker-top-gap: 8px;
   --calendar-days-marker-size: 8px;
+}
+
+.ohhh-calendar-footer--info-diary {
+  font-size: 24px;
+}
+
+.ohhh-calendar-day--diary-preview {
+  font-size: 18px;
+  gap: 4px;
+  margin-top: 4px;
 }
