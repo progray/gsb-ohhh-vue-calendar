@@ -138,3 +138,381 @@
   width: var(--calendar-footer-icon-size);
   height: var(--calendar-footer-icon-size);
 }
+
+.ohhh-calendar-toolbar--alarm {
+  position: relative;
+  display: flex;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+.ohhh-calendar-toolbar--alarm:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+.ohhh-calendar-alarm--icon {
+  fill: var(--calendar-toolbar-icon-color);
+}
+.ohhh-calendar-alarm--icon svg {
+  width: var(--calendar-toolbar-icon-size);
+  height: var(--calendar-toolbar-icon-size);
+}
+.ohhh-calendar-alarm--badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 16px;
+  height: 16px;
+  background: #ff4d4f;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  transform: translate(25%, -25%);
+}
+
+.ohhh-calendar-day--reminder-dot {
+  flex: none;
+  margin-top: var(--calendar-days-marker-top-gap);
+  width: var(--calendar-days-marker-size);
+  height: var(--calendar-days-marker-size);
+  border-radius: 50%;
+  transition: opacity 0.3s ease;
+}
+
+.ohhh-calendar-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+.ohhh-calendar-modal {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  max-width: 400px;
+  width: 100%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.ohhh-calendar-modal--header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.ohhh-calendar-modal--title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+.ohhh-calendar-modal--close {
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.2s ease;
+}
+.ohhh-calendar-modal--close:hover {
+  color: #333;
+}
+.ohhh-calendar-modal--body {
+  padding: 20px;
+  overflow-y: auto;
+}
+.ohhh-calendar-modal--field {
+  margin-bottom: 20px;
+}
+.ohhh-calendar-modal--field:last-child {
+  margin-bottom: 0;
+}
+.ohhh-calendar-modal--field label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  margin-bottom: 8px;
+}
+.ohhh-calendar-modal--input {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.ohhh-calendar-modal--input:focus {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.1);
+}
+.ohhh-calendar-modal--error {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #fff2f0;
+  border: 1px solid #ffccc7;
+  border-radius: 8px;
+  color: #ff4d4f;
+  font-size: 13px;
+}
+.ohhh-calendar-modal--footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid #f0f0f0;
+}
+.ohhh-calendar-modal--btn {
+  flex: 1;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.ohhh-calendar-modal--btn-primary {
+  background: #1890ff;
+  color: white;
+}
+.ohhh-calendar-modal--btn-primary:hover {
+  background: #40a9ff;
+}
+.ohhh-calendar-modal--btn-cancel {
+  background: #f5f5f5;
+  color: #666;
+}
+.ohhh-calendar-modal--btn-cancel:hover {
+  background: #e8e8e8;
+}
+.ohhh-calendar-modal--btn-danger {
+  background: #fff1f0;
+  color: #ff4d4f;
+}
+.ohhh-calendar-modal--btn-danger:hover {
+  background: #ffccc7;
+}
+
+.ohhh-calendar-color-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.ohhh-calendar-color-option {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid transparent;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.ohhh-calendar-color-option:hover {
+  transform: scale(1.1);
+}
+.ohhh-calendar-color-option.is-selected {
+  border-color: #333;
+  transform: scale(1.1);
+}
+
+.ohhh-calendar-reminder-list {
+  max-height: 70vh;
+}
+.ohhh-calendar-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999;
+  font-size: 14px;
+}
+.ohhh-calendar-reminder-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  margin-bottom: 10px;
+  background: #fafafa;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.ohhh-calendar-reminder-item:last-child {
+  margin-bottom: 0;
+}
+.ohhh-calendar-reminder-item:hover {
+  background: #f0f0f0;
+}
+.ohhh-calendar-reminder-item--color {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.ohhh-calendar-reminder-item--progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  transition: width 0.5s ease;
+}
+.ohhh-calendar-reminder-item--info {
+  flex: 1;
+  min-width: 0;
+}
+.ohhh-calendar-reminder-item--time {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ohhh-calendar-reminder-item--countdown {
+  font-size: 13px;
+  color: #666;
+  margin-top: 2px;
+}
+.ohhh-calendar-reminder-item--progress-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1890ff;
+  flex-shrink: 0;
+}
+
+.ohhh-calendar-notifications {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  pointer-events: none;
+}
+.ohhh-calendar-notification {
+  position: relative;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding: 14px 16px;
+  max-width: 360px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: auto;
+  transition: all 0.3s ease;
+}
+.ohhh-calendar-notification--icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ohhh-calendar-notification--content {
+  flex: 1;
+  min-width: 0;
+}
+.ohhh-calendar-notification--title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+.ohhh-calendar-notification--time {
+  font-size: 12px;
+  color: #666;
+  margin-top: 2px;
+}
+.ohhh-calendar-notification--close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #999;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+.ohhh-calendar-notification--close:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #666;
+}
+
+.modal-enter-active,
+.modal-leave-active {
+  transition: all 0.3s ease;
+}
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+.modal-enter-from .ohhh-calendar-modal,
+.modal-leave-to .ohhh-calendar-modal {
+  transform: scale(0.9);
+  opacity: 0;
+}
+
+.notification-enter-active {
+  animation: notificationIn 0.4s ease-out;
+}
+.notification-leave-active {
+  animation: notificationOut 0.3s ease-in;
+}
+.notification-move {
+  transition: transform 0.3s ease;
+}
+
+@keyframes notificationIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes notificationOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+}
+
+.reminder-item-enter-active,
+.reminder-item-leave-active {
+  transition: all 0.3s ease;
+}
+.reminder-item-enter-from,
+.reminder-item-leave-to {
+  opacity: 0;
+  transform: translateX(20px);
+}
+.reminder-item-move {
+  transition: transform 0.3s ease;
+}
