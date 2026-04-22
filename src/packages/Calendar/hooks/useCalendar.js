@@ -1,5 +1,38 @@
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, watch } from 'vue'
 import { createMonthDates, createWeekDates, isSameDay } from '../utils/index.js'
+
+const STORAGE_KEY = 'ohhh-vue-calendar-key-dates'
+
+function _loadKeyDates() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) {
+      return JSON.parse(stored).map(item => ({
+        ...item,
+        date: new Date(item.date)
+      }))
+    }
+  } catch (e) {
+    console.error('Failed to load key dates:', e)
+  }
+  return []
+}
+
+function _saveKeyDates(dates) {
+  try {
+    const toSave = dates.map(item => ({
+      ...item,
+      date: item.date.toISOString()
+    }))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave))
+  } catch (e) {
+    console.error('Failed to save key dates:', e)
+  }
+}
+
+function _dateKey(date) {
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+}
 
 export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit) {
   // 选中的日期
@@ -15,6 +48,78 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
   nextTick(() => {
     _setWeekIndex()
   }).then()
+
+  // 多选选中的日期集合
+  const multiSelectedDates = ref(new Set())
+  // 关键日数据
+  const keyDates = ref(_loadKeyDates())
+
+  // 保存关键日到 localStorage
+  watch(keyDates, (newVal) => {
+    _saveKeyDates(newVal)
+  }, { deep: true })
+
+  // 检查日期是否被多选选中
+  function isMultiSelected(date) {
+    return multiSelectedDates.value.has(_dateKey(date))
+  }
+
+  // 切换多选选中状态
+  function toggleMultiSelect(date) {
+    const key = _dateKey(date)
+    if (multiSelectedDates.value.has(key)) {
+      multiSelectedDates.value.delete(key)
+    } else {
+      multiSelectedDates.value.add(key)
+    }
+  }
+
+  // 批量添加多选选中
+  function addMultiSelect(dates) {
+    dates.forEach(date => {
+      multiSelectedDates.value.add(_dateKey(date))
+    })
+  }
+
+  // 清除所有多选选中
+  function clearMultiSelect() {
+    multiSelectedDates.value.clear()
+  }
+
+  // 获取关键日信息
+  function getKeyDate(date) {
+    return keyDates.value.find(item => isSameDay(item.date, date))
+  }
+
+  // 设置关键日
+  function setKeyDates(dates, color, description) {
+    const existingKeys = new Set(keyDates.value.map(item => _dateKey(item.date)))
+    
+    dates.forEach(date => {
+      const key = _dateKey(date)
+      if (existingKeys.has(key)) {
+        const existing = keyDates.value.find(item => _dateKey(item.date) === key)
+        if (existing) {
+          existing.color = color
+          existing.description = description
+        }
+      } else {
+        keyDates.value.push({
+          date: new Date(date),
+          color,
+          description
+        })
+      }
+    })
+  }
+
+  // 清除所有关键日
+  function clearAllKeyDates() {
+    keyDates.value = []
+  }
+
+  // 检查是否有选中的日期
+  const hasSelectedDates = computed(() => multiSelectedDates.value.size > 0)
 
   // 当前渲染页月日期
   const currentMonthDates = computed(() => {
@@ -235,6 +340,17 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     switchPageToTargetDate,
     startTransitionAnimation,
     onTransitionEnd,
-    toggleViewMode
+    toggleViewMode,
+    // 关键日相关
+    multiSelectedDates,
+    keyDates,
+    hasSelectedDates,
+    isMultiSelected,
+    toggleMultiSelect,
+    addMultiSelect,
+    clearMultiSelect,
+    getKeyDate,
+    setKeyDates,
+    clearAllKeyDates
   }
 }
