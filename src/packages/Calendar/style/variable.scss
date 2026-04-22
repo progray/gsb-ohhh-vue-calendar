@@ -1,14 +1,16 @@
 .ohhh-calendar-container {
   --calendar-theme-color: #409eff;
-  --calendar-theme-color-light: #{rgba(#409eff, 0.2)};
+  --calendar-theme-color-light: #{rgba(#409eff, 0.25)};
 
-  --calendar-text-color-level-1: #303133;
-  --calendar-text-color-level-2: #606266;
-  --calendar-text-color-level-3: #909399;
-  --calendar-text-color-level-4: #a8abb2;
-  --calendar-text-color-level-5: #c0c4cc;
+  --calendar-text-color-level-1: #2c2c2e;
+  --calendar-text-color-level-2: #5a5a5c;
+  --calendar-text-color-level-3: #8a8a8c;
+  --calendar-text-color-level-4: #a5a5a7;
+  --calendar-text-color-level-5: #b8b8ba;
 
-  --calendar-background: transparent;
+  --calendar-background: rgba(255, 255, 255, 0.45);
+  --calendar-backdrop-blur: 12px;
+  --calendar-border-color: rgba(255, 255, 255, 0.5);
   --calendar-row-height: 60px;
 
   --calendar-icon-size: 20px;
