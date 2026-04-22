@@ -8,6 +8,56 @@
       '--transition-duration': transitionDuration
     }"
   >
+    <!-- 数字组合游戏区域 -->
+    <div v-if="showNumberGame" class="ohhh-calendar-game">
+      <div class="ohhh-calendar-game-input-row">
+        <input
+          v-model="gameTargetInput"
+          type="number"
+          class="ohhh-calendar-game-input"
+          placeholder="输入目标数字..."
+          @keydown.enter="triggerGame"
+          :disabled="gameIsAnimating"
+        />
+        <button class="ohhh-calendar-game-btn" @click="triggerGame" :disabled="gameIsAnimating">计算</button>
+        <button
+          v-if="gameResult !== null"
+          class="ohhh-calendar-game-btn ohhh-calendar-game-btn-reset"
+          @click="resetGame"
+        >重置</button>
+      </div>
+      
+      <!-- 游戏结果显示 -->
+      <div
+        class="ohhh-calendar-game-result"
+        :class="{
+          'ohhh-calendar-game-result--visible': gameResult !== null,
+          'ohhh-calendar-game-result--fade-out': gameIsFadingOut,
+          'ohhh-calendar-game-result--no-solution': gameResult && !gameResult.hasSolution
+        }"
+      >
+        <template v-if="gameResult">
+          <template v-if="gameResult.hasSolution">
+            <div class="ohhh-calendar-game-result-label">找到算式：</div>
+            <div class="ohhh-calendar-game-result-expression" ref="expressionRef">
+              <span
+                v-for="(char, idx) in gameResult.expressionChars"
+                :key="idx"
+                class="ohhh-calendar-game-result-char"
+                :style="{ animationDelay: idx * 80 + 'ms' }"
+              >{{ char }}</span>
+            </div>
+          </template>
+          <template v-else>
+            <div class="ohhh-calendar-game-result-no-solution">
+              <span class="ohhh-calendar-game-result-emoji">😔</span>
+              <span>无解哦，换个数字试试吧~</span>
+            </div>
+          </template>
+        </template>
+      </div>
+    </div>
+
     <!-- 顶部工具栏 -->
     <div v-if="showToolbar" class="ohhh-calendar-toolbar">
       <slot name="toolbar" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
@@ -42,8 +92,12 @@
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'ohhh-calendar-day--game-highlight': _isGameHighlightDate(dateObj),
+            'ohhh-calendar-day--game-fade-out': gameIsFadingOut && _isGameHighlightDate(dateObj),
+            'ohhh-calendar-day--game-animating': gameIsAnimating && _isGameHighlightDate(dateObj)
           }"
+          :style="_getGameHighlightStyle(dateObj)"
           @click="changeSelectedDate(dateObj.date)"
         >
           <div class="ohhh-calendar-day--inner">
@@ -53,6 +107,21 @@
             </div>
           </div>
           <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+          
+          <!-- 游戏高亮发光效果 -->
+          <div
+            v-if="_isGameHighlightDate(dateObj) && gameIsAnimating"
+            class="ohhh-calendar-day--glow"
+            :style="_getGameHighlightStyle(dateObj)"
+          />
+          <!-- 粒子效果 -->
+          <div
+            v-if="_isGameHighlightDate(dateObj) && gameIsAnimating"
+            class="ohhh-calendar-day--particles"
+            :style="_getGameHighlightStyle(dateObj)"
+          >
+            <div v-for="i in 8" :key="i" class="ohhh-calendar-day--particle" :data-index="i" />
+          </div>
         </div>
       </div>
     </div>
@@ -71,15 +140,17 @@
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref, watch, nextTick } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
 import { isSameDay, createWeekdays } from './utils'
 import { icons } from './utils/icons.js'
+import { findDateCombination } from './utils/gameSolver.js'
 
 const swipeRef = useTemplateRef('swp')
+const expressionRef = useTemplateRef('expressionRef')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'game-result'])
 
 const props = defineProps({
   // 初始选中的日期
@@ -121,6 +192,11 @@ const props = defineProps({
   duration: {
     type: String,
     default: '0.3s'
+  },
+  // 是否显示数字组合游戏功能
+  showNumberGame: {
+    type: Boolean,
+    default: true
   }
 })
 
@@ -235,12 +311,112 @@ function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
+// ==================== 数字组合游戏功能 ====================
+const gameTargetInput = ref('')
+const gameResult = ref(null)
+const gameIsAnimating = ref(false)
+const gameIsFadingOut = ref(false)
+const gameAnimationTimer = ref(null)
+const gameHighlightDates = ref([])
+const gameHighlightStyles = ref({})
+
+function triggerGame() {
+  const target = parseInt(gameTargetInput.value)
+  if (isNaN(target) || target <= 0) {
+    return
+  }
+  
+  resetGameInternal()
+  
+  const solution = findDateCombination(currentRenderDates.value, target)
+  
+  if (solution) {
+    gameResult.value = {
+      hasSolution: true,
+      expression: solution.expression,
+      expressionChars: solution.expression.split(''),
+      usedDates: solution.usedDates,
+      target: solution.target
+    }
+    gameHighlightDates.value = solution.usedDates.map(d => d.key)
+    
+    solution.usedDates.forEach((date, index) => {
+      gameHighlightStyles.value[date.key] = {
+        '--game-highlight-delay': `${index * 150}ms`,
+        '--game-highlight-index': index
+      }
+    })
+    
+    startGameAnimation()
+  } else {
+    gameResult.value = {
+      hasSolution: false,
+      target
+    }
+    gameHighlightDates.value = []
+  }
+  
+  emit('game-result', gameResult.value)
+}
+
+function startGameAnimation() {
+  gameIsAnimating.value = true
+  
+  if (gameAnimationTimer.value) {
+    clearTimeout(gameAnimationTimer.value)
+  }
+  
+  gameAnimationTimer.value = setTimeout(() => {
+    gameIsAnimating.value = false
+  }, 5000)
+}
+
+function resetGameInternal() {
+  gameResult.value = null
+  gameHighlightDates.value = []
+  gameHighlightStyles.value = {}
+  gameIsAnimating.value = false
+  gameIsFadingOut.value = false
+  if (gameAnimationTimer.value) {
+    clearTimeout(gameAnimationTimer.value)
+    gameAnimationTimer.value = null
+  }
+}
+
+function resetGame() {
+  if (gameResult.value === null) return
+  
+  gameIsFadingOut.value = true
+  
+  setTimeout(() => {
+    resetGameInternal()
+  }, 600)
+}
+
+function _isGameHighlightDate(dateObj) {
+  return gameHighlightDates.value.includes(dateObj.key)
+}
+
+function _getGameHighlightStyle(dateObj) {
+  return gameHighlightStyles.value[dateObj.key] || {}
+}
+
+watch([currentYear, currentMonth, viewMode], () => {
+  resetGame()
+})
+
+// ==================== 数字组合游戏功能结束 ====================
+
 defineExpose({
   // 切换周/月视图
   toggleViewMode,
   // 切换日历页
   changePageTo,
   // 切换选中日期
-  changeSelectedDate
+  changeSelectedDate,
+  // 重置游戏
+  resetGame,
+  // 触发游戏
+  triggerGame
 })
 </script>
