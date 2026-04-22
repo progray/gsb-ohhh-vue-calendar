@@ -177,12 +177,14 @@
 
 .ohhh-calendar-day--game-highlight {
   position: relative;
-  z-index: 10;
+  z-index: 3;
   
   .ohhh-calendar-day--inner {
     background: linear-gradient(135deg, rgba(64, 158, 255, 0.15) 0%, rgba(102, 126, 234, 0.15) 100%) !important;
     border: 2px solid rgba(64, 158, 255, 0.5);
     animation-delay: var(--game-highlight-delay, 0ms);
+    position: relative;
+    z-index: 2;
   }
   
   .ohhh-calendar-day--inner-value {
@@ -244,13 +246,13 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(64, 158, 255, 0.4) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(64, 158, 255, 0.35) 0%, transparent 70%);
   pointer-events: none;
-  z-index: -1;
+  z-index: 1;
   animation: glowPulse 2s ease-in-out infinite;
   animation-delay: var(--game-highlight-delay, 0ms);
 }
