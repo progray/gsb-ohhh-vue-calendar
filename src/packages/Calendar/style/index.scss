@@ -1,8 +1,10 @@
 @use './variable.scss';
+@use './season.scss';
 
 .ohhh-calendar-container {
   -webkit-tap-highlight-color: transparent;
   background: var(--calendar-background);
+  position: relative;
   font-family:
     Open Sans,
     -apple-system,
