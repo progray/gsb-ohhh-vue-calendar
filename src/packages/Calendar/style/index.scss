@@ -138,3 +138,144 @@
   width: var(--calendar-footer-icon-size);
   height: var(--calendar-footer-icon-size);
 }
+
+// ==================== 火把光迹效果样式 ====================
+
+// 容器基础样式（用于定位火把元素）
+.ohhh-calendar-container {
+  position: relative;
+}
+
+// 火把效果激活时隐藏系统光标
+.ohhh-calendar-container.torch-effect-enabled.torch-active {
+  cursor: none;
+}
+
+// 火把光团
+.torch-orb {
+  position: absolute;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.3s ease;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle at 40% 40%,
+      rgba(255, 230, 180, 0.9) 0%,
+      rgba(255, 200, 120, 0.7) 15%,
+      rgba(255, 160, 80, 0.5) 30%,
+      rgba(255, 120, 60, 0.3) 50%,
+      rgba(255, 80, 40, 0.15) 70%,
+      transparent 100%
+    );
+  box-shadow:
+    0 0 30px 15px rgba(255, 180, 100, 0.4),
+    0 0 60px 30px rgba(255, 140, 60, 0.2),
+    0 0 90px 45px rgba(255, 100, 40, 0.1);
+  width: 120px;
+  height: 120px;
+  left: var(--torch-x);
+  top: var(--torch-y);
+  animation: torch-pulse 2s ease-in-out infinite;
+}
+
+// 火把光团激活状态
+.torch-orb.torch-orb-active {
+  opacity: 1;
+}
+
+// 火把光团淡出状态
+.torch-orb.torch-orb-fade-out {
+  opacity: 0;
+}
+
+// 火把脉动动画
+@keyframes torch-pulse {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.05);
+    filter: brightness(1.1);
+  }
+}
+
+// 火把光影残留容器
+.torch-trails {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 99;
+  overflow: hidden;
+}
+
+// 火把光影残留
+.torch-trail {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+  width: 80px;
+  height: 80px;
+  left: var(--trail-x);
+  top: var(--trail-y);
+  transform: translate(-50%, -50%) scale(var(--trail-scale));
+  opacity: var(--trail-opacity);
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(255, 200, 120, 0.3) 0%,
+      rgba(255, 160, 80, 0.15) 40%,
+      rgba(255, 120, 60, 0.08) 70%,
+      transparent 100%
+    );
+  box-shadow:
+    0 0 15px 8px rgba(255, 180, 100, 0.15),
+    0 0 30px 15px rgba(255, 140, 60, 0.08);
+}
+
+// 日期格子火把照亮效果
+.ohhh-calendar-day {
+  position: relative;
+  transition: box-shadow 0.1s ease, background 0.1s ease;
+}
+
+// 火把照亮时的内发光效果
+.ohhh-calendar-day::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  opacity: calc(var(--torch-glow-intensity, 0) * 0.8);
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(255, 220, 180, 0.4) 0%,
+      rgba(255, 180, 120, 0.25) 40%,
+      rgba(255, 150, 80, 0.15) 70%,
+      transparent 100%
+    );
+  box-shadow:
+    inset 0 0 20px 10px rgba(255, 200, 140, calc(var(--torch-glow-intensity, 0) * 0.3)),
+    0 0 calc(var(--torch-glow-intensity, 0) * 30px) calc(var(--torch-glow-intensity, 0) * 15px) rgba(255, 160, 80, calc(var(--torch-glow-intensity, 0) * 0.25));
+  pointer-events: none;
+  transition: opacity 0.1s ease;
+}
+
+// 火把照亮时的文字高亮效果
+.ohhh-calendar-day .ohhh-calendar-day--inner-value,
+.ohhh-calendar-day .ohhh-calendar-day--inner-label {
+  position: relative;
+  z-index: 1;
+  text-shadow:
+    0 0 calc(var(--torch-glow-intensity, 0) * 8px) rgba(255, 220, 180, calc(var(--torch-glow-intensity, 0) * 0.6)),
+    0 0 calc(var(--torch-glow-intensity, 0) * 15px) rgba(255, 180, 120, calc(var(--torch-glow-intensity, 0) * 0.4));
+}
+
+// 避免覆盖原有选中/今天的样式
+.ohhh-calendar-day.is-selected::before,
+.ohhh-calendar-day.is-today::before {
+  z-index: 0;
+}
