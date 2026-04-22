@@ -1,6 +1,12 @@
 <template>
   <div class="app-container">
-    <ohhh-vue-calendar ref="calendarRef" :week-start="1" :markerDates @select-change="onSelectChange" />
+    <ohhh-vue-calendar
+      ref="calendarRef"
+      :week-start="1"
+      :markerDates
+      :torch-effect="true"
+      @select-change="onSelectChange"
+    />
   </div>
 </template>
 
