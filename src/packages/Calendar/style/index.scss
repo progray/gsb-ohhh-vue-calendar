@@ -1,6 +1,7 @@
 @use './variable.scss';
 
 .ohhh-calendar-container {
+  position: relative;
   -webkit-tap-highlight-color: transparent;
   background: var(--calendar-background);
   font-family:
@@ -17,6 +18,7 @@
     Hiragino Sans GB,
     Microsoft Yahei,
     sans-serif;
+  overflow: hidden;
 }
 
 .ohhh-calendar-toolbar {
@@ -62,6 +64,11 @@
   overflow: hidden;
   height: calc(var(--calendar-rows) * var(--calendar-row-height));
   transition: height var(--calendar-transition-duration) ease;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 8px;
+  margin: 0 4px;
 }
 .ohhh-calendar-days {
   display: grid;
@@ -71,6 +78,7 @@
   width: 100%;
   transform: translate3d(var(--translate-distance), 0, 0);
   transition: transform var(--transition-duration) ease;
+  z-index: 1;
 }
 .ohhh-calendar-day {
   display: flex;
@@ -97,6 +105,21 @@
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-label {
   color: var(--calendar-days-selected-color);
+}
+
+.ohhh-calendar-day.has-weather-data {
+  position: relative;
+}
+
+.ohhh-calendar-day.has-weather-data::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--calendar-theme-color);
+  opacity: 0.7;
 }
 
 .ohhh-calendar-day--inner {
