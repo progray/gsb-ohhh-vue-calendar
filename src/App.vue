@@ -1,6 +1,12 @@
 <template>
   <div class="app-container">
-    <ohhh-vue-calendar ref="calendarRef" :week-start="1" :markerDates @select-change="onSelectChange" />
+    <ohhh-vue-calendar 
+      ref="calendarRef" 
+      :week-start="1" 
+      :markerDates 
+      @select-change="onSelectChange"
+      @key-date-change="onKeyDateChange"
+    />
   </div>
 </template>
 
@@ -23,6 +29,10 @@ const markerDates = [
 ]
 
 function onSelectChange(date) {
-  console.log(date)
+  console.log('Selected date:', date)
+}
+
+function onKeyDateChange(keyDates) {
+  console.log('Key dates changed:', keyDates)
 }
 </script>
