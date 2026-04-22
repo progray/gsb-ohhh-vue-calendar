@@ -573,11 +573,13 @@ defineExpose({
   transform: translateY(0);
 }
 
-/* 调整日期网格容器，为动画留出顶部空间 */
-.ohhh-calendar-days {
-  padding-top: 16px;
-  padding-bottom: 8px;
-  box-sizing: border-box;
+/* 重新配置主包装层的裁剪逻辑 */
+/* 保留横向（左右）裁剪以隔离月份切换，允许纵向（上下）溢出以展示动画和阴影 */
+.ohhh-calendar-wrapper {
+  overflow: visible !important;
+  /* clip-path: inset(top right bottom left) */
+  /* 负值表示允许溢出的距离，0 表示裁剪到边界 */
+  clip-path: inset(-40px 0 -40px 0);
 }
 
 /* 游戏选中效果 */
@@ -587,7 +589,6 @@ defineExpose({
   box-shadow: 0 0 20px rgba(102, 126, 234, 0.6), 0 0 40px rgba(102, 126, 234, 0.3);
   position: relative;
   z-index: 10;
-  transform-origin: center bottom;
 }
 
 .ohhh-calendar-day.game-selected .ohhh-calendar-day--inner-value,
@@ -603,7 +604,6 @@ defineExpose({
   box-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 0 0 60px rgba(255, 107, 107, 0.5);
   position: relative;
   z-index: 20;
-  transform-origin: center bottom;
 }
 
 .ohhh-calendar-day.game-celebrating .ohhh-calendar-day--inner-value {
