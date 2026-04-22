@@ -52,8 +52,9 @@
   align-items: center;
   height: var(--calendar-weekdays-height);
   position: relative;
-  z-index: 10;
+  z-index: 100;
   background: #fff;
+  isolation: isolate;
 }
 .ohhh-calendar-weekdays--weekday {
   font-size: var(--calendar-weekdays-font-size);
@@ -84,6 +85,8 @@
   align-items: center;
   height: var(--calendar-row-height);
   cursor: pointer;
+  position: relative;
+  overflow: visible;
 }
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-label {
