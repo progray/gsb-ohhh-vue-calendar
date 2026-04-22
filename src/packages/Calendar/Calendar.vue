@@ -8,16 +8,6 @@
       '--transition-duration': transitionDuration
     }"
   >
-    <!-- 波形动画背景 -->
-    <WaveAnimation 
-      v-if="showWaveAnimation && currentHourlyData"
-      :hourly-data="currentHourlyData"
-      :data-type="weatherDataType"
-      :show-info="true"
-      :animation-speed="1"
-      class="wave-animation-bg"
-    />
-
     <!-- 顶部工具栏 -->
     <div v-if="showToolbar" class="ohhh-calendar-toolbar">
       <slot name="toolbar" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
@@ -44,6 +34,16 @@
 
     <!-- 日历主体 -->
     <div ref="swp" class="ohhh-calendar-wrapper">
+      <!-- 波形动画背景 - 放在日历主体内部 -->
+      <WaveAnimation 
+        v-if="showWaveAnimation"
+        :hourly-data="currentHourlyData"
+        :data-type="weatherDataType"
+        :show-info="true"
+        :animation-speed="0.5"
+        class="wave-animation-bg"
+      />
+      
       <div
         v-for="(item, index) in allRenderDates"
         :key="index"

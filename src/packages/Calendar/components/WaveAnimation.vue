@@ -36,16 +36,35 @@ const canvasRef = ref(null)
 const ctx = ref(null)
 const animationFrameId = ref(null)
 const phase = ref(0)
+const scrollOffset = ref(0)
 const currentData = ref([])
 const targetData = ref([])
 const interpolationProgress = ref(0)
 const isAnimatingTransition = ref(false)
+const hasRealData = ref(false)
 
 const currentTypeInfo = computed(() => WEATHER_TYPES[props.dataType] || WEATHER_TYPES.temperature)
+
+function generateDefaultWaveData(points = 24) {
+  const data = []
+  for (let i = 0; i < points; i++) {
+    const value = 0.3 + Math.sin(i * 0.3) * 0.2 + Math.sin(i * 0.7) * 0.1
+    data.push(Math.max(0.1, Math.min(0.9, value)))
+  }
+  return data
+}
+
+function initDefaultData() {
+  const defaultData = generateDefaultWaveData(24)
+  currentData.value = [...defaultData]
+  targetData.value = [...defaultData]
+  hasRealData.value = false
+}
 
 watch(() => props.hourlyData, (newData, oldData) => {
   if (newData && newData.values && newData.values[props.dataType]) {
     prepareForTransition(newData)
+    hasRealData.value = true
   }
 }, { deep: true })
 
@@ -74,15 +93,25 @@ function prepareForTransition(newData, oldType = null) {
 }
 
 function getInterpolatedData() {
-  if (currentData.value.length === 0 || targetData.value.length === 0) {
-    return targetData.value
+  if (currentData.value.length === 0) {
+    return generateDefaultWaveData(24)
+  }
+  
+  if (!isAnimatingTransition.value || currentData.value.length === 0 || targetData.value.length === 0) {
+    return targetData.value.length > 0 ? targetData.value : currentData.value
   }
   
   const progress = interpolationProgress.value
-  return currentData.value.map((val, i) => {
-    const target = targetData.value[i] || val
-    return val + (target - val) * progress
-  })
+  const maxLength = Math.max(currentData.value.length, targetData.value.length)
+  const result = []
+  
+  for (let i = 0; i < maxLength; i++) {
+    const current = currentData.value[i] ?? currentData.value[currentData.value.length - 1] ?? 0.5
+    const target = targetData.value[i] ?? targetData.value[targetData.value.length - 1] ?? 0.5
+    result.push(current + (target - current) * progress)
+  }
+  
+  return result
 }
 
 function initCanvas() {
@@ -97,6 +126,73 @@ function initCanvas() {
   
   ctx.value = canvas.getContext('2d')
   ctx.value.scale(dpr, dpr)
+}
+
+function getYValue(data, index, phase, height) {
+  const waveOffset = Math.sin(phase + index * 0.15) * 3
+  return height - (data[index] * height * 0.7) - 20 + waveOffset
+}
+
+function drawWaveSegment(ctx2d, data, startX, pointSpacing, width, height, phase, color, gradient) {
+  const points = data.length
+  const pathGradient = ctx2d.createLinearGradient(startX, 0, startX + width, 0)
+  gradient.forEach((gColor, i) => {
+    pathGradient.addColorStop(i / (gradient.length - 1), gColor)
+  })
+  
+  ctx2d.beginPath()
+  ctx2d.moveTo(startX, height)
+  
+  for (let i = 0; i < points; i++) {
+    const x = startX + i * pointSpacing
+    const y = getYValue(data, i, phase, height)
+    
+    if (i === 0) {
+      ctx2d.moveTo(x, y)
+    } else {
+      const prevX = startX + (i - 1) * pointSpacing
+      const prevY = getYValue(data, i - 1, phase, height)
+      const cpX = (prevX + x) / 2
+      ctx2d.bezierCurveTo(cpX, prevY, cpX, y, x, y)
+    }
+  }
+  
+  ctx2d.lineTo(startX + (points - 1) * pointSpacing, height)
+  ctx2d.closePath()
+  
+  const fillGradient = ctx2d.createLinearGradient(0, 0, 0, height)
+  fillGradient.addColorStop(0, color + '40')
+  fillGradient.addColorStop(0.5, color + '20')
+  fillGradient.addColorStop(1, color + '10')
+  
+  ctx2d.fillStyle = fillGradient
+  ctx2d.fill()
+  
+  ctx2d.beginPath()
+  for (let i = 0; i < points; i++) {
+    const x = startX + i * pointSpacing
+    const y = getYValue(data, i, phase, height)
+    
+    if (i === 0) {
+      ctx2d.moveTo(x, y)
+    } else {
+      const prevX = startX + (i - 1) * pointSpacing
+      const prevY = getYValue(data, i - 1, phase, height)
+      const cpX = (prevX + x) / 2
+      ctx2d.bezierCurveTo(cpX, prevY, cpX, y, x, y)
+    }
+  }
+  
+  ctx2d.strokeStyle = pathGradient
+  ctx2d.lineWidth = 3
+  ctx2d.lineCap = 'round'
+  ctx2d.lineJoin = 'round'
+  ctx2d.stroke()
+  
+  ctx2d.shadowColor = color
+  ctx2d.shadowBlur = 10
+  ctx2d.stroke()
+  ctx2d.shadowBlur = 0
 }
 
 function drawWave() {
@@ -122,74 +218,28 @@ function drawWave() {
   
   const points = data.length
   const pointSpacing = width / (points - 1)
+  const totalWidth = pointSpacing * (points - 1)
   
-  const pathGradient = ctx2d.createLinearGradient(0, 0, width, 0)
-  gradient.forEach((color, i) => {
-    pathGradient.addColorStop(i / (gradient.length - 1), color)
-  })
+  const offset = scrollOffset.value % totalWidth
+  const startX = -offset
   
-  ctx2d.beginPath()
-  ctx2d.moveTo(0, height)
+  drawWaveSegment(ctx2d, data, startX, pointSpacing, totalWidth, height, phase.value, color, gradient)
   
-  for (let i = 0; i < points; i++) {
-    const x = i * pointSpacing
-    const waveOffset = Math.sin(phase.value + i * 0.15) * 5
-    const y = height - (data[i] * height * 0.7) - 20 + waveOffset
-    
-    if (i === 0) {
-      ctx2d.moveTo(x, y)
-    } else {
-      const prevX = (i - 1) * pointSpacing
-      const prevY = height - (data[i - 1] * height * 0.7) - 20 + Math.sin(phase.value + (i - 1) * 0.15) * 5
-      const cpX = (prevX + x) / 2
-      ctx2d.bezierCurveTo(cpX, prevY, cpX, y, x, y)
-    }
+  if (startX + totalWidth < width) {
+    drawWaveSegment(ctx2d, data, startX + totalWidth, pointSpacing, totalWidth, height, phase.value, color, gradient)
   }
   
-  ctx2d.lineTo(width, height)
-  ctx2d.closePath()
-  
-  const fillGradient = ctx2d.createLinearGradient(0, 0, 0, height)
-  fillGradient.addColorStop(0, color + '40')
-  fillGradient.addColorStop(0.5, color + '20')
-  fillGradient.addColorStop(1, color + '10')
-  
-  ctx2d.fillStyle = fillGradient
-  ctx2d.fill()
-  
-  ctx2d.beginPath()
-  for (let i = 0; i < points; i++) {
-    const x = i * pointSpacing
-    const waveOffset = Math.sin(phase.value + i * 0.15) * 5
-    const y = height - (data[i] * height * 0.7) - 20 + waveOffset
-    
-    if (i === 0) {
-      ctx2d.moveTo(x, y)
-    } else {
-      const prevX = (i - 1) * pointSpacing
-      const prevY = height - (data[i - 1] * height * 0.7) - 20 + Math.sin(phase.value + (i - 1) * 0.15) * 5
-      const cpX = (prevX + x) / 2
-      ctx2d.bezierCurveTo(cpX, prevY, cpX, y, x, y)
-    }
+  if (startX > 0) {
+    drawWaveSegment(ctx2d, data, startX - totalWidth, pointSpacing, totalWidth, height, phase.value, color, gradient)
   }
-  
-  ctx2d.strokeStyle = pathGradient
-  ctx2d.lineWidth = 3
-  ctx2d.lineCap = 'round'
-  ctx2d.lineJoin = 'round'
-  ctx2d.stroke()
-  
-  ctx2d.shadowColor = color
-  ctx2d.shadowBlur = 10
-  ctx2d.stroke()
-  ctx2d.shadowBlur = 0
 }
 
 function animate() {
-  phase.value += 0.03 * props.animationSpeed
+  phase.value += 0.015 * props.animationSpeed
+  scrollOffset.value += 0.5 * props.animationSpeed
   
   if (isAnimatingTransition.value) {
-    interpolationProgress.value += 0.05
+    interpolationProgress.value += 0.03
     if (interpolationProgress.value >= 1) {
       interpolationProgress.value = 1
       isAnimatingTransition.value = false
@@ -206,6 +256,7 @@ function handleResize() {
 }
 
 onMounted(() => {
+  initDefaultData()
   initCanvas()
   animate()
   window.addEventListener('resize', handleResize)

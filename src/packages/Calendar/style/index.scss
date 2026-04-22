@@ -64,11 +64,9 @@
   overflow: hidden;
   height: calc(var(--calendar-rows) * var(--calendar-row-height));
   transition: height var(--calendar-transition-duration) ease;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border-radius: 8px;
   margin: 0 4px;
+  background: rgba(20, 20, 40, 0.05);
 }
 .ohhh-calendar-days {
   display: grid;
@@ -78,7 +76,10 @@
   width: 100%;
   transform: translate3d(var(--translate-distance), 0, 0);
   transition: transform var(--transition-duration) ease;
-  z-index: 1;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 .ohhh-calendar-day {
   display: flex;
