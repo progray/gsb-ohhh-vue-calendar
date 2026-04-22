@@ -17,6 +17,7 @@
     Hiragino Sans GB,
     Microsoft Yahei,
     sans-serif;
+  position: relative;
 }
 
 .ohhh-calendar-toolbar {
@@ -74,15 +75,20 @@
 }
 .ohhh-calendar-day {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   justify-content: center;
   align-items: center;
   height: var(--calendar-row-height);
   cursor: pointer;
+  position: relative;
+  padding-left: 4px;
 }
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-label {
   color: var(--calendar-days-other-month-color);
+}
+.ohhh-calendar-day.other-month .ohhh-calendar-day--inner-lunar {
+  color: var(--calendar-text-color-level-5);
 }
 .ohhh-calendar-day.is-today .ohhh-calendar-day--inner {
   background: var(--calendar-days-today-background);
@@ -95,7 +101,8 @@
   background: var(--calendar-days-selected-background);
 }
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-value,
-.ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-label {
+.ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-label,
+.ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-lunar {
   color: var(--calendar-days-selected-color);
 }
 
@@ -109,10 +116,19 @@
   padding: var(--calendar-days-inner-padding);
   border-radius: var(--calendar-days-inner-radius);
   background: var(--calendar-days-inner-background);
+  position: relative;
+  z-index: 1;
 }
 .ohhh-calendar-day--inner-value {
   font-size: var(--calendar-days-value-font-size);
   color: var(--calendar-days-value-color);
+  line-height: 1.2;
+}
+.ohhh-calendar-day--inner-lunar {
+  font-size: var(--calendar-lunar-font-size);
+  color: var(--calendar-lunar-color);
+  line-height: 1;
+  margin-top: 2px;
 }
 .ohhh-calendar-day--inner-label {
   font-size: var(--calendar-days-label-font-size);
@@ -124,6 +140,90 @@
   width: var(--calendar-days-marker-size);
   height: var(--calendar-days-marker-size);
   border-radius: 50%;
+  position: absolute;
+  bottom: 4px;
+  z-index: 1;
+}
+
+.ohhh-calendar-day--festival-tag {
+  position: absolute;
+  left: 2px;
+  top: 4px;
+  bottom: 4px;
+  width: var(--calendar-festival-tag-width);
+  background: var(--calendar-festival-tag-background);
+  border-radius: 7px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--calendar-festival-tag-color);
+  font-size: var(--calendar-festival-tag-font-size);
+  padding: var(--calendar-festival-tag-padding);
+  box-shadow: 0 1px 4px rgba(196, 30, 58, 0.25);
+  z-index: 2;
+  overflow: hidden;
+}
+
+.ohhh-calendar-day--festival-tag span {
+  line-height: 1.1;
+  letter-spacing: 0.5px;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  font-weight: 500;
+}
+
+.ohhh-calendar-day.has-festival .ohhh-calendar-day--inner {
+  margin-left: calc(var(--calendar-festival-tag-width) + 4px);
+}
+
+.ohhh-calendar-tooltip {
+  position: fixed;
+  z-index: 9999;
+  background: var(--calendar-tooltip-background);
+  border: 1px solid var(--calendar-tooltip-border-color);
+  border-radius: 6px;
+  padding: var(--calendar-tooltip-padding);
+  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.12);
+  font-size: 13px;
+  width: var(--calendar-tooltip-width);
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.ohhh-calendar-tooltip--header {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--calendar-tooltip-header-color);
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--calendar-tooltip-border-color);
+}
+
+.ohhh-calendar-tooltip--ganzhi {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--calendar-tooltip-ganzhi-color);
+  margin-bottom: 4px;
+  letter-spacing: 1px;
+  word-break: break-all;
+}
+
+.ohhh-calendar-tooltip--lunar-date {
+  font-size: 12px;
+  color: var(--calendar-tooltip-text-color);
+  margin-bottom: 2px;
+}
+
+.ohhh-calendar-tooltip--festival {
+  font-size: 12px;
+  color: var(--calendar-lunar-festival-color);
+  font-weight: 600;
+  margin-top: 3px;
+  padding: 3px 6px;
+  background: rgba(196, 30, 58, 0.1);
+  border-radius: 3px;
+  display: inline-block;
 }
 
 .ohhh-calendar-footer {
