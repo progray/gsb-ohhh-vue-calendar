@@ -229,7 +229,8 @@
 }
 .ohhh-calendar-modal--body {
   padding: 20px;
-  overflow-y: auto;
+  overflow: visible;
+  flex-shrink: 0;
 }
 .ohhh-calendar-modal--field {
   margin-bottom: 20px;
@@ -246,12 +247,30 @@
 }
 .ohhh-calendar-modal--input {
   width: 100%;
+  box-sizing: border-box;
   padding: 12px 16px;
   font-size: 15px;
   border: 1px solid #e0e0e0;
   border-radius: 10px;
   outline: none;
+  min-width: 0;
+  max-width: 100%;
+  background: white;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.ohhh-calendar-modal--input[type="datetime-local"] {
+  appearance: none;
+  -webkit-appearance: none;
+  background: white;
+  font-family: inherit;
+}
+.ohhh-calendar-modal--input[type="datetime-local"]::-webkit-datetime-edit {
+  padding: 0;
+}
+.ohhh-calendar-modal--input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  padding: 0;
+  margin-left: 8px;
 }
 .ohhh-calendar-modal--input:focus {
   border-color: #1890ff;
@@ -265,21 +284,28 @@
   border-radius: 8px;
   color: #ff4d4f;
   font-size: 13px;
+  box-sizing: border-box;
+  width: 100%;
+  word-wrap: break-word;
 }
 .ohhh-calendar-modal--footer {
   display: flex;
   gap: 12px;
   padding: 16px 20px;
   border-top: 1px solid #f0f0f0;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 .ohhh-calendar-modal--btn {
   flex: 1;
+  min-width: 0;
   padding: 12px 16px;
   font-size: 14px;
   font-weight: 500;
   border: none;
   border-radius: 10px;
   cursor: pointer;
+  box-sizing: border-box;
   transition: all 0.2s ease;
 }
 .ohhh-calendar-modal--btn-primary {
@@ -308,6 +334,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
 }
 .ohhh-calendar-color-option {
   width: 36px;
