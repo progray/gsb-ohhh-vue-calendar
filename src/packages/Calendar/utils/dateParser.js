@@ -102,7 +102,7 @@ function parseNumber(str) {
 const PARSERS = [
   {
     name: '上周的今天/上周今天',
-    pattern: /上周的?今天/,
+    pattern: /上周的??今天/,
     parse: (baseDate) => {
       const start = addDays(baseDate, -7)
       return { type: 'range', start, end: cloneDate(start), description: '上周今天' }
