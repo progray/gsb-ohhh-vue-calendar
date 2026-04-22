@@ -49,4 +49,19 @@
   --calendar-days-marker-top-gap: 4px;
   --calendar-days-marker-size: 4px;
   --calendar-days-marker-color: var(--calendar-theme-color);
+
+  --calendar-lunar-font-size: 10px;
+  --calendar-lunar-color: var(--calendar-text-color-level-3);
+  --calendar-lunar-festival-color: #c41e3a;
+
+  --calendar-festival-tag-color: #fff;
+  --calendar-festival-tag-background: linear-gradient(135deg, #c41e3a, #e63946);
+  --calendar-festival-tag-width: 18px;
+  --calendar-festival-tag-font-size: 10px;
+
+  --calendar-tooltip-background: linear-gradient(135deg, #fff9f9, #fff);
+  --calendar-tooltip-border-color: #e8d5b7;
+  --calendar-tooltip-header-color: #8b0000;
+  --calendar-tooltip-ganzhi-color: #6b4423;
+  --calendar-tooltip-text-color: #5c4033;
 }

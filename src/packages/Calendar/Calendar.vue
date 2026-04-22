@@ -42,18 +42,51 @@
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'has-festival': getLunar(dateObj.date)?.festival
           }"
           @click="changeSelectedDate(dateObj.date)"
+          @mouseenter="showTooltip(dateObj, $event)"
+          @mouseleave="hideTooltip"
+          @mousemove="updateTooltipPosition($event)"
         >
+          <div
+            v-if="getLunar(dateObj.date)?.festival"
+            class="ohhh-calendar-day--festival-tag"
+          >
+            {{ getLunar(dateObj.date).festival }}
+          </div>
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
+            <div class="ohhh-calendar-day--inner-lunar">
+              {{ getLunar(dateObj.date)?.simpleDayName || '' }}
+            </div>
             <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
               <slot name="day-label" :date="dateObj.date" />
             </div>
           </div>
           <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
         </div>
+      </div>
+    </div>
+
+    <!-- 农历信息浮层 -->
+    <div
+      v-if="tooltipVisible && currentTooltipLunar"
+      class="ohhh-calendar-tooltip"
+      :style="{ left: tooltipX + 'px', top: tooltipY + 'px' }"
+    >
+      <div class="ohhh-calendar-tooltip--header">
+        {{ currentTooltipDate?.getMonth() + 1 }}月{{ currentTooltipDate?.getDate() }}日
+      </div>
+      <div class="ohhh-calendar-tooltip--ganzhi">
+        {{ currentTooltipLunar.fullGanZhi }}
+      </div>
+      <div class="ohhh-calendar-tooltip--lunar-date">
+        农历{{ currentTooltipLunar.monthName }}{{ currentTooltipLunar.dayName }}
+      </div>
+      <div v-if="currentTooltipLunar.festival" class="ohhh-calendar-tooltip--festival">
+        {{ currentTooltipLunar.festival }}
       </div>
     </div>
 
@@ -71,13 +104,59 @@
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
 import { isSameDay, createWeekdays } from './utils'
+import { getLunarInfo, isYearInRange } from './utils/lunar.js'
 import { icons } from './utils/icons.js'
 
 const swipeRef = useTemplateRef('swp')
+
+const tooltipVisible = ref(false)
+const currentTooltipDate = ref(null)
+const currentTooltipLunar = ref(null)
+const tooltipX = ref(0)
+const tooltipY = ref(0)
+
+const lunarCache = new Map()
+
+function getLunar(date) {
+  const year = date.getFullYear()
+  if (!isYearInRange(year)) {
+    return null
+  }
+  
+  const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+  if (lunarCache.has(key)) {
+    return lunarCache.get(key)
+  }
+  
+  const lunar = getLunarInfo(date)
+  lunarCache.set(key, lunar)
+  return lunar
+}
+
+function showTooltip(dateObj, event) {
+  const lunar = getLunar(dateObj.date)
+  if (!lunar) return
+  
+  currentTooltipDate.value = dateObj.date
+  currentTooltipLunar.value = lunar
+  updateTooltipPosition(event)
+  tooltipVisible.value = true
+}
+
+function hideTooltip() {
+  tooltipVisible.value = false
+  currentTooltipDate.value = null
+  currentTooltipLunar.value = null
+}
+
+function updateTooltipPosition(event) {
+  tooltipX.value = event.clientX + 15
+  tooltipY.value = event.clientY + 15
+}
 
 const emit = defineEmits(['select-change', 'view-change'])
 
