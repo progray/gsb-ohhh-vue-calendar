@@ -13,6 +13,10 @@ let startTime = 0
 let fadeInStart = 0
 const FADE_IN_DURATION = 3000
 
+const TARGET_FPS = 30
+const FRAME_INTERVAL = 1000 / TARGET_FPS
+let lastFrameTime = 0
+
 const ALGORITHMS = ['fractal', 'particleFlow', 'ripple', 'voronoi', 'lissajous']
 
 function randomInt(min, max) {
@@ -54,29 +58,30 @@ function hslToRgb(h, s, l) {
 
 function generateColorPalette(algorithm) {
   const baseHue = randomInt(0, 360)
-  const hueVariation = randomInt(15, 60)
-  const saturation = randomInt(15, 35)
-  const lightness = randomInt(85, 98)
+  const hueVariation = randomInt(30, 90)
+  const saturation = randomInt(25, 45)
+  const lightness = randomInt(82, 92)
   
   const bgColor = hslToRgb(baseHue, saturation, lightness)
   
   const lineHue1 = (baseHue + hueVariation) % 360
   const lineHue2 = (baseHue + 360 - hueVariation) % 360
-  const lineSaturation = randomInt(20, 40)
-  const lineLightness = randomInt(65, 80)
+  const lineSaturation = randomInt(35, 55)
+  const lineLightness = randomInt(55, 70)
   
   const lineColor1 = hslToRgb(lineHue1, lineSaturation, lineLightness)
   const lineColor2 = hslToRgb(lineHue2, lineSaturation, lineLightness)
   
-  const accentHue = (baseHue + randomInt(90, 180)) % 360
-  const accentColor = hslToRgb(accentHue, randomInt(20, 35), randomInt(70, 85))
+  const accentHue = (baseHue + randomInt(120, 240)) % 360
+  const accentColor = hslToRgb(accentHue, randomInt(40, 60), randomInt(60, 75))
   
   return {
     bgColor,
     lineColor1,
     lineColor2,
     accentColor,
-    speed: randomFloat(0.3, 0.8),
+    speed: randomFloat(0.4, 1.0),
+    contrast: randomFloat(1.3, 1.8),
     evolutionType: Math.random() > 0.5 ? 'continuous' : 'slow'
   }
 }
@@ -95,7 +100,7 @@ function getVertexShader() {
 
 function getFractalShader(palette) {
   return `
-    precision highp float;
+    precision mediump float;
     
     varying vec2 v_uv;
     uniform float u_time;
@@ -105,9 +110,10 @@ function getFractalShader(palette) {
     uniform vec3 u_lineColor2;
     uniform vec3 u_accentColor;
     uniform float u_speed;
+    uniform float u_contrast;
     uniform float u_fadeIn;
     
-    const int MAX_ITER = 100;
+    const int MAX_ITER = 50;
     const float BAILOUT = 4.0;
     
     vec3 paletteFunc(float t) {
@@ -126,22 +132,15 @@ function getFractalShader(palette) {
       return col;
     }
     
-    vec2 rotate(vec2 p, float a) {
-      float c = cos(a);
-      float s = sin(a);
-      return vec2(p.x * c - p.y * s, p.x * s + p.y * c);
-    }
-    
     void main() {
       vec2 uv = v_uv * 2.0 - 1.0;
       uv.x *= u_resolution.x / u_resolution.y;
       
-      float t = u_time * u_speed * 0.3;
-      float zoom = 1.8 + sin(t * 0.3) * 0.5;
+      float t = u_time * u_speed * 0.25;
+      float zoom = 1.6 + sin(t * 0.2) * 0.4;
       
-      vec2 center = vec2(-0.5 + sin(t * 0.2) * 0.1, 0.0 + cos(t * 0.25) * 0.1);
+      vec2 center = vec2(-0.5 + sin(t * 0.15) * 0.08, 0.0 + cos(t * 0.2) * 0.08);
       uv = uv / zoom + center;
-      uv = rotate(uv, t * 0.1);
       
       vec2 z = vec2(0.0);
       vec2 c = uv;
@@ -163,11 +162,16 @@ function getFractalShader(palette) {
       }
       
       float intensity = iter / float(MAX_ITER);
-      intensity = pow(intensity, 0.6);
+      intensity = pow(intensity, 0.5) * u_contrast;
+      intensity = clamp(intensity, 0.0, 1.0);
       
       vec3 color = paletteFunc(intensity);
       
-      float vignette = 1.0 - 0.3 * length(v_uv - 0.5);
+      float edge = smoothstep(0.0, 0.15, intensity) * smoothstep(0.9, 0.7, intensity);
+      vec3 edgeColor = mix(u_lineColor1, u_accentColor, 0.5);
+      color = mix(color, edgeColor, edge * 0.4);
+      
+      float vignette = 1.0 - 0.25 * length(v_uv - 0.5);
       color *= vignette;
       
       color = mix(u_bgColor, color, u_fadeIn);
@@ -179,7 +183,7 @@ function getFractalShader(palette) {
 
 function getParticleFlowShader(palette) {
   return `
-    precision highp float;
+    precision mediump float;
     
     varying vec2 v_uv;
     uniform float u_time;
@@ -189,18 +193,14 @@ function getParticleFlowShader(palette) {
     uniform vec3 u_lineColor2;
     uniform vec3 u_accentColor;
     uniform float u_speed;
+    uniform float u_contrast;
     uniform float u_fadeIn;
     
-    const int PARTICLES = 80;
-    const float TRAIL_LENGTH = 0.15;
-    const float PARTICLE_SIZE = 0.003;
+    const int PARTICLES = 40;
+    const float PARTICLE_SIZE = 0.006;
     
     float hash(float n) {
       return fract(sin(n) * 43758.5453123);
-    }
-    
-    float hash2(vec2 p) {
-      return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
     }
     
     vec2 hash22(vec2 p) {
@@ -209,7 +209,7 @@ function getParticleFlowShader(palette) {
       return fract((p3.xx + p3.yz) * p3.zy);
     }
     
-    vec2 noiseGradient(vec2 p, float t) {
+    vec2 noiseGradient(vec2 p) {
       vec2 i = floor(p);
       vec2 f = fract(p);
       
@@ -227,82 +227,58 @@ function getParticleFlowShader(palette) {
       );
     }
     
-    vec2 flowField(vec2 p, float t) {
-      float scale = 3.0;
-      vec2 noise = noiseGradient(p * scale, t);
+    vec2 getParticlePos(float fi, float t) {
+      vec2 basePos = hash22(vec2(fi, fi * 2.0)) - 0.5;
+      basePos.x *= u_resolution.x / u_resolution.y;
       
-      float angle = atan(noise.y, noise.x) + t * 0.2;
-      float magnitude = 0.5 + 0.5 * sin(t * 0.3 + p.x * 2.0);
+      float scale = 2.0;
+      vec2 noise = noiseGradient(basePos * scale + t * 0.3);
+      float angle = atan(noise.y, noise.x) + t * 0.15;
       
-      return vec2(cos(angle), sin(angle)) * magnitude;
-    }
-    
-    float sdSegment(vec2 p, vec2 a, vec2 b) {
-      vec2 pa = p - a;
-      vec2 ba = b - a;
-      float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
-      return length(pa - ba * h);
+      float driftX = sin(t * 0.2 + fi * 1.3) * 0.3;
+      float driftY = cos(t * 0.25 + fi * 0.7) * 0.3;
+      
+      return basePos + vec2(cos(angle), sin(angle)) * 0.2 + vec2(driftX, driftY);
     }
     
     void main() {
       vec2 uv = v_uv;
       uv.x *= u_resolution.x / u_resolution.y;
       
-      float t = u_time * u_speed * 0.5;
+      float t = u_time * u_speed * 0.4;
       
       vec3 color = u_bgColor;
-      float totalIntensity = 0.0;
       
       for (int i = 0; i < PARTICLES; i++) {
         float fi = float(i);
-        vec2 basePos = hash22(vec2(fi, fi * 2.0)) - 0.5;
-        basePos.x *= u_resolution.x / u_resolution.y;
         
-        float offsetT = t + fi * 0.01;
-        vec2 velocity = flowField(basePos + offsetT * 0.1, offsetT);
+        vec2 pos = getParticlePos(fi, t);
         
-        vec2 pos = basePos;
-        vec2 prevPos = pos;
-        float trailIntensity = 0.0;
-        
-        for (int j = 0; j < 10; j++) {
-          float fj = float(j);
-          float trailT = offsetT - fj * TRAIL_LENGTH * 0.1;
-          vec2 trailVel = flowField(basePos + trailT * 0.1, trailT);
-          vec2 trailPos = basePos + trailVel * (offsetT - trailT) * 0.5;
-          
-          float segmentDist = sdSegment(uv, prevPos, trailPos);
-          float segmentSize = PARTICLE_SIZE * (1.0 - fj * 0.08);
-          float segmentIntensity = smoothstep(segmentSize, 0.0, segmentDist);
-          segmentIntensity *= (1.0 - fj * 0.08);
-          
-          if (segmentIntensity > 0.0) {
-            float colorMix = hash(fi + fj * 0.1);
-            vec3 particleColor = mix(u_lineColor1, u_lineColor2, colorMix);
-            particleColor = mix(particleColor, u_accentColor, hash(fi * 3.14) * 0.3);
-            
-            color = mix(color, particleColor, segmentIntensity * 0.3);
-            totalIntensity += segmentIntensity;
-          }
-          
-          prevPos = trailPos;
-        }
+        vec2 prevPos = getParticlePos(fi, t - 0.05);
+        vec2 prevPos2 = getParticlePos(fi, t - 0.1);
+        vec2 prevPos3 = getParticlePos(fi, t - 0.15);
+        vec2 prevPos4 = getParticlePos(fi, t - 0.2);
         
         float dist = length(uv - pos);
-        float intensity = smoothstep(PARTICLE_SIZE * 2.0, 0.0, dist);
+        float intensity = smoothstep(PARTICLE_SIZE * 2.5, 0.0, dist);
         
-        if (intensity > 0.0) {
-          float colorMix = hash(fi);
-          vec3 particleColor = mix(u_lineColor1, u_lineColor2, colorMix);
-          particleColor = mix(particleColor, u_accentColor, hash(fi * 2.718) * 0.3);
-          
-          color = mix(color, particleColor, intensity * 0.5);
-          totalIntensity += intensity;
-        }
+        float trailDist = min(
+          min(length(uv - prevPos), length(uv - prevPos2)),
+          min(length(uv - prevPos3), length(uv - prevPos4))
+        );
+        float trailIntensity = smoothstep(PARTICLE_SIZE * 1.8, 0.0, trailDist) * 0.6;
+        
+        float colorMix = hash(fi);
+        vec3 particleColor = mix(u_lineColor1, u_lineColor2, colorMix);
+        particleColor = mix(particleColor, u_accentColor, hash(fi * 3.14) * 0.4);
+        
+        float glow = smoothstep(PARTICLE_SIZE * 6.0, 0.0, dist);
+        glow = pow(glow, 2.0);
+        
+        color = mix(color, particleColor, glow * 0.25 * u_contrast);
+        color = mix(color, particleColor, trailIntensity * 0.4);
+        color = mix(color, particleColor, intensity * 0.7);
       }
-      
-      float glow = smoothstep(0.1, 0.0, totalIntensity * 0.02);
-      color = mix(color, u_accentColor, glow * 0.1);
       
       float vignette = 1.0 - 0.2 * length(v_uv - 0.5);
       color *= vignette;
@@ -316,7 +292,7 @@ function getParticleFlowShader(palette) {
 
 function getRippleShader(palette) {
   return `
-    precision highp float;
+    precision mediump float;
     
     varying vec2 v_uv;
     uniform float u_time;
@@ -326,13 +302,10 @@ function getRippleShader(palette) {
     uniform vec3 u_lineColor2;
     uniform vec3 u_accentColor;
     uniform float u_speed;
+    uniform float u_contrast;
     uniform float u_fadeIn;
     
-    const int WAVES = 8;
-    
-    float hash(float n) {
-      return fract(sin(n) * 43758.5453123);
-    }
+    const int WAVES = 6;
     
     vec2 hash22(vec2 p) {
       vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
@@ -344,7 +317,7 @@ function getRippleShader(palette) {
       vec2 uv = v_uv;
       uv.x *= u_resolution.x / u_resolution.y;
       
-      float t = u_time * u_speed * 0.4;
+      float t = u_time * u_speed * 0.35;
       
       vec3 color = u_bgColor;
       float totalWave = 0.0;
@@ -354,51 +327,46 @@ function getRippleShader(palette) {
         vec2 center = hash22(vec2(fi, fi * 3.0)) - 0.5;
         center.x *= u_resolution.x / u_resolution.y;
         
-        float phase = t * (0.5 + fi * 0.1);
-        float frequency = 8.0 + fi * 2.0;
-        float amplitude = 0.03 + fi * 0.005;
+        float phase = t * (0.6 + fi * 0.15);
+        float frequency = 10.0 + fi * 3.0;
         
         float dist = length(uv - center);
         float wave = sin(dist * frequency - phase);
         
-        float pulse = 0.5 + 0.5 * sin(t * (0.3 + fi * 0.05) + fi);
+        float pulse = 0.4 + 0.6 * sin(t * (0.4 + fi * 0.08) + fi);
         wave *= pulse;
         
-        float decay = exp(-dist * 1.5);
+        float decay = exp(-dist * 1.2);
         wave *= decay;
         
-        totalWave += wave * amplitude;
+        totalWave += wave * 0.02;
         
-        float ring = abs(sin(dist * frequency * 0.5 - phase * 0.7));
-        ring = pow(ring, 20.0);
+        float ring = abs(sin(dist * frequency * 0.4 - phase * 0.6));
+        ring = pow(ring, 15.0);
         ring *= decay;
+        ring *= u_contrast;
         
         vec3 waveColor = mix(u_lineColor1, u_lineColor2, fi / float(WAVES));
-        waveColor = mix(waveColor, u_accentColor, hash(fi * 2.0) * 0.3);
+        waveColor = mix(waveColor, u_accentColor, 0.2 + fi * 0.1);
         
-        color = mix(color, waveColor, ring * 0.2);
+        color = mix(color, waveColor, ring * 0.35);
       }
       
-      vec2 distort = uv + vec2(totalWave * 2.0, totalWave * 2.0);
+      vec2 distort = uv + vec2(totalWave * 3.0, totalWave * 3.0);
       
-      float gridSize = 40.0;
-      vec2 grid = abs(fract(distort * gridSize / 2.0) - 0.5);
+      float gridSize = 30.0;
+      vec2 grid = abs(fract(distort * gridSize) - 0.5);
       float gridLines = min(grid.x, grid.y);
-      float gridIntensity = smoothstep(0.02, 0.0, gridLines);
+      float gridIntensity = smoothstep(0.025, 0.0, gridLines);
       
-      float shimmer = 0.5 + 0.5 * sin(t * 2.0 + distort.x * 5.0 + distort.y * 5.0);
-      gridIntensity *= shimmer * 0.5 + 0.5;
+      float shimmer = 0.4 + 0.6 * sin(t * 1.5 + distort.x * 4.0 + distort.y * 4.0);
+      gridIntensity *= shimmer;
+      gridIntensity *= u_contrast * 0.5;
       
-      vec3 gridColor = mix(u_lineColor1, u_lineColor2, 0.5);
-      color = mix(color, gridColor, gridIntensity * 0.15);
+      vec3 gridColor = mix(u_lineColor1, u_accentColor, 0.3);
+      color = mix(color, gridColor, gridIntensity * 0.25);
       
-      float interference = sin((uv.x + uv.y) * 30.0 + t) * sin((uv.x - uv.y) * 25.0 - t * 0.7);
-      interference = pow(interference * 0.5 + 0.5, 3.0);
-      
-      vec3 interferenceColor = mix(u_accentColor, u_lineColor1, 0.5);
-      color = mix(color, interferenceColor, interference * 0.08);
-      
-      float vignette = 1.0 - 0.25 * length(v_uv - 0.5);
+      float vignette = 1.0 - 0.2 * length(v_uv - 0.5);
       color *= vignette;
       
       color = mix(u_bgColor, color, u_fadeIn);
@@ -410,7 +378,7 @@ function getRippleShader(palette) {
 
 function getVoronoiShader(palette) {
   return `
-    precision highp float;
+    precision mediump float;
     
     varying vec2 v_uv;
     uniform float u_time;
@@ -420,9 +388,8 @@ function getVoronoiShader(palette) {
     uniform vec3 u_lineColor2;
     uniform vec3 u_accentColor;
     uniform float u_speed;
+    uniform float u_contrast;
     uniform float u_fadeIn;
-    
-    const int CELLS = 24;
     
     vec2 hash22(vec2 p) {
       vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
@@ -432,18 +399,26 @@ function getVoronoiShader(palette) {
     
     vec2 getCellPoint(vec2 cellId, float t) {
       vec2 basePos = hash22(cellId) - 0.5;
-      float offsetX = sin(t * 0.3 + cellId.x * 1.5 + cellId.y * 0.7) * 0.3;
-      float offsetY = cos(t * 0.25 + cellId.x * 0.8 + cellId.y * 1.3) * 0.3;
-      return basePos + vec2(offsetX, offsetY) * 0.25;
+      float offsetX = sin(t * 0.25 + cellId.x * 1.2 + cellId.y * 0.8) * 0.25;
+      float offsetY = cos(t * 0.2 + cellId.x * 0.9 + cellId.y * 1.1) * 0.25;
+      return basePos + vec2(offsetX, offsetY) * 0.3;
     }
     
-    float voronoi(vec2 uv, float t, out vec2 closestCell, out float edgeDist) {
-      vec2 cell = floor(uv);
-      vec2 fcell = fract(uv);
+    void main() {
+      vec2 uv = v_uv;
+      uv.x *= u_resolution.x / u_resolution.y;
+      
+      float t = u_time * u_speed * 0.3;
+      
+      float scale = 4.5 + sin(t * 0.08) * 0.8;
+      vec2 scaledUV = uv * scale;
+      
+      vec2 cell = floor(scaledUV);
+      vec2 fcell = fract(scaledUV);
       
       float minDist = 10.0;
       float secondMinDist = 10.0;
-      closestCell = cell;
+      vec2 closestCell = cell;
       
       for (int x = -1; x <= 1; x++) {
         for (int y = -1; y <= 1; y++) {
@@ -462,60 +437,33 @@ function getVoronoiShader(palette) {
         }
       }
       
-      edgeDist = secondMinDist - minDist;
-      return minDist;
-    }
-    
-    void main() {
-      vec2 uv = v_uv;
-      uv.x *= u_resolution.x / u_resolution.y;
+      float edgeDist = secondMinDist - minDist;
       
-      float t = u_time * u_speed * 0.25;
-      
-      float scale = 5.0 + sin(t * 0.1) * 1.0;
-      vec2 scaledUV = uv * scale;
-      
-      vec2 closestCell;
-      float edgeDist;
-      float dist = voronoi(scaledUV, t, closestCell, edgeDist);
-      
-      float cellId = closestCell.x * 13.0 + closestCell.y * 7.0;
+      float cellId = closestCell.x * 17.0 + closestCell.y * 11.0;
       float cellHash = fract(sin(cellId) * 43758.5453);
       
-      vec3 cellColor = mix(u_bgColor, u_lineColor1, cellHash * 0.15);
-      cellColor = mix(cellColor, u_lineColor2, cellHash * 0.1);
-      cellColor = mix(cellColor, u_accentColor, cellHash * 0.05);
+      vec3 cellColor = mix(u_bgColor, u_lineColor1, cellHash * 0.25);
+      cellColor = mix(cellColor, u_lineColor2, cellHash * 0.15);
+      cellColor = mix(cellColor, u_accentColor, cellHash * 0.1);
       
-      float cellShade = 1.0 - dist * 0.3;
+      float cellShade = 1.0 - minDist * 0.4;
       cellColor *= cellShade;
       
-      float edgeIntensity = 1.0 - smoothstep(0.0, 0.08, edgeDist);
-      edgeIntensity = pow(edgeIntensity, 1.5);
+      float edgeIntensity = 1.0 - smoothstep(0.0, 0.1, edgeDist);
+      edgeIntensity = pow(edgeIntensity, 1.3) * u_contrast;
       
-      float edgePulse = 0.5 + 0.5 * sin(t * 1.5 + cellHash * 6.28);
-      edgeIntensity *= 0.6 + 0.4 * edgePulse;
+      float edgePulse = 0.5 + 0.5 * sin(t * 1.2 + cellHash * 6.28);
+      edgeIntensity *= 0.7 + 0.3 * edgePulse;
       
       vec3 edgeColor = mix(u_lineColor1, u_lineColor2, cellHash);
-      edgeColor = mix(edgeColor, u_accentColor, cellHash * 0.3);
+      edgeColor = mix(edgeColor, u_accentColor, cellHash * 0.4);
       
-      vec3 color = mix(cellColor, edgeColor, edgeIntensity * 0.4);
+      vec3 color = mix(cellColor, edgeColor, edgeIntensity * 0.5);
       
-      float scale2 = scale * 2.0;
-      vec2 scaledUV2 = uv * scale2;
-      vec2 closestCell2;
-      float edgeDist2;
-      voronoi(scaledUV2, t * 1.5, closestCell2, edgeDist2);
+      float shimmer = 0.4 + 0.6 * sin(t * 1.8 + closestCell.x * 2.5 + closestCell.y * 1.8);
+      color *= 0.9 + 0.1 * shimmer;
       
-      float subEdgeIntensity = 1.0 - smoothstep(0.0, 0.05, edgeDist2);
-      subEdgeIntensity = pow(subEdgeIntensity, 2.0);
-      
-      vec3 subEdgeColor = mix(u_lineColor2, u_accentColor, 0.5);
-      color = mix(color, subEdgeColor, subEdgeIntensity * 0.15);
-      
-      float shimmer = 0.5 + 0.5 * sin(t * 2.0 + closestCell.x * 3.14 + closestCell.y * 2.718);
-      color *= 0.95 + 0.05 * shimmer;
-      
-      float vignette = 1.0 - 0.2 * length(v_uv - 0.5);
+      float vignette = 1.0 - 0.15 * length(v_uv - 0.5);
       color *= vignette;
       
       color = mix(u_bgColor, color, u_fadeIn);
@@ -527,7 +475,7 @@ function getVoronoiShader(palette) {
 
 function getLissajousShader(palette) {
   return `
-    precision highp float;
+    precision mediump float;
     
     varying vec2 v_uv;
     uniform float u_time;
@@ -537,10 +485,11 @@ function getLissajousShader(palette) {
     uniform vec3 u_lineColor2;
     uniform vec3 u_accentColor;
     uniform float u_speed;
+    uniform float u_contrast;
     uniform float u_fadeIn;
     
-    const int CURVES = 6;
-    const float LINE_WIDTH = 0.004;
+    const int CURVES = 5;
+    const float LINE_WIDTH = 0.005;
     
     vec2 lissajous(float t, float a, float b, float delta, float scale) {
       return vec2(
@@ -560,26 +509,26 @@ function getLissajousShader(palette) {
       vec2 uv = v_uv * 2.0 - 1.0;
       uv.x *= u_resolution.x / u_resolution.y;
       
-      float t = u_time * u_speed * 0.15;
+      float t = u_time * u_speed * 0.2;
       
       vec3 color = u_bgColor;
       
       for (int i = 0; i < CURVES; i++) {
         float fi = float(i);
         
-        float a = 2.0 + fi * 1.0;
-        float b = 3.0 + fi * 1.5;
-        float delta = t * (0.3 + fi * 0.1) + fi * 0.5;
-        float scale = 0.35 + fi * 0.08;
+        float a = 2.0 + fi * 0.8;
+        float b = 3.0 + fi * 1.2;
+        float delta = t * (0.35 + fi * 0.12) + fi * 0.6;
+        float scale = 0.32 + fi * 0.07;
         
-        float phaseOffset = sin(t * 0.2 + fi) * 0.2;
+        float phaseOffset = sin(t * 0.25 + fi * 1.5) * 0.15;
         scale += phaseOffset;
         
         float totalDist = 1.0;
         vec2 prevPoint = lissajous(0.0, a, b, delta, scale);
         
-        for (int j = 0; j < 150; j++) {
-          float ft = float(j) / 150.0 * 6.28318;
+        for (int j = 0; j < 80; j++) {
+          float ft = float(j) / 80.0 * 6.28318;
           vec2 currentPoint = lissajous(ft, a, b, delta, scale);
           
           float dist = distToSegment(uv, prevPoint, currentPoint);
@@ -588,43 +537,43 @@ function getLissajousShader(palette) {
           prevPoint = currentPoint;
         }
         
-        float lineIntensity = smoothstep(LINE_WIDTH * 2.0, 0.0, totalDist);
+        float lineIntensity = smoothstep(LINE_WIDTH * 2.2, 0.0, totalDist);
         
-        float glowIntensity = smoothstep(LINE_WIDTH * 8.0, 0.0, totalDist);
-        glowIntensity = pow(glowIntensity, 3.0);
+        float glowIntensity = smoothstep(LINE_WIDTH * 7.0, 0.0, totalDist);
+        glowIntensity = pow(glowIntensity, 2.0) * u_contrast;
         
         float colorMix = fi / float(CURVES);
         vec3 curveColor = mix(u_lineColor1, u_lineColor2, colorMix);
-        curveColor = mix(curveColor, u_accentColor, sin(fi + t * 0.1) * 0.3 + 0.3);
+        curveColor = mix(curveColor, u_accentColor, sin(fi + t * 0.15) * 0.35 + 0.35);
         
-        float pulse = 0.6 + 0.4 * sin(t * 0.5 + fi * 1.0);
+        float pulse = 0.55 + 0.45 * sin(t * 0.6 + fi * 1.3);
         
-        color = mix(color, curveColor, glowIntensity * 0.15 * pulse);
-        color = mix(color, curveColor, lineIntensity * 0.6 * pulse);
+        color = mix(color, curveColor, glowIntensity * 0.2 * pulse);
+        color = mix(color, curveColor, lineIntensity * 0.65 * pulse);
       }
       
       for (int i = 0; i < CURVES; i++) {
         float fi = float(i);
-        float a = 2.0 + fi * 1.0;
-        float b = 3.0 + fi * 1.5;
-        float delta = t * (0.3 + fi * 0.1) + fi * 0.5;
-        float scale = 0.35 + fi * 0.08;
+        float a = 2.0 + fi * 0.8;
+        float b = 3.0 + fi * 1.2;
+        float delta = t * (0.35 + fi * 0.12) + fi * 0.6;
+        float scale = 0.32 + fi * 0.07;
         
-        float pointT = t * 0.5;
+        float pointT = t * 0.4;
         vec2 point = lissajous(pointT, a, b, delta, scale);
         
         float dist = length(uv - point);
-        float pointIntensity = smoothstep(0.02, 0.0, dist);
+        float pointIntensity = smoothstep(0.025, 0.0, dist);
         
-        float pointGlow = smoothstep(0.08, 0.0, dist);
-        pointGlow = pow(pointGlow, 2.0);
+        float pointGlow = smoothstep(0.1, 0.0, dist);
+        pointGlow = pow(pointGlow, 1.8) * u_contrast;
         
-        vec3 pointColor = mix(u_accentColor, u_lineColor1, 0.5);
-        color = mix(color, pointColor, pointGlow * 0.3);
-        color = mix(color, vec3(1.0), pointIntensity * 0.8);
+        vec3 pointColor = mix(u_accentColor, u_lineColor1, 0.4);
+        color = mix(color, pointColor, pointGlow * 0.35);
+        color = mix(color, vec3(1.0), pointIntensity * 0.7);
       }
       
-      float vignette = 1.0 - 0.25 * length(v_uv - 0.5);
+      float vignette = 1.0 - 0.18 * length(v_uv - 0.5);
       color *= vignette;
       
       color = mix(u_bgColor, color, u_fadeIn);
@@ -670,16 +619,17 @@ function selectAlgorithm() {
 }
 
 function initWebGL(canvas, algorithm, palette) {
-  const dpr = window.devicePixelRatio || 1
+  const dpr = Math.min(window.devicePixelRatio || 1, 2)
   const rect = canvas.getBoundingClientRect()
   
   canvas.width = rect.width * dpr
   canvas.height = rect.height * dpr
   
   gl = canvas.getContext('webgl', {
-    antialias: true,
+    antialias: false,
     alpha: false,
-    premultipliedAlpha: false
+    premultipliedAlpha: false,
+    preserveDrawingBuffer: false
   })
   
   if (!gl) {
@@ -768,6 +718,7 @@ function render(time, context) {
   const lineColor2Location = gl.getUniformLocation(program, 'u_lineColor2')
   const accentColorLocation = gl.getUniformLocation(program, 'u_accentColor')
   const speedLocation = gl.getUniformLocation(program, 'u_speed')
+  const contrastLocation = gl.getUniformLocation(program, 'u_contrast')
   const fadeInLocation = gl.getUniformLocation(program, 'u_fadeIn')
   
   const { canvas, dpr, palette } = context
@@ -779,20 +730,28 @@ function render(time, context) {
   gl.uniform3fv(lineColor2Location, palette.lineColor2)
   gl.uniform3fv(accentColorLocation, palette.accentColor)
   gl.uniform1f(speedLocation, palette.speed)
+  gl.uniform1f(contrastLocation, palette.contrast)
   gl.uniform1f(fadeInLocation, fadeInEased)
   
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
 }
 
 function animate(timestamp, context) {
-  render(timestamp, context)
+  const currentTime = timestamp || performance.now()
+  const elapsed = currentTime - lastFrameTime
+  
+  if (elapsed >= FRAME_INTERVAL) {
+    lastFrameTime = currentTime - (elapsed % FRAME_INTERVAL)
+    render(currentTime, context)
+  }
+  
   animationFrame = requestAnimationFrame((t) => animate(t, context))
 }
 
 function handleResize(canvas, context) {
   if (!context) return
   
-  const dpr = window.devicePixelRatio || 1
+  const dpr = Math.min(window.devicePixelRatio || 1, 2)
   const rect = canvas.getBoundingClientRect()
   
   canvas.width = rect.width * dpr
@@ -812,11 +771,14 @@ onMounted(() => {
   const algorithm = selectAlgorithm()
   const palette = generateColorPalette(algorithm)
   
+  console.log(`Selected animation: ${algorithm}`)
+  
   const context = initWebGL(canvas, algorithm, palette)
   if (!context) return
   
   startTime = performance.now()
   fadeInStart = startTime
+  lastFrameTime = startTime
   
   animate(startTime, context)
   
