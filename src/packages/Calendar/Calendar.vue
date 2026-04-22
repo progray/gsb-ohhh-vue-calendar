@@ -231,6 +231,7 @@ const customThemeStyle = computed(() => {
   }
   if (theme.textColorLevel1) {
     style['--calendar-text-color-level-1'] = theme.textColorLevel1
+    style['--calendar-toolbar-text-color'] = theme.textColorLevel1
     style['--calendar-weekdays-color'] = theme.textColorLevel1
     style['--calendar-days-value-color'] = theme.textColorLevel1
   }
