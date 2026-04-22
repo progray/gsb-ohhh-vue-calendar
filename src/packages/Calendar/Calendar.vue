@@ -573,11 +573,21 @@ defineExpose({
   transform: translateY(0);
 }
 
+/* 调整日期网格容器，为动画留出顶部空间 */
+.ohhh-calendar-days {
+  padding-top: 16px;
+  padding-bottom: 8px;
+  box-sizing: border-box;
+}
+
 /* 游戏选中效果 */
 .ohhh-calendar-day.game-selected .ohhh-calendar-day--inner {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   animation: elasticScale 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   box-shadow: 0 0 20px rgba(102, 126, 234, 0.6), 0 0 40px rgba(102, 126, 234, 0.3);
+  position: relative;
+  z-index: 10;
+  transform-origin: center bottom;
 }
 
 .ohhh-calendar-day.game-selected .ohhh-calendar-day--inner-value,
@@ -591,6 +601,9 @@ defineExpose({
   animation: celebrate 0.8s ease-in-out infinite;
   background: linear-gradient(135deg, #ffd700 0%, #ff6b6b 50%, #4ecdc4 100%);
   box-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 0 0 60px rgba(255, 107, 107, 0.5);
+  position: relative;
+  z-index: 20;
+  transform-origin: center bottom;
 }
 
 .ohhh-calendar-day.game-celebrating .ohhh-calendar-day--inner-value {
