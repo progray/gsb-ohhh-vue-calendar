@@ -540,8 +540,15 @@ defineExpose({
   user-select: none;
 }
 
-.ohhh-calendar-day.is-multi-selected {
-  background: rgba(64, 158, 255, 0.2);
+.ohhh-calendar-day.is-multi-selected .ohhh-calendar-day--inner {
+  border: 2px solid #66b1ff;
+  box-sizing: border-box;
+  box-shadow: 0 0 0 2px rgba(102, 177, 255, 0.3);
+}
+
+.ohhh-calendar-day.is-multi-selected.is-key-date .ohhh-calendar-day--inner {
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
 }
 
 .ohhh-calendar-day.is-key-date {
