@@ -49,4 +49,27 @@
   --calendar-days-marker-top-gap: 4px;
   --calendar-days-marker-size: 4px;
   --calendar-days-marker-color: var(--calendar-theme-color);
+
+  --calendar-search-padding: 12px 16px;
+  --calendar-search-input-height: 36px;
+  --calendar-search-input-border-color: #dcdfe6;
+  --calendar-search-input-border-focus-color: var(--calendar-theme-color);
+  --calendar-search-input-background: #fff;
+  --calendar-search-input-border-radius: 6px;
+  --calendar-search-clear-color: #c0c4cc;
+  --calendar-search-clear-hover-color: #909399;
+  --calendar-search-result-info-color: var(--calendar-theme-color);
+  --calendar-search-no-result-color: #f56c6c;
+
+  --calendar-month-nav-padding: 8px 16px;
+  --calendar-month-nav-background: #f5f7fa;
+  --calendar-month-nav-button-size: 28px;
+  --calendar-month-nav-button-color: #606266;
+  --calendar-month-nav-button-disabled-color: #c0c4cc;
+  --calendar-month-nav-current-color: var(--calendar-theme-color);
+
+  --calendar-search-matched-color: #fff;
+  --calendar-search-matched-background: var(--calendar-theme-color);
+  --calendar-search-matched-border-color: var(--calendar-theme-color);
+  --calendar-search-unmatched-opacity: 0.35;
 }

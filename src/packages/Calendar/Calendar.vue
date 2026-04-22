@@ -8,6 +8,63 @@
       '--transition-duration': transitionDuration
     }"
   >
+    <!-- 搜索框 -->
+    <div v-if="showSearch" class="ohhh-calendar-search">
+      <slot name="search" :searchQuery="searchQuery" :searchResult="searchResult">
+        <div class="ohhh-calendar-search--input-wrapper">
+          <input
+            v-model="searchQuery"
+            type="text"
+            class="ohhh-calendar-search--input"
+            :placeholder="searchPlaceholder"
+            @input="onSearchInput"
+            @keydown.enter="onSearchSubmit"
+          />
+          <button
+            v-if="searchQuery"
+            class="ohhh-calendar-search--clear"
+            @click="clearSearch"
+            type="button"
+          >
+            ✕
+          </button>
+        </div>
+        <div v-if="searchResult && searchResult.dates.length > 0" class="ohhh-calendar-search--result-info">
+          <span class="ohhh-calendar-search--result-desc">{{ searchResult.description }}</span>
+          <span class="ohhh-calendar-search--result-count">找到 {{ searchResult.dates.length }} 天</span>
+        </div>
+        <div v-else-if="searchQuery && !searchResult.success" class="ohhh-calendar-search--no-result">
+          未找到匹配的日期，请尝试其他描述
+        </div>
+      </slot>
+    </div>
+
+    <!-- 月份导航 (搜索结果跨月份时显示) -->
+    <div v-if="searchMonths.length > 1" class="ohhh-calendar-month-nav">
+      <slot name="month-nav" :months="searchMonths" :currentMonthIndex="currentSearchMonthIndex">
+        <button
+          class="ohhh-calendar-month-nav--prev"
+          :disabled="currentSearchMonthIndex === 0"
+          @click="goToPrevSearchMonth"
+          type="button"
+        >
+          ‹
+        </button>
+        <div class="ohhh-calendar-month-nav--info">
+          <span class="ohhh-calendar-month-nav--current">{{ searchMonths[currentSearchMonthIndex]?.label }}</span>
+          <span class="ohhh-calendar-month-nav--indicator">{{ currentSearchMonthIndex + 1 }} / {{ searchMonths.length }}</span>
+        </div>
+        <button
+          class="ohhh-calendar-month-nav--next"
+          :disabled="currentSearchMonthIndex >= searchMonths.length - 1"
+          @click="goToNextSearchMonth"
+          type="button"
+        >
+          ›
+        </button>
+      </slot>
+    </div>
+
     <!-- 顶部工具栏 -->
     <div v-if="showToolbar" class="ohhh-calendar-toolbar">
       <slot name="toolbar" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
@@ -39,11 +96,15 @@
           v-for="dateObj in item"
           :key="dateObj.key"
           class="ohhh-calendar-day"
-          :class="{
-            'is-selected': isSameDay(dateObj.date, selected),
-            'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
-          }"
+          :class="[
+            {
+              'is-selected': isSameDay(dateObj.date, selected),
+              'is-today': isSameDay(dateObj.date, new Date()),
+              'other-month': !dateObj.current,
+              'is-search-matched': isSearchMatched(dateObj.date),
+              'is-search-unmatched': isSearchActive && !isSearchMatched(dateObj.date) && dateObj.current
+            }
+          ]"
           @click="changeSelectedDate(dateObj.date)"
         >
           <div class="ohhh-calendar-day--inner">
@@ -71,15 +132,16 @@
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { ref, computed, watch, useTemplateRef, toRefs } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
 import { isSameDay, createWeekdays } from './utils'
+import { parseDateQuery, getMonthsWithMatches, isDateInArray } from './utils/dateParser.js'
 import { icons } from './utils/icons.js'
 
 const swipeRef = useTemplateRef('swp')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'search-change'])
 
 const props = defineProps({
   // 初始选中的日期
@@ -121,6 +183,16 @@ const props = defineProps({
   duration: {
     type: String,
     default: '0.3s'
+  },
+  // 是否显示搜索框
+  showSearch: {
+    type: Boolean,
+    default: true
+  },
+  // 搜索框占位符
+  searchPlaceholder: {
+    type: String,
+    default: '输入日期描述，如"明天"、"下周五"、"本月所有周末"'
   }
 })
 
@@ -154,6 +226,79 @@ const markerDateList = computed(() =>
     color: typeof item === 'object' && item.color ? item.color : 'var(--calendar-theme-color)'
   }))
 )
+
+// 搜索相关状态
+const searchQuery = ref('')
+const searchResult = ref({ dates: [], description: '', success: false })
+const currentSearchMonthIndex = ref(0)
+
+// 搜索相关计算属性
+const isSearchActive = computed(() => {
+  return searchResult.value.dates.length > 0
+})
+
+const searchMonths = computed(() => {
+  return getMonthsWithMatches(searchResult.value.dates)
+})
+
+// 监听搜索结果变化，自动跳转到第一个匹配月份
+watch(searchResult, (newResult) => {
+  if (newResult.dates.length > 0) {
+    currentSearchMonthIndex.value = 0
+    const firstMatchDate = newResult.dates[0]
+    changePageTo(firstMatchDate)
+  }
+  emit('search-change', newResult)
+})
+
+// 搜索相关方法
+function onSearchInput() {
+  if (!searchQuery.value.trim()) {
+    clearSearch()
+    return
+  }
+}
+
+function onSearchSubmit() {
+  if (!searchQuery.value.trim()) {
+    clearSearch()
+    return
+  }
+
+  const result = parseDateQuery(searchQuery.value, new Date(), weekStart.value)
+  searchResult.value = result
+}
+
+function clearSearch() {
+  searchQuery.value = ''
+  searchResult.value = { dates: [], description: '', success: false }
+  currentSearchMonthIndex.value = 0
+}
+
+function isSearchMatched(date) {
+  if (!isSearchActive.value) return false
+  return isDateInArray(date, searchResult.value.dates)
+}
+
+function goToPrevSearchMonth() {
+  if (currentSearchMonthIndex.value > 0) {
+    currentSearchMonthIndex.value--
+    const month = searchMonths.value[currentSearchMonthIndex.value]
+    if (month) {
+      changePageTo(new Date(month.year, month.month, 1))
+    }
+  }
+}
+
+function goToNextSearchMonth() {
+  if (currentSearchMonthIndex.value < searchMonths.value.length - 1) {
+    currentSearchMonthIndex.value++
+    const month = searchMonths.value[currentSearchMonthIndex.value]
+    if (month) {
+      changePageTo(new Date(month.year, month.month, 1))
+    }
+  }
+}
 
 // 监听滑动事件
 const { lengthX } = useSwipe(swipeRef, {
@@ -241,6 +386,14 @@ defineExpose({
   // 切换日历页
   changePageTo,
   // 切换选中日期
-  changeSelectedDate
+  changeSelectedDate,
+  // 搜索日期
+  search: onSearchSubmit,
+  // 清除搜索
+  clearSearch,
+  // 当前搜索结果
+  searchResult,
+  // 搜索查询
+  searchQuery
 })
 </script>
