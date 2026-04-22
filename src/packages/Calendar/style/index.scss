@@ -1,8 +1,10 @@
 @use './variable.scss';
+@use './season.scss';
 
 .ohhh-calendar-container {
   -webkit-tap-highlight-color: transparent;
   background: var(--calendar-background);
+  position: relative;
   font-family:
     Open Sans,
     -apple-system,
@@ -42,6 +44,7 @@
   margin: 0 auto;
   font-size: var(--calendar-toolbar-font-size);
   font-weight: 500;
+  color: var(--calendar-toolbar-text-color);
 }
 
 .ohhh-calendar-weekdays {

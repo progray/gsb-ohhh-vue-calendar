@@ -1,13 +1,36 @@
 <template>
   <div
     class="ohhh-calendar-container"
+    :class="[
+      enableSeasonTheme ? `season-${currentSeason}` : '',
+      isSeasonTransitioning ? 'season-transitioning' : ''
+    ]"
     :style="{
       '--calendar-rows': renderRows,
       '--calendar-transition-duration': duration,
       '--translate-distance': transformDistance,
-      '--transition-duration': transitionDuration
+      '--transition-duration': transitionDuration,
+      ...customThemeStyle
     }"
   >
+    <div
+      v-if="enableSeasonTheme"
+      class="season-background"
+      :class="[currentSeason, 'current']"
+    />
+
+    <div
+      v-if="enableSeasonTheme && prevSeason"
+      class="season-background"
+      :class="[prevSeason, 'prev']"
+    />
+
+    <div
+      v-if="enableSeasonTheme && nextSeason"
+      class="season-background"
+      :class="[nextSeason, 'next']"
+    />
+
     <!-- 顶部工具栏 -->
     <div v-if="showToolbar" class="ohhh-calendar-toolbar">
       <slot name="toolbar" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
@@ -71,15 +94,16 @@
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref, watch } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
 import { isSameDay, createWeekdays } from './utils'
 import { icons } from './utils/icons.js'
+import { getSeasonByMonth, isSameSeason, defaultSeasonThemes, SEASONS } from './utils/season.js'
 
 const swipeRef = useTemplateRef('swp')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'season-change'])
 
 const props = defineProps({
   // 初始选中的日期
@@ -121,10 +145,40 @@ const props = defineProps({
   duration: {
     type: String,
     default: '0.3s'
+  },
+  // 是否启用四季主题
+  enableSeasonTheme: {
+    type: Boolean,
+    default: false
+  },
+  // 季节过渡动画时长
+  seasonTransitionDuration: {
+    type: String,
+    default: '0.6s'
+  },
+  // 自定义春季主题
+  springTheme: {
+    type: Object,
+    default: () => ({})
+  },
+  // 自定义夏季主题
+  summerTheme: {
+    type: Object,
+    default: () => ({})
+  },
+  // 自定义秋季主题
+  autumnTheme: {
+    type: Object,
+    default: () => ({})
+  },
+  // 自定义冬季主题
+  winterTheme: {
+    type: Object,
+    default: () => ({})
   }
 })
 
-const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration } = toRefs(props)
+const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration, enableSeasonTheme, seasonTransitionDuration, springTheme, summerTheme, autumnTheme, winterTheme } = toRefs(props)
 
 const {
   selected,
@@ -142,6 +196,103 @@ const {
   onTransitionEnd,
   toggleViewMode
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
+
+// 上一个季节
+const prevSeason = ref(null)
+// 当前季节
+const currentSeason = ref(null)
+// 下一个季节
+const nextSeason = ref(null)
+// 是否正在进行季节过渡动画
+const isSeasonTransitioning = ref(false)
+
+// 合并自定义主题
+const mergedThemes = computed(() => {
+  return {
+    [SEASONS.SPRING]: { ...defaultSeasonThemes[SEASONS.SPRING], ...springTheme.value },
+    [SEASONS.SUMMER]: { ...defaultSeasonThemes[SEASONS.SUMMER], ...summerTheme.value },
+    [SEASONS.AUTUMN]: { ...defaultSeasonThemes[SEASONS.AUTUMN], ...autumnTheme.value },
+    [SEASONS.WINTER]: { ...defaultSeasonThemes[SEASONS.WINTER], ...winterTheme.value }
+  }
+})
+
+// 自定义主题样式
+const customThemeStyle = computed(() => {
+  if (!enableSeasonTheme.value || !currentSeason.value) return {}
+
+  const theme = mergedThemes.value[currentSeason.value]
+  const style = {}
+
+  if (theme.themeColor) {
+    style['--calendar-theme-color'] = theme.themeColor
+  }
+  if (theme.themeColorLight) {
+    style['--calendar-theme-color-light'] = theme.themeColorLight
+  }
+  if (theme.textColorLevel1) {
+    style['--calendar-text-color-level-1'] = theme.textColorLevel1
+    style['--calendar-toolbar-text-color'] = theme.textColorLevel1
+    style['--calendar-weekdays-color'] = theme.textColorLevel1
+    style['--calendar-days-value-color'] = theme.textColorLevel1
+  }
+  if (theme.textColorLevel2) {
+    style['--calendar-text-color-level-2'] = theme.textColorLevel2
+    style['--calendar-days-label-color'] = theme.textColorLevel2
+  }
+  if (theme.textColorLevel3) {
+    style['--calendar-text-color-level-3'] = theme.textColorLevel3
+    style['--calendar-icon-color'] = theme.textColorLevel3
+    style['--calendar-toolbar-icon-color'] = theme.textColorLevel3
+    style['--calendar-footer-icon-color'] = theme.textColorLevel3
+  }
+  if (theme.textColorLevel4) {
+    style['--calendar-text-color-level-4'] = theme.textColorLevel4
+  }
+  if (theme.textColorLevel5) {
+    style['--calendar-text-color-level-5'] = theme.textColorLevel5
+    style['--calendar-days-other-month-color'] = theme.textColorLevel5
+  }
+
+  return style
+})
+
+// 初始化当前季节
+function _initSeason() {
+  currentSeason.value = getSeasonByMonth(currentMonth.value)
+}
+
+_initSeason()
+
+// 监听月份变化，处理季节切换
+watch(currentMonth, (newMonth, oldMonth) => {
+  if (!enableSeasonTheme.value) return
+
+  const newSeason = getSeasonByMonth(newMonth)
+  const oldSeason = getSeasonByMonth(oldMonth)
+
+  if (newSeason !== oldSeason) {
+    prevSeason.value = oldSeason
+    nextSeason.value = newSeason
+    isSeasonTransitioning.value = true
+
+    emit('season-change', {
+      from: oldSeason,
+      to: newSeason,
+      fromMonth: oldMonth + 1,
+      toMonth: newMonth + 1
+    })
+
+    const durationMs = parseFloat(seasonTransitionDuration.value) * 1000
+    setTimeout(() => {
+      currentSeason.value = newSeason
+      isSeasonTransitioning.value = false
+      prevSeason.value = null
+      nextSeason.value = null
+    }, durationMs)
+  } else {
+    currentSeason.value = newSeason
+  }
+})
 
 // 顶部工具栏标题
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
