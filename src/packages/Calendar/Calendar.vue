@@ -8,12 +8,28 @@
       '--transition-duration': transitionDuration
     }"
   >
+    <!-- 波形动画背景 -->
+    <WaveAnimation 
+      v-if="showWaveAnimation && currentHourlyData"
+      :hourly-data="currentHourlyData"
+      :data-type="weatherDataType"
+      :show-info="true"
+      :animation-speed="1"
+      class="wave-animation-bg"
+    />
+
     <!-- 顶部工具栏 -->
     <div v-if="showToolbar" class="ohhh-calendar-toolbar">
       <slot name="toolbar" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
         <div v-html="icons.arrowDoubleLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-year')" />
         <div v-html="icons.arrowLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-page')" />
         <div class="ohhh-calendar-toolbar--text">{{ headerLabel }}</div>
+        <!-- 天气类型选择器 -->
+        <WeatherTypeSelector 
+          v-if="enableWeather"
+          v-model="weatherDataType"
+          class="weather-type-selector-wrapper"
+        />
         <div v-html="icons.arrowRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-page')" />
         <div v-html="icons.arrowDoubleRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-year')" />
       </slot>
@@ -42,9 +58,10 @@
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'has-weather-data': enableWeather && hasWeatherDataForDate(dateObj.date)
           }"
-          @click="changeSelectedDate(dateObj.date)"
+          @click="handleDateClick(dateObj)"
         >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
@@ -71,60 +88,75 @@
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref, watch, onMounted, nextTick } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
 import { isSameDay, createWeekdays } from './utils'
 import { icons } from './utils/icons.js'
+import WaveAnimation from './components/WaveAnimation.vue'
+import WeatherTypeSelector from './components/WeatherTypeSelector.vue'
+import {
+  fetchWeatherData,
+  processWeatherData,
+  getHourlyDataForDate
+} from './services/weatherService.js'
 
 const swipeRef = useTemplateRef('swp')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'weather-change'])
 
 const props = defineProps({
-  // 初始选中的日期
   initialSelectedDate: {
     type: Date,
     default: () => new Date()
   },
-  // 初始视图模式
   initialViewMode: {
     type: String,
-    default: 'month' // month or week
+    default: 'month'
   },
-  // 以周几作为每周的起始
   weekStart: {
     type: Number,
-    default: 0 // 0: Sunday, 1: Monday, etc.
+    default: 0
   },
-  // 标记的日期
   markerDates: {
     type: Array,
     default: () => []
   },
-  // 是否显示顶部工具栏
   showToolbar: {
     type: Boolean,
     default: true
   },
-  // 是否显示底部工具栏
   showFooter: {
     type: Boolean,
     default: true
   },
-  // 是否显示weekdays栏
   showWeekdays: {
     type: Boolean,
     default: true
   },
-  // 过渡动画时长
   duration: {
     type: String,
     default: '0.3s'
+  },
+  enableWeather: {
+    type: Boolean,
+    default: true
+  },
+  showWaveAnimation: {
+    type: Boolean,
+    default: true
+  },
+  weatherCoordinates: {
+    type: Object,
+    default: () => ({ latitude: 39.9042, longitude: 116.4074 })
+  },
+  forecastDays: {
+    type: Number,
+    default: 16
   }
 })
 
-const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration } = toRefs(props)
+const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration, weatherCoordinates, forecastDays } = toRefs(props)
 
 const {
   selected,
@@ -143,11 +175,13 @@ const {
   toggleViewMode
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
 
-// 顶部工具栏标题
+const weatherDataType = ref('temperature')
+const weatherData = ref(null)
+const currentHourlyData = ref(null)
+const isLoadingWeather = ref(false)
+
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
-// 星期栏
 const weekdays = createWeekdays(weekStart.value)
-// 标记日期
 const markerDateList = computed(() =>
   markerDates.value.map(item => ({
     date: new Date(typeof item === 'object' && item.date ? item.date : item),
@@ -155,16 +189,12 @@ const markerDateList = computed(() =>
   }))
 )
 
-// 监听滑动事件
 const { lengthX } = useSwipe(swipeRef, {
-  // 滑动阈值
   threshold: 0,
-  // 手指滑动过程中
   onSwipe: () => {
     if (isInTransition.value) return
     transformDistance.value = -lengthX.value + 'px'
   },
-  // 手指抬起滑动结束，开始滑动动画
   onSwipeEnd: (_, direction) => {
     if (isInTransition.value) return
     if (direction === 'left') {
@@ -172,14 +202,66 @@ const { lengthX } = useSwipe(swipeRef, {
     } else if (direction === 'right') {
       changePageTo('prev-page')
     } else {
-      // 如果方向不是左右，则将页面复位
       startTransitionAnimation(direction)
     }
   }
 })
 
-// 归一化参数
-// 支持 'prev-page', 'next-page', 'prev-year', 'next-year', 以及合法的日期
+async function loadWeatherData() {
+  if (!props.enableWeather) return
+  
+  isLoadingWeather.value = true
+  try {
+    const rawData = await fetchWeatherData(weatherCoordinates.value, forecastDays.value)
+    if (rawData) {
+      weatherData.value = processWeatherData(rawData)
+      emit('weather-change', weatherData.value)
+      
+      if (selected.value) {
+        updateHourlyDataForDate(selected.value)
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load weather data:', error)
+  } finally {
+    isLoadingWeather.value = false
+  }
+}
+
+function hasWeatherDataForDate(date) {
+  if (!weatherData.value || !weatherData.value.dates) return false
+  
+  const dateStr = formatDateString(date)
+  return weatherData.value.dates.includes(dateStr)
+}
+
+function formatDateString(date) {
+  const d = new Date(date)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function updateHourlyDataForDate(date) {
+  if (!weatherData.value) return
+  
+  const dateStr = formatDateString(date)
+  const hourlyData = getHourlyDataForDate(weatherData.value, dateStr)
+  
+  if (hourlyData) {
+    currentHourlyData.value = hourlyData
+  }
+}
+
+function handleDateClick(dateObj) {
+  changeSelectedDate(dateObj.date)
+  
+  if (props.enableWeather && props.showWaveAnimation) {
+    updateHourlyDataForDate(dateObj.date)
+  }
+}
+
 function _normalize(param) {
   if (!param) {
     throw new Error('参数不能为空')
@@ -215,13 +297,11 @@ function _normalize(param) {
   throw new Error('日期不合法')
 }
 
-// 切换日历页面
 function changePageTo(param) {
   const targetDate = _normalize(param)
   switchPageToTargetDate(targetDate)
 }
 
-// 切换选中的日期
 function changeSelectedDate(date) {
   changePageTo(date)
   if (!isSameDay(new Date(date), selected.value)) {
@@ -230,17 +310,54 @@ function changeSelectedDate(date) {
   }
 }
 
-// 获取 marker 颜色
 function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
+watch(() => props.weatherCoordinates, () => {
+  loadWeatherData()
+}, { deep: true })
+
+watch(() => props.enableWeather, (newVal) => {
+  if (newVal && !weatherData.value) {
+    loadWeatherData()
+  }
+})
+
+watch(selected, (newDate) => {
+  if (props.enableWeather && props.showWaveAnimation) {
+    updateHourlyDataForDate(newDate)
+  }
+})
+
+onMounted(() => {
+  if (props.enableWeather) {
+    loadWeatherData()
+  }
+})
+
 defineExpose({
-  // 切换周/月视图
   toggleViewMode,
-  // 切换日历页
   changePageTo,
-  // 切换选中日期
-  changeSelectedDate
+  changeSelectedDate,
+  loadWeatherData,
+  getWeatherData: () => weatherData.value,
+  getCurrentHourlyData: () => currentHourlyData.value
 })
 </script>
+
+<style scoped>
+.wave-animation-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.weather-type-selector-wrapper {
+  margin-left: 8px;
+}
+</style>
