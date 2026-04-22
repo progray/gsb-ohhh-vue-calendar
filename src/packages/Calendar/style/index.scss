@@ -249,7 +249,14 @@
   box-shadow: 0 0 0 2px var(--calendar-search-matched-background);
 }
 .ohhh-calendar-day.is-search-matched.is-today .ohhh-calendar-day--inner {
-  border: 2px solid var(--calendar-days-today-color);
+  background: var(--calendar-search-matched-background);
+  border: 3px solid var(--calendar-days-today-color);
+  box-sizing: border-box;
+}
+.ohhh-calendar-day.is-search-matched.is-today .ohhh-calendar-day--inner-value,
+.ohhh-calendar-day.is-search-matched.is-today .ohhh-calendar-day--inner-label {
+  color: var(--calendar-search-matched-color);
+  font-weight: 600;
 }
 
 .ohhh-calendar-day.is-search-unmatched {

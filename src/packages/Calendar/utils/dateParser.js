@@ -101,8 +101,72 @@ function parseNumber(str) {
 
 const PARSERS = [
   {
+    name: '上周的今天/上周今天',
+    pattern: /上周的?今天/,
+    parse: (baseDate) => {
+      const start = addDays(baseDate, -7)
+      return { type: 'range', start, end: cloneDate(start), description: '上周今天' }
+    }
+  },
+  {
+    name: '下周的今天/下周今天',
+    pattern: /下周的?今天/,
+    parse: (baseDate) => {
+      const start = addDays(baseDate, 7)
+      return { type: 'range', start, end: cloneDate(start), description: '下周今天' }
+    }
+  },
+  {
+    name: '上个月的今天/上月今天',
+    pattern: /上[个]?月的?今天/,
+    parse: (baseDate) => {
+      const start = addMonths(baseDate, -1)
+      return { type: 'range', start, end: cloneDate(start), description: '上月今天' }
+    }
+  },
+  {
+    name: '下个月的今天/下月今天',
+    pattern: /下[个]?月的?今天/,
+    parse: (baseDate) => {
+      const start = addMonths(baseDate, 1)
+      return { type: 'range', start, end: cloneDate(start), description: '下月今天' }
+    }
+  },
+  {
+    name: '上周的星期X',
+    pattern: /上周的[个]?(?:星期|周|礼拜)?[一二三四五六日天]/,
+    parse: (baseDate, weekStart, str) => {
+      const weekdayInfo = parseWeekday(str)
+      if (!weekdayInfo) return null
+      const targetWeekday = weekdayInfo.weekdays[0]
+      const weekDay = baseDate.getDay()
+      const offsetToStart = (weekDay - weekStart + 7) % 7
+      const thisWeekStart = addDays(baseDate, -offsetToStart)
+      const lastWeekStart = addDays(thisWeekStart, -7)
+      const daysToAdd = (targetWeekday - weekStart + 7) % 7
+      const start = addDays(lastWeekStart, daysToAdd)
+      return { type: 'range', start, end: cloneDate(start), description: `上周${WEEKDAY_NAMES[targetWeekday]}` }
+    }
+  },
+  {
+    name: '下周的星期X',
+    pattern: /下周的[个]?(?:星期|周|礼拜)?[一二三四五六日天]/,
+    parse: (baseDate, weekStart, str) => {
+      const weekdayInfo = parseWeekday(str)
+      if (!weekdayInfo) return null
+      const targetWeekday = weekdayInfo.weekdays[0]
+      const weekDay = baseDate.getDay()
+      const offsetToStart = (weekDay - weekStart + 7) % 7
+      const thisWeekStart = addDays(baseDate, -offsetToStart)
+      const nextWeekStart = addDays(thisWeekStart, 7)
+      const daysToAdd = (targetWeekday - weekStart + 7) % 7
+      const start = addDays(nextWeekStart, daysToAdd)
+      return { type: 'range', start, end: cloneDate(start), description: `下周${WEEKDAY_NAMES[targetWeekday]}` }
+    }
+  },
+  {
     name: '今天',
-    pattern: /今天|今日/,
+    pattern: /^今天$|^今日$/,
     parse: (baseDate) => {
       const start = cloneDate(baseDate)
       return { type: 'range', start, end: cloneDate(start), description: '今天' }
@@ -110,7 +174,7 @@ const PARSERS = [
   },
   {
     name: '明天',
-    pattern: /明天|明日/,
+    pattern: /^明天$|^明日$/,
     parse: (baseDate) => {
       const start = addDays(baseDate, 1)
       return { type: 'range', start, end: cloneDate(start), description: '明天' }
@@ -118,7 +182,7 @@ const PARSERS = [
   },
   {
     name: '后天',
-    pattern: /后天/,
+    pattern: /^后天$/,
     parse: (baseDate) => {
       const start = addDays(baseDate, 2)
       return { type: 'range', start, end: cloneDate(start), description: '后天' }
@@ -126,7 +190,7 @@ const PARSERS = [
   },
   {
     name: '昨天',
-    pattern: /昨天|昨日/,
+    pattern: /^昨天$|^昨日$/,
     parse: (baseDate) => {
       const start = addDays(baseDate, -1)
       return { type: 'range', start, end: cloneDate(start), description: '昨天' }
@@ -134,7 +198,7 @@ const PARSERS = [
   },
   {
     name: '前天',
-    pattern: /前天/,
+    pattern: /^前天$/,
     parse: (baseDate) => {
       const start = addDays(baseDate, -2)
       return { type: 'range', start, end: cloneDate(start), description: '前天' }
