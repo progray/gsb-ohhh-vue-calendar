@@ -90,8 +90,16 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
   }
 
   // 切换视图模式
-  function toggleViewMode() {
-    viewMode.value = viewMode.value === 'week' ? 'month' : 'week'
+  // 如果提供了 targetView，则直接切换到目标视图；否则在两种视图之间切换
+  function toggleViewMode(targetView) {
+    if (targetView && (targetView === 'month' || targetView === 'week')) {
+      if (viewMode.value === targetView) {
+        return
+      }
+      viewMode.value = targetView
+    } else {
+      viewMode.value = viewMode.value === 'week' ? 'month' : 'week'
+    }
     renderRows.value = currentRenderRows.value
     _setWeekIndex()
     emit('view-change', viewMode.value)

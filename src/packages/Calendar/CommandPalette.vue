@@ -56,8 +56,8 @@
               :class="{ 'is-selected': selectedIndex === index }"
               role="option"
               :aria-selected="selectedIndex === index"
-              @click="executeCommand(command)"
-              @mouseenter="selectedIndex = index"
+              @click="handleCommandClick(command)"
+              @mouseenter="handleItemMouseEnter(index)"
             >
               <div class="ohhh-command-palette-item-icon">
                 <svg v-if="command.type === 'viewSwitch'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -109,7 +109,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import { searchCommands, executeCommand } from './utils/commandPalette.js'
+import { searchCommands, executeCommand as executeCalendarCommand } from './utils/commandPalette.js'
 
 const props = defineProps({
   calendarRef: {
@@ -276,9 +276,22 @@ function scrollToSelectedItem() {
 function executeSelectedCommand() {
   if (filteredCommands.value.length === 0) return
   const command = filteredCommands.value[selectedIndex.value]
-  executeCommand(command, props.calendarRef)
+  executeCalendarCommand(command, props.calendarRef)
   emit('command-executed', command)
   closePalette()
+}
+
+function handleCommandClick(command) {
+  executeCalendarCommand(command, props.calendarRef)
+  emit('command-executed', command)
+  closePalette()
+}
+
+function handleItemMouseEnter(index) {
+  selectedIndex.value = index
+  if (searchInputRef.value) {
+    searchInputRef.value.focus()
+  }
 }
 
 function handleGlobalKeyDown(event) {

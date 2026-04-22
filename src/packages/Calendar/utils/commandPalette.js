@@ -230,7 +230,7 @@ function executeCommand(command, calendarRef) {
   switch (command.type) {
     case COMMAND_TYPES.VIEW_SWITCH:
       if (typeof calendarInstance.toggleViewMode === 'function') {
-        calendarInstance.toggleViewMode()
+        calendarInstance.toggleViewMode(command.target)
       }
       return true
 
