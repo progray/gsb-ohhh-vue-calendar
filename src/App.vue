@@ -1,12 +1,14 @@
 <template>
   <div class="app-container">
     <ohhh-vue-calendar ref="calendarRef" :week-start="1" :markerDates @select-change="onSelectChange" />
+    <CommandPalette :calendarRef="calendarRef" @command-executed="onCommandExecuted" />
   </div>
 </template>
 
 <script setup>
 import { useTemplateRef } from 'vue'
 import OhhhVueCalendar from './packages/Calendar/Calendar.vue'
+import CommandPalette from './packages/Calendar/CommandPalette.vue'
 import '/src/packages/Calendar/style/mobile/mobile.scss'
 
 const calendarRef = useTemplateRef('calendarRef')
@@ -23,6 +25,10 @@ const markerDates = [
 ]
 
 function onSelectChange(date) {
-  console.log(date)
+  console.log('日期选中:', date)
+}
+
+function onCommandExecuted(command) {
+  console.log('命令执行:', command)
 }
 </script>
