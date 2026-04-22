@@ -166,7 +166,7 @@ const PARSERS = [
   },
   {
     name: '今天',
-    pattern: /^今天$|^今日$/,
+    pattern: /今天|今日/,
     parse: (baseDate) => {
       const start = cloneDate(baseDate)
       return { type: 'range', start, end: cloneDate(start), description: '今天' }
@@ -174,7 +174,7 @@ const PARSERS = [
   },
   {
     name: '明天',
-    pattern: /^明天$|^明日$/,
+    pattern: /明天|明日/,
     parse: (baseDate) => {
       const start = addDays(baseDate, 1)
       return { type: 'range', start, end: cloneDate(start), description: '明天' }
@@ -182,7 +182,7 @@ const PARSERS = [
   },
   {
     name: '后天',
-    pattern: /^后天$/,
+    pattern: /后天/,
     parse: (baseDate) => {
       const start = addDays(baseDate, 2)
       return { type: 'range', start, end: cloneDate(start), description: '后天' }
@@ -190,7 +190,7 @@ const PARSERS = [
   },
   {
     name: '昨天',
-    pattern: /^昨天$|^昨日$/,
+    pattern: /昨天|昨日/,
     parse: (baseDate) => {
       const start = addDays(baseDate, -1)
       return { type: 'range', start, end: cloneDate(start), description: '昨天' }
@@ -198,7 +198,7 @@ const PARSERS = [
   },
   {
     name: '前天',
-    pattern: /^前天$/,
+    pattern: /前天/,
     parse: (baseDate) => {
       const start = addDays(baseDate, -2)
       return { type: 'range', start, end: cloneDate(start), description: '前天' }
@@ -206,7 +206,7 @@ const PARSERS = [
   },
   {
     name: '本周',
-    pattern: /^本周$/,
+    pattern: /本周/,
     parse: (baseDate, weekStart) => {
       const weekDay = baseDate.getDay()
       const offsetToStart = (weekDay - weekStart + 7) % 7
@@ -217,7 +217,7 @@ const PARSERS = [
   },
   {
     name: '下周',
-    pattern: /^下周$/,
+    pattern: /下周/,
     parse: (baseDate, weekStart) => {
       const weekDay = baseDate.getDay()
       const offsetToStart = (weekDay - weekStart + 7) % 7
@@ -229,7 +229,7 @@ const PARSERS = [
   },
   {
     name: '上周',
-    pattern: /^上周$/,
+    pattern: /上周/,
     parse: (baseDate, weekStart) => {
       const weekDay = baseDate.getDay()
       const offsetToStart = (weekDay - weekStart + 7) % 7
@@ -241,7 +241,7 @@ const PARSERS = [
   },
   {
     name: '下N周',
-    pattern: /下[一两三四五六七八九十\d]+周$/,
+    pattern: /下[一两三四五六七八九十\d]+周/,
     parse: (baseDate, weekStart, str) => {
       const num = parseNumber(str) || 1
       const weekDay = baseDate.getDay()
@@ -254,7 +254,7 @@ const PARSERS = [
   },
   {
     name: '本月',
-    pattern: /^本月$/,
+    pattern: /本月/,
     parse: (baseDate) => {
       const start = getMonthStart(baseDate)
       const end = getMonthEnd(baseDate)
@@ -263,7 +263,7 @@ const PARSERS = [
   },
   {
     name: '下月',
-    pattern: /^下月$|^下个月$/,
+    pattern: /下月|下个月/,
     parse: (baseDate) => {
       const start = getNextMonthStart(baseDate)
       const end = getMonthEnd(start)
@@ -272,7 +272,7 @@ const PARSERS = [
   },
   {
     name: '上月',
-    pattern: /^上月$|^上个月$/,
+    pattern: /上月|上个月/,
     parse: (baseDate) => {
       const end = getPrevMonthEnd(baseDate)
       const start = getMonthStart(end)
@@ -281,7 +281,7 @@ const PARSERS = [
   },
   {
     name: '本季度',
-    pattern: /^本季度$/,
+    pattern: /本季度/,
     parse: (baseDate) => {
       const quarter = Math.floor(baseDate.getMonth() / 3)
       const start = new Date(baseDate.getFullYear(), quarter * 3, 1)
@@ -291,7 +291,7 @@ const PARSERS = [
   },
   {
     name: '今年',
-    pattern: /^今年$/,
+    pattern: /今年/,
     parse: (baseDate) => {
       const start = new Date(baseDate.getFullYear(), 0, 1)
       const end = new Date(baseDate.getFullYear(), 11, 31)
@@ -300,7 +300,7 @@ const PARSERS = [
   },
   {
     name: '明年',
-    pattern: /^明年$/,
+    pattern: /明年/,
     parse: (baseDate) => {
       const start = new Date(baseDate.getFullYear() + 1, 0, 1)
       const end = new Date(baseDate.getFullYear() + 1, 11, 31)
@@ -309,7 +309,7 @@ const PARSERS = [
   },
   {
     name: '去年',
-    pattern: /^去年$/,
+    pattern: /去年/,
     parse: (baseDate) => {
       const start = new Date(baseDate.getFullYear() - 1, 0, 1)
       const end = new Date(baseDate.getFullYear() - 1, 11, 31)
