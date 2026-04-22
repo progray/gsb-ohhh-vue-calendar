@@ -65,15 +65,20 @@
 .ohhh-calendar-wrapper {
   position: relative;
   overflow: hidden;
-  height: calc(var(--calendar-rows) * var(--calendar-row-height));
+  padding-top: 15px;
+  height: calc(var(--calendar-rows) * var(--calendar-row-height) + 15px);
   transition: height var(--calendar-transition-duration) ease;
   z-index: 1;
+  box-sizing: border-box;
 }
 .ohhh-calendar-days {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   position: absolute;
-  inset: 0;
+  top: 15px;
+  left: 0;
+  right: 0;
+  bottom: 0;
   width: 100%;
   transform: translate3d(var(--translate-distance), 0, 0);
   transition: transform var(--transition-duration) ease;
