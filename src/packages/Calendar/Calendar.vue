@@ -232,17 +232,17 @@ const props = defineProps({
   // 光影残留数量基准
   trailCount: {
     type: Number,
-    default: 15
+    default: 8
   },
   // 火花生成频率（每帧生成概率 0-1）
   sparkRate: {
     type: Number,
-    default: 0.3
+    default: 0.15
   },
   // 最大火花数量
   maxSparks: {
     type: Number,
-    default: 30
+    default: 6
   }
 })
 
@@ -357,7 +357,7 @@ function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
-// ==================== 火把光迹效果相关逻辑（增强版） ====================
+// ==================== 火把光迹效果相关逻辑（性能优化版） ====================
 
 // 火把是否激活
 const isTorchActive = ref(false)
@@ -390,6 +390,29 @@ let animationTime = 0
 // 格子余烬状态映射（记录每个格子的余烬状态）
 const emberStates = shallowRef(new Map())
 
+// ==================== 性能优化相关状态 ====================
+
+// 节流计数器（每 N 帧执行一次某些操作）
+let frameCounter = 0
+// 上一次计算的火把位置（用于检测是否需要重新计算照亮）
+let lastTorchX = 0
+let lastTorchY = 0
+// 日期格子照亮样式缓存（避免每帧计算所有格子）
+const dayGlowStyles = shallowRef(new Map())
+// 预计算的随机相位（用于简化的噪声计算）
+const randPhases = {
+  coreX: Math.random() * Math.PI * 2,
+  coreY: Math.random() * Math.PI * 2,
+  midX: Math.random() * Math.PI * 2,
+  midY: Math.random() * Math.PI * 2,
+  outerX: Math.random() * Math.PI * 2,
+  outerY: Math.random() * Math.PI * 2
+}
+// 容器引用缓存
+let containerCachedRect = null
+// 日期格子位置缓存（key -> {x, y, width, height}）
+const dayPositionsCache = new Map()
+
 // 多层光团的实时参数（响应式）
 const coreOffsetX = ref(0)
 const coreOffsetY = ref(0)
@@ -406,59 +429,21 @@ const outerOffsetY = ref(0)
 const outerScale = ref(1)
 const outerOpacity = ref(1)
 
-// ==================== 数学工具函数 ====================
+// ==================== 简化的数学工具函数（性能优化） ====================
 
-// 伪随机数生成器（基于种子）
-function _sfc32(a, b, c, d) {
-  return function () {
-    a >>>= 0; b >>>= 0; c >>>= 0; d >>>= 0
-    let t = (a + b) | 0
-    a = b ^ (b >>> 9)
-    b = (c + (c << 3)) | 0
-    c = (c << 21) | (c >>> 11)
-    d = (d + 1) | 0
-    t = (t + d) | 0
-    c = (c + t) | 0
-    return (t >>> 0) / 4294967296
-  }
-}
-
-// 简单噪声函数（用于模拟火焰扰动）
-function _noise(x, y, seed = 12345) {
-  const prng = _sfc32(seed + x * 1000, seed + y * 1000, seed + x, seed + y)
-  return prng() * 2 - 1 // 返回 -1 到 1 之间的值
-}
-
-// 平滑噪声（通过多层叠加）
-function _smoothNoise(x, y, octaves = 3, persistence = 0.5, lacunarity = 2) {
-  let total = 0
-  let frequency = 1
-  let amplitude = 1
-  let maxValue = 0
-
-  for (let i = 0; i < octaves; i++) {
-    total += _noise(x * frequency, y * frequency, i * 1000) * amplitude
-    maxValue += amplitude
-    amplitude *= persistence
-    frequency *= lacunarity
-  }
-
-  return total / maxValue
-}
-
-// 范围映射
+// 范围映射（保留）
 function _map(value, inMin, inMax, outMin, outMax) {
   return (value - inMin) * (outMax - outMin) / (inMax - inMin) + outMin
 }
 
-// 指数衰减曲线（先快后慢）
-function _expDecay(t, halfLife = 0.3) {
-  return Math.exp(-Math.log(2) * t / halfLife)
-}
-
-// 幂函数衰减曲线（先快后慢，更自然）
+// 幂函数衰减曲线（保留，用于自然的先快后慢衰减）
 function _powerDecay(t, power = 1.5) {
   return Math.max(0, 1 - Math.pow(t, power))
+}
+
+// 计算两点距离（保留）
+function _getDistance(x1, y1, x2, y2) {
+  return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2))
 }
 
 // ==================== 核心逻辑 ====================
@@ -467,24 +452,28 @@ function _powerDecay(t, power = 1.5) {
 function setDayRef(key, el) {
   if (el) {
     dayRefs.value.set(key, el)
+    // 清除位置缓存，下次计算时重新获取
+    dayPositionsCache.delete(key)
   } else {
     dayRefs.value.delete(key)
+    dayPositionsCache.delete(key)
   }
 }
 
-// 计算两点之间的距离
-function _getDistance(x1, y1, x2, y2) {
-  return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2))
+// 清除所有缓存（在页面切换或窗口 resize 时调用）
+function _clearAllCaches() {
+  containerCachedRect = null
+  dayPositionsCache.clear()
 }
 
-// 更新多层光团的扰动（火焰感核心）
+// 更新多层光团的扰动（性能优化版：用简单的 sin/cos 组合替代复杂噪声）
 function _updateTorchLayers() {
   const t = animationTime * 0.016 // 约 60fps 的时间步
 
   // ========== 核心层（最亮、最小、最快抖动） ==========
-  // 高频小幅度抖动
-  const coreNoiseX = _smoothNoise(t * 8, 0, 2, 0.5, 2)
-  const coreNoiseY = _smoothNoise(1000 + t * 8, 0, 2, 0.5, 2)
+  // 用 sin 组合替代复杂噪声
+  const coreNoiseX = Math.sin(t * 8 + randPhases.coreX) * 0.6 + Math.sin(t * 15 + randPhases.coreY) * 0.4
+  const coreNoiseY = Math.sin(t * 9 + randPhases.coreY) * 0.6 + Math.sin(t * 16 + randPhases.coreX) * 0.4
 
   coreOffsetX.value = coreNoiseX * 8 // 小幅度
   coreOffsetY.value = coreNoiseY * 8 - 5 // 稍微向上偏移（火焰向上）
@@ -494,12 +483,12 @@ function _updateTorchLayers() {
   coreScale.value = corePulse
 
   // 核心层透明度（有轻微闪烁）
-  const coreFlicker = 0.95 + _noise(t * 20, 0, 123) * 0.05
+  const coreFlicker = 0.95 + Math.sin(t * 20 + randPhases.coreX) * 0.05
   coreOpacity.value = coreFlicker
 
   // ========== 中间层（中等大小、中等速度） ==========
-  const midNoiseX = _smoothNoise(t * 5, 100, 3, 0.5, 2)
-  const midNoiseY = _smoothNoise(2000 + t * 5, 100, 3, 0.5, 2)
+  const midNoiseX = Math.sin(t * 5 + randPhases.midX) * 0.7 + Math.sin(t * 11 + randPhases.midY) * 0.3
+  const midNoiseY = Math.sin(t * 6 + randPhases.midY) * 0.7 + Math.sin(t * 12 + randPhases.midX) * 0.3
 
   midOffsetX.value = midNoiseX * 15 // 中等幅度
   midOffsetY.value = midNoiseY * 15 - 10 // 向上偏移更多
@@ -509,12 +498,12 @@ function _updateTorchLayers() {
   midScale.value = midPulse
 
   // 中间层透明度
-  const midFlicker = 0.9 + _noise(t * 15, 0, 456) * 0.1
+  const midFlicker = 0.9 + Math.sin(t * 15 + randPhases.midX) * 0.1
   midOpacity.value = midFlicker
 
   // ========== 外层（最大、最慢、最暗） ==========
-  const outerNoiseX = _smoothNoise(t * 3, 200, 3, 0.6, 2)
-  const outerNoiseY = _smoothNoise(3000 + t * 3, 200, 3, 0.6, 2)
+  const outerNoiseX = Math.sin(t * 3 + randPhases.outerX) * 0.8 + Math.sin(t * 7 + randPhases.outerY) * 0.2
+  const outerNoiseY = Math.sin(t * 4 + randPhases.outerY) * 0.8 + Math.sin(t * 8 + randPhases.outerX) * 0.2
 
   outerOffsetX.value = outerNoiseX * 25 // 大幅度
   outerOffsetY.value = outerNoiseY * 25 - 15 // 向上偏移最多
@@ -524,55 +513,62 @@ function _updateTorchLayers() {
   outerScale.value = outerPulse
 
   // 外层透明度（变化更缓慢）
-  const outerFlicker = 0.85 + _noise(t * 10, 0, 789) * 0.15
+  const outerFlicker = 0.85 + Math.sin(t * 10 + randPhases.outerX) * 0.15
   outerOpacity.value = outerFlicker
 }
 
-// 生成新的火花
+// 生成新的火花（性能优化版：只有火把移动时才生成，且降低频率）
 function _spawnSparks() {
   if (sparkList.value.length >= props.maxSparks) return
-  if (Math.random() > props.sparkRate) return // 概率生成
+
+  // 只有当火把移动时才生成火花（静止时不生成）
+  const moveDistance = _getDistance(lastTorchX, lastTorchY, torchX.value, torchY.value)
+  if (moveDistance < 2) return // 几乎没移动，不生成火花
+
+  // 降低生成频率：每 3 帧才有概率生成
+  if (frameCounter % 3 !== 0) return
+  if (Math.random() > props.sparkRate) return
 
   // 火花从火焰顶部生成（稍微随机的位置）
-  const baseX = torchX.value + _map(_smoothNoise(animationTime * 0.05, 500), -1, 1, -20, 20)
-  const baseY = torchY.value - 30 + _map(_smoothNoise(animationTime * 0.05, 600), -1, 1, -15, 15)
+  // 用简单的 sin 替代复杂的 _smoothNoise
+  const baseX = torchX.value + Math.sin(animationTime * 0.08 + randPhases.coreX) * 20
+  const baseY = torchY.value - 30 + Math.sin(animationTime * 0.06 + randPhases.midX) * 15
 
-  // 随机选择火花大小类型
+  // 随机选择火花大小类型（减少类型数量，简化）
   const sizeRoll = Math.random()
   let size = 'medium'
-  if (sizeRoll < 0.5) size = 'small'
-  else if (sizeRoll < 0.8) size = 'medium'
-  else size = 'large'
+  if (sizeRoll < 0.6) size = 'small' // 更多小火花
+  else size = 'medium' // 简化为只有两种大小
 
   const newSpark = {
     id: ++sparkIdCounter,
     x: baseX,
     y: baseY,
     // 速度：向上为主，有轻微水平分量
-    vx: _map(Math.random(), 0, 1, -1.5, 1.5),
-    vy: _map(Math.random(), 0, 1, -4, -2), // 向上是负y
+    vx: _map(Math.random(), 0, 1, -1.2, 1.2),
+    vy: _map(Math.random(), 0, 1, -3.5, -1.8), // 向上是负y
     // 重力加速度（模拟真实物理）
-    gravity: 0.05,
+    gravity: 0.04,
     // 初始透明度和缩放
     opacity: 1,
     scale: 1,
-    // 生命周期（基于大小）
+    // 生命周期（简化，缩短）
     life: 0,
-    maxLife: size === 'small' ? 30 + Math.random() * 20 : size === 'large' ? 60 + Math.random() * 40 : 45 + Math.random() * 30,
+    maxLife: size === 'small' ? 25 + Math.random() * 15 : 35 + Math.random() * 20,
     // 大小类型
     size: size,
-    // 旋转角度
-    rotation: Math.random() * 360,
-    rotationSpeed: _map(Math.random(), 0, 1, -5, 5),
-    // 闪烁频率
+    // 旋转角度（简化，不使用）
+    rotation: 0,
+    rotationSpeed: 0,
+    // 闪烁（简化）
     flickerPhase: Math.random() * Math.PI * 2,
-    flickerSpeed: _map(Math.random(), 0, 1, 8, 15)
+    flickerSpeed: _map(Math.random(), 0, 1, 6, 12)
   }
 
   sparkList.value.push(newSpark)
 }
 
-// 更新火花位置和状态
+// 更新火花位置和状态（保留，但简化计算）
 function _updateSparks() {
   animationTime++
 
@@ -584,55 +580,45 @@ function _updateSparks() {
     spark.x += spark.vx
     spark.y += spark.vy
 
-    // 更新旋转
-    spark.rotation += spark.rotationSpeed
-
     // 计算生命周期进度
     const t = spark.life / spark.maxLife
 
     // 透明度：使用幂函数衰减（先快后慢）
-    // 并且叠加闪烁效果
-    const flicker = 0.8 + Math.sin(spark.flickerPhase + animationTime * 0.016 * spark.flickerSpeed) * 0.2
-    spark.opacity = _powerDecay(t, 1.3) * flicker
+    // 简化闪烁计算
+    const flicker = 0.85 + Math.sin(spark.flickerPhase + animationTime * 0.016 * spark.flickerSpeed) * 0.15
+    spark.opacity = _powerDecay(t, 1.2) * flicker
 
     // 缩放：稍微缩小
-    spark.scale = Math.max(0.2, 1 - t * 0.6)
+    spark.scale = Math.max(0.25, 1 - t * 0.5)
 
-    // 速度逐渐减慢（空气阻力）
-    spark.vx *= 0.98
-    spark.vy *= 0.98
+    // 简化空气阻力
+    spark.vx *= 0.99
+    spark.vy *= 0.99
 
-    return t < 1 && spark.opacity > 0.01
+    return t < 1 && spark.opacity > 0.02
   })
 }
 
-// 添加余烬类型的光影残留（每个格子有独特的命运）
+// 添加余烬类型的光影残留（性能优化版：降低频率）
 function _addEmberTrail(x, y) {
   const now = Date.now()
-
-  // 随机化余烬属性
-  const baseOpacity = 0.3 + Math.random() * 0.5 // 0.3-0.8
-  const baseDuration = props.trailDuration * (0.7 + Math.random() * 0.6) // 0.7x-1.3x
-  const rotation = Math.random() * 360 // 随机旋转
 
   const newTrail = {
     id: ++trailIdCounter,
     type: 'ember',
-    x: x + (Math.random() - 0.5) * 6, // 轻微位置偏移 ±3px
-    y: y + (Math.random() - 0.5) * 6,
+    x: x + (Math.random() - 0.5) * 4,
+    y: y + (Math.random() - 0.5) * 4,
     createdAt: now,
-    baseOpacity: baseOpacity,
-    opacity: baseOpacity,
+    baseOpacity: 0.3 + Math.random() * 0.3,
+    opacity: 0.3 + Math.random() * 0.3,
     scale: 1,
-    rotation: rotation,
-    // 衰减参数随机化
-    duration: baseDuration,
-    decayPower: 1.2 + Math.random() * 0.8 // 1.2-2.0 的衰减幂
+    rotation: Math.random() * 360,
+    duration: props.trailDuration * (0.6 + Math.random() * 0.4),
+    decayPower: 1.3 + Math.random() * 0.5
   }
 
   trailList.value.push(newTrail)
 
-  // 限制残留数量
   if (trailList.value.length > props.trailCount) {
     trailList.value.shift()
   }
@@ -648,18 +634,18 @@ function _addGlowTrail(x, y) {
     x: x,
     y: y,
     createdAt: now,
-    baseOpacity: 0.5,
-    opacity: 0.5,
+    baseOpacity: 0.4,
+    opacity: 0.4,
     scale: 1,
     rotation: 0,
-    duration: props.trailDuration * 0.8,
-    decayPower: 1.5
+    duration: props.trailDuration * 0.7,
+    decayPower: 1.4
   }
 
   trailList.value.push(newTrail)
 }
 
-// 更新光影残留（余烬和辉光分开处理）
+// 更新光影残留（保留核心逻辑）
 function _updateTrails() {
   const now = Date.now()
 
@@ -667,122 +653,149 @@ function _updateTrails() {
     const age = now - trail.createdAt
     if (age > trail.duration) return false
 
-    // 计算生命周期进度
     const t = age / trail.duration
 
-    // 使用幂函数衰减（先快后慢，更自然）
     trail.opacity = trail.baseOpacity * _powerDecay(t, trail.decayPower)
 
-    // 余烬有额外的闪烁效果
     if (trail.type === 'ember') {
-      const flicker = 0.9 + Math.sin(animationTime * 0.016 * (5 + trail.id % 5) + trail.id) * 0.1
+      const flicker = 0.92 + Math.sin(animationTime * 0.016 * 6 + trail.id) * 0.08
       trail.opacity *= flicker
-
-      // 余烬稍微放大一点然后缩小
-      trail.scale = t < 0.2 ? 1 + t * 0.5 : 1 + 0.1 - (t - 0.2) * 0.15
+      trail.scale = t < 0.2 ? 1 + t * 0.3 : 1 + 0.06 - (t - 0.2) * 0.1
     } else {
-      // 辉光持续放大
-      trail.scale = 1 + t * 0.8
+      trail.scale = 1 + t * 0.6
     }
 
-    return trail.opacity > 0.02
+    return trail.opacity > 0.03
   })
 }
 
-// 计算火把对日期格子的照亮样式
-// 现在每个格子有自己的余烬状态
-function _getTorchGlowStyle(key, dateObj) {
-  if (!props.torchEffect || !isTorchActive.value) return null
+// ==================== 性能优化：重构日期格子照亮逻辑 ====================
+// 问题：_getTorchGlowStyle 在模板中被每帧调用，每次都做昂贵的 getBoundingClientRect()
+// 解决方案：
+// 1. 缓存日期格子位置
+// 2. 在动画循环中批量计算，而不是模板渲染时
+// 3. 使用 dayGlowStyles 缓存样式
+// 4. 节流：每 2 帧计算一次
 
+// 获取单个日期格子的位置（带缓存）
+function _getDayPosition(key) {
+  // 检查缓存
+  let cached = dayPositionsCache.get(key)
+  if (cached) return cached
+
+  // 没有缓存，重新计算
   const dayEl = dayRefs.value.get(key)
   if (!dayEl) return null
 
   const rect = dayEl.getBoundingClientRect()
-  const containerRect = dayEl.closest('.ohhh-calendar-container')?.getBoundingClientRect()
-  if (!containerRect) return null
 
-  // 计算格子中心相对于容器的位置
-  const dayCenterX = rect.left + rect.width / 2 - containerRect.left
-  const dayCenterY = rect.top + rect.height / 2 - containerRect.top
+  // 缓存容器位置（只计算一次）
+  if (!containerCachedRect) {
+    const containerEl = dayEl.closest('.ohhh-calendar-container')
+    if (!containerEl) return null
+    containerCachedRect = containerEl.getBoundingClientRect()
+  }
 
-  // 计算与火把光团的距离（考虑火焰稍微向上偏移）
+  cached = {
+    x: rect.left + rect.width / 2 - containerCachedRect.left,
+    y: rect.top + rect.height / 2 - containerCachedRect.top
+  }
+
+  dayPositionsCache.set(key, cached)
+  return cached
+}
+
+// 批量更新日期格子的照亮样式（在动画循环中调用）
+function _updateDayGlowStyles() {
+  if (!isTorchActive.value) return
+
   const flameCenterX = torchX.value
-  const flameCenterY = torchY.value - 10 // 火焰中心稍微向上
-
-  const distance = _getDistance(flameCenterX, flameCenterY, dayCenterX, dayCenterY)
-
-  // 计算照亮强度（距离越近，强度越高）
+  const flameCenterY = torchY.value - 10
   const maxRange = props.torchRange
-  if (distance >= maxRange) {
-    // 检查是否有余烬状态需要显示
-    const emberState = emberStates.value.get(key)
-    if (emberState && emberState.opacity > 0.02) {
-      return {
-        '--torch-glow-intensity': 0,
-        '--torch-ember-intensity': emberState.opacity,
-        '--torch-ember-rand': emberState.randFactor
-      }
-    }
-    return {
-      '--torch-glow-intensity': 0,
-      '--torch-ember-intensity': 0
-    }
-  }
+  const now = Date.now()
 
-  const intensity = Math.max(0, 1 - distance / maxRange)
+  // 遍历所有有引用的格子
+  for (const [key, _el] of dayRefs.value.entries()) {
+    const pos = _getDayPosition(key)
+    if (!pos) continue
 
-  // 添加火焰的闪烁扰动（让照亮不是均匀的）
-  const flickerIntensity = 0.9 + _smoothNoise(animationTime * 0.02 + dayCenterX * 0.01, dayCenterY * 0.01, 2) * 0.1
-  const finalIntensity = intensity * flickerIntensity
-
-  // 记录这个格子被照亮了（用于生成余烬）
-  if (intensity > 0.5) {
+    const distance = _getDistance(flameCenterX, flameCenterY, pos.x, pos.y)
     const existingEmber = emberStates.value.get(key)
-    const now = Date.now()
 
-    if (!existingEmber) {
-      // 新的余烬状态
-      emberStates.value.set(key, {
-        key: key,
-        lastBrightTime: now,
-        opacity: 0,
-        randFactor: Math.random() // 每个格子有独特的随机因子
-      })
-    } else {
-      existingEmber.lastBrightTime = now
-    }
-  }
-
-  // 检查是否有余烬需要显示
-  const emberState = emberStates.value.get(key)
-  let emberIntensity = 0
-
-  if (emberState) {
-    const timeSinceBright = now - emberState.lastBrightTime
-    // 余烬在离开光团后开始显示
-    if (intensity < 0.3 && timeSinceBright > 50) {
-      const emberT = timeSinceBright / (props.trailDuration * 0.8)
-      if (emberT < 1) {
-        // 余烬强度：先有一个小高峰，然后衰减
-        if (emberT < 0.1) {
-          emberIntensity = emberT * 10 * (0.3 + emberState.randFactor * 0.4)
-        } else {
-          emberIntensity = (0.3 + emberState.randFactor * 0.4) * _powerDecay((emberT - 0.1) / 0.9, 1.3 + emberState.randFactor * 0.5)
-        }
-        emberState.opacity = emberIntensity
+    if (distance >= maxRange) {
+      // 在照亮范围外
+      if (existingEmber && existingEmber.opacity > 0.02) {
+        dayGlowStyles.value.set(key, {
+          '--torch-glow-intensity': 0,
+          '--torch-ember-intensity': existingEmber.opacity,
+          '--torch-ember-rand': existingEmber.randFactor
+        })
       } else {
-        emberState.opacity = 0
+        dayGlowStyles.value.delete(key)
       }
-    } else {
-      emberState.opacity = 0
+      continue
     }
-  }
 
-  // 应用柔和的照亮效果
+    // 在照亮范围内
+    const intensity = Math.max(0, 1 - distance / maxRange)
+
+    // 简化的闪烁（用 sin 替代复杂噪声）
+    const flickerIntensity = 0.92 + Math.sin(animationTime * 0.016 * 4 + pos.x * 0.005 + pos.y * 0.003) * 0.08
+    const finalIntensity = intensity * flickerIntensity
+
+    // 记录被照亮的格子
+    if (intensity > 0.5) {
+      if (!existingEmber) {
+        emberStates.value.set(key, {
+          key: key,
+          lastBrightTime: now,
+          opacity: 0,
+          randFactor: Math.random()
+        })
+      } else {
+        existingEmber.lastBrightTime = now
+      }
+    }
+
+    // 计算余烬强度
+    let emberIntensity = 0
+    if (existingEmber) {
+      const timeSinceBright = now - existingEmber.lastBrightTime
+      if (intensity < 0.3 && timeSinceBright > 50) {
+        const emberT = timeSinceBright / (props.trailDuration * 0.8)
+        if (emberT < 1) {
+          if (emberT < 0.1) {
+            emberIntensity = emberT * 10 * (0.25 + existingEmber.randFactor * 0.35)
+          } else {
+            emberIntensity = (0.25 + existingEmber.randFactor * 0.35) * _powerDecay((emberT - 0.1) / 0.9, 1.2 + existingEmber.randFactor * 0.4)
+          }
+          existingEmber.opacity = emberIntensity
+        } else {
+          existingEmber.opacity = 0
+        }
+      } else {
+        existingEmber.opacity = 0
+      }
+    }
+
+    dayGlowStyles.value.set(key, {
+      '--torch-glow-intensity': finalIntensity,
+      '--torch-ember-intensity': emberIntensity,
+      '--torch-ember-rand': existingEmber ? existingEmber.randFactor : 0
+    })
+  }
+}
+
+// 从缓存中获取日期格子的照亮样式（模板中调用的函数）
+function _getTorchGlowStyle(key, dateObj) {
+  if (!props.torchEffect || !isTorchActive.value) return null
+
+  const cached = dayGlowStyles.value.get(key)
+  if (cached) return cached
+
   return {
-    '--torch-glow-intensity': finalIntensity,
-    '--torch-ember-intensity': emberIntensity,
-    '--torch-ember-rand': emberState ? emberState.randFactor : 0
+    '--torch-glow-intensity': 0,
+    '--torch-ember-intensity': 0
   }
 }
 
@@ -798,9 +811,16 @@ function _cleanupOldEmberStates() {
   }
 }
 
-// 动画循环 - 火把缓动跟随
+// 动画循环 - 火把缓动跟随（性能优化版：增加节流）
 function _animateLoop() {
   if (!isTorchActive.value && !isFadingOut.value) return
+
+  // 帧计数器增加
+  frameCounter++
+
+  // 记录上一次的火把位置
+  lastTorchX = torchX.value
+  lastTorchY = torchY.value
 
   // 缓动计算
   const dx = targetX.value - torchX.value
@@ -809,14 +829,16 @@ function _animateLoop() {
   torchX.value += dx * props.torchEasing
   torchY.value += dy * props.torchEasing
 
-  // 更新多层光团扰动
-  _updateTorchLayers()
+  // ========== 节流：每 2 帧更新一次光团扰动 ==========
+  if (frameCounter % 2 === 0) {
+    _updateTorchLayers()
+  }
 
   // 生成和更新火花
   _spawnSparks()
   _updateSparks()
 
-  // 检查是否需要添加光影残留
+  // 检查是否需要添加光影残留（增加距离阈值）
   const currentDistance = _getDistance(
     lastTrailPosition.x,
     lastTrailPosition.y,
@@ -824,13 +846,13 @@ function _animateLoop() {
     torchY.value
   )
 
-  // 只有移动了足够距离才添加残留
-  if (currentDistance > 12) {
+  // 只有移动了足够距离才添加残留（从 12px 增加到 20px）
+  if (currentDistance > 20) {
     // 添加辉光拖尾
     _addGlowTrail(torchX.value, torchY.value)
 
-    // 有一定概率添加余烬拖尾
-    if (Math.random() > 0.5) {
+    // 降低余烬拖尾概率：从 0.5 降到 0.25
+    if (Math.random() > 0.75) {
       _addEmberTrail(torchX.value, torchY.value)
     }
 
@@ -840,8 +862,13 @@ function _animateLoop() {
   // 更新光影残留
   _updateTrails()
 
-  // 定期清理余烬状态
-  if (animationTime % 60 === 0) {
+  // ========== 节流：每 2 帧更新一次日期格子照亮 ==========
+  if (frameCounter % 2 === 0) {
+    _updateDayGlowStyles()
+  }
+
+  // 定期清理余烬状态（每 60 帧）
+  if (frameCounter % 60 === 0) {
     _cleanupOldEmberStates()
   }
 
@@ -867,9 +894,16 @@ function onMouseEnter(e) {
 
   lastTrailPosition = { x: initialX, y: initialY }
   lastMousePosition = { x: initialX, y: initialY }
+  lastTorchX = initialX
+  lastTorchY = initialY
 
-  // 重置动画时间
+  // 重置动画时间和帧计数器
   animationTime = 0
+  frameCounter = 0
+
+  // 清除所有缓存（确保每次进入都是干净状态）
+  _clearAllCaches()
+  dayGlowStyles.value.clear()
 
   // 激活火把
   isFadingOut.value = false
@@ -911,6 +945,8 @@ function onMouseLeave() {
       trailList.value = []
       sparkList.value = []
       emberStates.value.clear()
+      dayGlowStyles.value.clear()
+      _clearAllCaches()
     }
   }, 400)
 
