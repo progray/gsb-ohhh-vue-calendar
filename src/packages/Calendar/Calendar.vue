@@ -143,7 +143,7 @@ function showTooltip(dateObj, event) {
   
   currentTooltipDate.value = dateObj.date
   currentTooltipLunar.value = lunar
-  updateTooltipPosition(event)
+  calculateTooltipPosition(event)
   tooltipVisible.value = true
 }
 
@@ -154,8 +154,39 @@ function hideTooltip() {
 }
 
 function updateTooltipPosition(event) {
-  tooltipX.value = event.clientX + 15
-  tooltipY.value = event.clientY + 15
+  calculateTooltipPosition(event)
+}
+
+function calculateTooltipPosition(event) {
+  const tooltipWidth = 180
+  const tooltipHeight = 120
+  const gap = 12
+  
+  let x = event.clientX + gap
+  let y = event.clientY + gap
+  
+  const viewportWidth = window.innerWidth
+  const viewportHeight = window.innerHeight
+  
+  if (x + tooltipWidth > viewportWidth) {
+    x = event.clientX - tooltipWidth - gap
+    if (x < 0) {
+      x = viewportWidth - tooltipWidth - 10
+    }
+  }
+  
+  if (y + tooltipHeight > viewportHeight) {
+    y = event.clientY - tooltipHeight - gap
+    if (y < 0) {
+      y = 10
+    }
+  }
+  
+  if (x < 0) x = 10
+  if (y < 0) y = 10
+  
+  tooltipX.value = x
+  tooltipY.value = y
 }
 
 const emit = defineEmits(['select-change', 'view-change'])

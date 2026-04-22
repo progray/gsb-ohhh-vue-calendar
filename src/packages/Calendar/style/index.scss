@@ -148,23 +148,29 @@
 .ohhh-calendar-day--festival-tag {
   position: absolute;
   left: 2px;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 4px;
+  bottom: 4px;
   width: var(--calendar-festival-tag-width);
-  height: calc(var(--calendar-row-height) - 8px);
   background: var(--calendar-festival-tag-background);
-  border-radius: 999px;
+  border-radius: 7px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   color: var(--calendar-festival-tag-color);
   font-size: var(--calendar-festival-tag-font-size);
+  padding: var(--calendar-festival-tag-padding);
+  box-shadow: 0 1px 4px rgba(196, 30, 58, 0.25);
+  z-index: 2;
+  overflow: hidden;
+}
+
+.ohhh-calendar-day--festival-tag span {
+  line-height: 1.1;
+  letter-spacing: 0.5px;
   writing-mode: vertical-rl;
   text-orientation: upright;
-  letter-spacing: 2px;
   font-weight: 500;
-  box-shadow: 0 2px 8px rgba(196, 30, 58, 0.3);
-  z-index: 2;
 }
 
 .ohhh-calendar-day.has-festival .ohhh-calendar-day--inner {
@@ -176,45 +182,47 @@
   z-index: 9999;
   background: var(--calendar-tooltip-background);
   border: 1px solid var(--calendar-tooltip-border-color);
-  border-radius: 8px;
-  padding: 12px 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  font-size: 14px;
-  min-width: 200px;
+  border-radius: 6px;
+  padding: var(--calendar-tooltip-padding);
+  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.12);
+  font-size: 13px;
+  width: var(--calendar-tooltip-width);
   pointer-events: none;
+  transition: opacity 0.15s ease;
 }
 
 .ohhh-calendar-tooltip--header {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--calendar-tooltip-header-color);
-  margin-bottom: 8px;
-  padding-bottom: 8px;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
   border-bottom: 1px solid var(--calendar-tooltip-border-color);
 }
 
 .ohhh-calendar-tooltip--ganzhi {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--calendar-tooltip-ganzhi-color);
-  margin-bottom: 6px;
-  letter-spacing: 2px;
+  margin-bottom: 4px;
+  letter-spacing: 1px;
+  word-break: break-all;
 }
 
 .ohhh-calendar-tooltip--lunar-date {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--calendar-tooltip-text-color);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .ohhh-calendar-tooltip--festival {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--calendar-lunar-festival-color);
   font-weight: 600;
-  margin-top: 4px;
-  padding: 4px 8px;
+  margin-top: 3px;
+  padding: 3px 6px;
   background: rgba(196, 30, 58, 0.1);
-  border-radius: 4px;
+  border-radius: 3px;
   display: inline-block;
 }
 
