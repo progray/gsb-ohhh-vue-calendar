@@ -1,5 +1,6 @@
 <template>
   <div
+    ref="containerRef"
     class="ohhh-calendar-container"
     :style="{
       '--calendar-rows': renderRows,
@@ -44,7 +45,7 @@
             'is-today': isSameDay(dateObj.date, new Date()),
             'other-month': !dateObj.current
           }"
-          @click="changeSelectedDate(dateObj.date)"
+          @click="handleDateClick(dateObj.date, $event)"
         >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
@@ -53,9 +54,16 @@
             </div>
           </div>
           <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+          <div 
+            class="ohhh-calendar-day--color-ribbon" 
+            :style="{ background: getDateColor(dateObj.date) }"
+          />
         </div>
       </div>
     </div>
+
+    <!-- 月度色彩河流 -->
+    <MonthColorRiver :year="currentYear" :month="currentMonth" v-if="showColorRiver" />
 
     <!-- 底部工具栏 -->
     <div v-if="showFooter" class="ohhh-calendar-footer">
@@ -67,19 +75,31 @@
         />
       </slot>
     </div>
+
+    <!-- 色卡浮层 -->
+    <ColorCardPopover
+      :visible="popoverVisible"
+      :color-info="popoverColorInfo"
+      :position="popoverPosition"
+      @close="closePopover"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
 import { isSameDay, createWeekdays } from './utils'
 import { icons } from './utils/icons.js'
+import { generateColorFromDate, hslToHex, formatColorInfo } from './utils/colorUtils.js'
+import ColorCardPopover from './components/ColorCardPopover.vue'
+import MonthColorRiver from './components/MonthColorRiver.vue'
 
 const swipeRef = useTemplateRef('swp')
+const containerRef = useTemplateRef('containerRef')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'color-card-open', 'color-card-close'])
 
 const props = defineProps({
   // 初始选中的日期
@@ -121,6 +141,16 @@ const props = defineProps({
   duration: {
     type: String,
     default: '0.3s'
+  },
+  // 是否显示色卡功能
+  showColorCard: {
+    type: Boolean,
+    default: true
+  },
+  // 是否显示月度色彩河流
+  showColorRiver: {
+    type: Boolean,
+    default: true
   }
 })
 
@@ -154,6 +184,11 @@ const markerDateList = computed(() =>
     color: typeof item === 'object' && item.color ? item.color : 'var(--calendar-theme-color)'
   }))
 )
+
+// 色卡浮层状态
+const popoverVisible = ref(false)
+const popoverColorInfo = ref(null)
+const popoverPosition = ref({ x: 0, y: 0 })
 
 // 监听滑动事件
 const { lengthX } = useSwipe(swipeRef, {
@@ -228,6 +263,56 @@ function changeSelectedDate(date) {
     selected.value = new Date(date)
     emit('select-change', selected.value)
   }
+}
+
+// 处理日期点击（显示色卡）
+function handleDateClick(date, event) {
+  changeSelectedDate(date)
+  
+  if (props.showColorCard) {
+    popoverColorInfo.value = formatColorInfo(date)
+    
+    const containerRect = containerRef.value?.getBoundingClientRect()
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+    const popoverWidth = 320
+    const popoverHeight = 450
+    
+    let x, y
+    
+    if (containerRect) {
+      x = containerRect.left + containerRect.width / 2 - popoverWidth / 2
+      y = containerRect.top + containerRect.height / 2 - popoverHeight / 2
+    } else {
+      const rect = event.currentTarget.getBoundingClientRect()
+      x = rect.left + rect.width / 2 - popoverWidth / 2
+      y = rect.bottom + 10
+    }
+    
+    if (x < 10) x = 10
+    if (x + popoverWidth > viewportWidth - 10) x = viewportWidth - popoverWidth - 10
+    
+    if (y < 10) y = 10
+    if (y + popoverHeight > viewportHeight - 10) {
+      y = viewportHeight - popoverHeight - 10
+    }
+    
+    popoverPosition.value = { x, y }
+    popoverVisible.value = true
+    emit('color-card-open', { date, colorInfo: popoverColorInfo.value })
+  }
+}
+
+// 关闭色卡浮层
+function closePopover() {
+  popoverVisible.value = false
+  emit('color-card-close')
+}
+
+// 获取日期颜色
+function getDateColor(date) {
+  const { h, s, l } = generateColorFromDate(date)
+  return `hsl(${h}, ${s}%, ${l}%)`
 }
 
 // 获取 marker 颜色
