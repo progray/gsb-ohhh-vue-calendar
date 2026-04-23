@@ -17,6 +17,9 @@
     Hiragino Sans GB,
     Microsoft Yahei,
     sans-serif;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .ohhh-calendar-toolbar {
@@ -26,12 +29,14 @@
   column-gap: var(--calendar-toolbar-column-gap);
   padding: var(--calendar-toolbar-padding);
   flex-wrap: nowrap;
+  min-width: 0;
 }
 .ohhh-calendar-toolbar--left {
   display: flex;
   align-items: center;
   column-gap: var(--calendar-toolbar-column-gap);
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
 }
 .ohhh-calendar-toolbar--right {
   display: flex;
@@ -67,7 +72,8 @@
   display: flex;
   align-items: center;
   width: 200px;
-  max-width: 100%;
+  max-width: 200px;
+  min-width: 140px;
   height: 32px;
   padding: 0 32px 0 32px;
   background: var(--calendar-search-background, rgba(245, 247, 250, 0.8));
@@ -75,7 +81,6 @@
   border: 1px solid var(--calendar-search-border, transparent);
   transition: all 0.2s ease;
   flex-shrink: 1;
-  min-width: 120px;
 }
 .ohhh-calendar-search-box:focus-within {
   background: var(--calendar-search-focus-background, #fff);
