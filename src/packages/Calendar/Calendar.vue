@@ -42,7 +42,8 @@
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'has-hitokoto': _hasOpenedHitokoto(dateObj.date)
           }"
           @click="changeSelectedDate(dateObj.date)"
         >
@@ -51,11 +52,48 @@
             <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
               <slot name="day-label" :date="dateObj.date" />
             </div>
+            <div
+              v-if="isSameDay(dateObj.date, selected) && showHitokotoIcon"
+              class="ohhh-calendar-day--hitokoto-icon"
+              :class="{ 'is-loading': hitokotoIsLoading }"
+              @click.stop="openHitokotoBox"
+            >
+              <transition name="hitokoto-icon-fade">
+                <div v-if="!hitokotoIsOpened" v-html="icons.envelope" class="hitokoto-icon-svg" />
+                <div v-else-if="hitokotoIsOpened && formattedHitokoto" v-html="icons.giftBox" class="hitokoto-icon-svg opened" />
+              </transition>
+            </div>
           </div>
           <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
         </div>
       </div>
     </div>
+
+    <!-- 一言盲盒展示区域 -->
+    <transition name="hitokoto-panel">
+      <div
+        v-if="showHitokotoPanel && hitokotoIsOpened && formattedHitokoto"
+        class="ohhh-calendar-hitokoto-panel"
+      >
+        <div class="ohhh-calendar-hitokoto--content">
+          <p class="ohhh-calendar-hitokoto--text">"{{ formattedHitokoto.content }}"</p>
+          <p class="ohhh-calendar-hitokoto--source">{{ formattedHitokoto.source }}</p>
+        </div>
+        <div class="ohhh-calendar-hitokoto--actions">
+          <div
+            v-html="icons.copy"
+            class="ohhh-calendar-hitokoto--copy-btn"
+            @click="copyHitokotoToClipboard"
+            title="复制到剪贴板"
+          />
+        </div>
+      </div>
+    </transition>
+
+    <!-- Toast 提示 -->
+    <transition name="toast-fade">
+      <div v-if="hitokotoShowToast" class="ohhh-calendar-toast">{{ hitokotoToastMessage }}</div>
+    </transition>
 
     <!-- 底部工具栏 -->
     <div v-if="showFooter" class="ohhh-calendar-footer">
@@ -74,12 +112,13 @@
 import { computed, useTemplateRef, toRefs } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
+import { useHitokoto } from './hooks/useHitokoto.js'
 import { isSameDay, createWeekdays } from './utils'
 import { icons } from './utils/icons.js'
 
 const swipeRef = useTemplateRef('swp')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'hitokoto-open', 'hitokoto-copy'])
 
 const props = defineProps({
   // 初始选中的日期
@@ -121,10 +160,20 @@ const props = defineProps({
   duration: {
     type: String,
     default: '0.3s'
+  },
+  // 是否显示一言盲盒功能
+  showHitokoto: {
+    type: Boolean,
+    default: true
+  },
+  // 是否显示一言盲盒面板
+  showHitokotoPanel: {
+    type: Boolean,
+    default: true
   }
 })
 
-const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration } = toRefs(props)
+const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration, showHitokoto, showHitokotoPanel } = toRefs(props)
 
 const {
   selected,
@@ -142,6 +191,35 @@ const {
   onTransitionEnd,
   toggleViewMode
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
+
+const {
+  isOpened: hitokotoIsOpened,
+  isLoading: hitokotoIsLoading,
+  error: hitokotoError,
+  showToast: hitokotoShowToast,
+  toastMessage: hitokotoToastMessage,
+  formattedHitokoto,
+  openHitokoto,
+  resetState: resetHitokotoState,
+  copyToClipboard
+} = useHitokoto(selected)
+
+const showHitokotoIcon = computed(() => showHitokoto.value)
+
+function openHitokotoBox() {
+  openHitokoto()
+  emit('hitokoto-open', selected.value)
+}
+
+function copyHitokotoToClipboard() {
+  copyToClipboard()
+  emit('hitokoto-copy', formattedHitokoto.value)
+}
+
+function _hasOpenedHitokoto(date) {
+  if (!isSameDay(date, selected.value)) return false
+  return hitokotoIsOpened.value
+}
 
 // 顶部工具栏标题
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
