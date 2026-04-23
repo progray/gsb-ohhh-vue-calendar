@@ -244,10 +244,18 @@ function handleInput() {
 
 async function handleCopy() {
   if (textareaRef.value) {
-    textareaRef.value.select()
+    const start = textareaRef.value.selectionStart
+    const end = textareaRef.value.selectionEnd
+    
+    if (start === end) {
+      return
+    }
+    
+    const selectedText = noteContent.value.substring(start, end)
     try {
-      await navigator.clipboard.writeText(noteContent.value)
+      await navigator.clipboard.writeText(selectedText)
     } catch (e) {
+      textareaRef.value.setSelectionRange(start, end)
       document.execCommand('copy')
     }
   }
@@ -274,10 +282,23 @@ async function handlePaste() {
 }
 
 function handleDelete() {
-  if (props.date) {
-    deleteNote(props.date)
-    noteContent.value = ''
-    emit('note-change', formatDateKey(props.date), '')
+  if (textareaRef.value) {
+    const start = textareaRef.value.selectionStart
+    const end = textareaRef.value.selectionEnd
+    
+    if (start === end) {
+      return
+    }
+    
+    const newContent = noteContent.value.substring(0, start) + noteContent.value.substring(end)
+    noteContent.value = newContent
+    
+    nextTick(() => {
+      if (textareaRef.value) {
+        textareaRef.value.selectionStart = textareaRef.value.selectionEnd = start
+        textareaRef.value.focus()
+      }
+    })
   }
 }
 
