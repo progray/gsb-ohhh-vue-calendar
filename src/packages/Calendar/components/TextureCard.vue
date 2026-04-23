@@ -15,13 +15,17 @@
           </div>
           
           <div class="texture-card-info">
-            <div class="texture-card-title">{{ textureData?.textureName }}</div>
-            <div class="texture-card-date">{{ formattedDate }}</div>
+            <div class="texture-card-header">
+              <div>
+                <div class="texture-card-title">{{ textureData?.textureName }}</div>
+                <div class="texture-card-date">{{ formattedDate }}</div>
+              </div>
+            </div>
             
             <div class="texture-card-colors">
-              <div class="texture-card-color-section">
+              <div class="texture-card-color-group">
                 <div class="texture-card-color-label">主色调</div>
-                <div class="texture-card-color-list">
+                <div class="texture-card-color-row">
                   <div class="texture-card-color-item" v-for="(color, index) in mainColors" :key="index">
                     <div class="texture-card-color-swatch" :style="{ background: color }"></div>
                     <span class="texture-card-color-value">{{ color.toUpperCase() }}</span>
@@ -29,9 +33,9 @@
                 </div>
               </div>
               
-              <div class="texture-card-color-section" v-if="accentColor">
+              <div class="texture-card-color-group" v-if="accentColor">
                 <div class="texture-card-color-label">动态色</div>
-                <div class="texture-card-color-list">
+                <div class="texture-card-color-row">
                   <div class="texture-card-color-item">
                     <div class="texture-card-color-swatch" :style="{ background: accentColor }"></div>
                     <span class="texture-card-color-value">{{ accentColor.toUpperCase() }}</span>
@@ -190,23 +194,26 @@ watch(() => props.visible, (newVal) => {
 
 .texture-card-container {
   position: relative;
-  width: 340px;
+  width: 320px;
   max-height: 90vh;
+  min-height: 480px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
-  border-radius: 20px;
+  border-radius: 16px;
   box-shadow: 
     0 25px 50px -12px rgba(0, 0, 0, 0.25),
     0 0 0 1px rgba(255, 255, 255, 0.5);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .texture-card-close {
   position: absolute;
   top: 12px;
   right: 12px;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border: none;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.9);
@@ -229,7 +236,8 @@ watch(() => props.visible, (newVal) => {
 .texture-card-preview {
   position: relative;
   width: 100%;
-  height: 260px;
+  height: 200px;
+  flex-shrink: 0;
   overflow: hidden;
 }
 
@@ -241,61 +249,68 @@ watch(() => props.visible, (newVal) => {
 }
 
 .texture-card-info {
-  padding: 20px;
+  padding: 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.texture-card-header {
+  margin-bottom: 12px;
 }
 
 .texture-card-title {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
   color: #303133;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .texture-card-date {
-  font-size: 13px;
+  font-size: 12px;
   color: #909399;
-  margin-bottom: 20px;
 }
 
 .texture-card-colors {
   background: #f5f7fa;
   border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 20px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
-.texture-card-color-section {
-  margin-bottom: 16px;
-}
-
-.texture-card-color-section:last-child {
-  margin-bottom: 0;
+.texture-card-color-group {
+  flex: 1;
+  min-width: 100px;
 }
 
 .texture-card-color-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: #909399;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
-.texture-card-color-list {
+.texture-card-color-row {
   display: flex;
-  gap: 16px;
+  gap: 12px;
 }
 
 .texture-card-color-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .texture-card-color-swatch {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   box-shadow: 
     0 2px 8px rgba(0, 0, 0, 0.1),
@@ -303,7 +318,7 @@ watch(() => props.visible, (newVal) => {
 }
 
 .texture-card-color-value {
-  font-size: 11px;
+  font-size: 10px;
   color: #606266;
   font-family: 'Monaco', 'Menlo', monospace;
 }
@@ -311,6 +326,8 @@ watch(() => props.visible, (newVal) => {
 .texture-card-actions {
   display: flex;
   gap: 12px;
+  margin-top: auto;
+  flex-shrink: 0;
 }
 
 .texture-card-btn {
