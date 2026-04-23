@@ -3,20 +3,14 @@
 .ohhh-calendar-container {
   -webkit-tap-highlight-color: transparent;
   background: var(--calendar-background);
-  font-family:
-    Open Sans,
-    -apple-system,
-    BlinkMacSystemFont,
-    Helvetica Neue,
-    Helvetica,
-    Segoe UI,
-    Arial,
-    Roboto,
-    PingFang SC,
-    miui,
-    Hiragino Sans GB,
-    Microsoft Yahei,
-    sans-serif;
+  font-family: var(--calendar-font-family);
+  box-shadow: var(--calendar-box-shadow);
+  border: 1px solid var(--calendar-border-color, transparent);
+  transition:
+    background-color 0.3s ease,
+    box-shadow 0.3s ease,
+    border-color 0.3s ease,
+    font-family 0s;
 }
 
 .ohhh-calendar-toolbar {
@@ -25,6 +19,7 @@
   align-items: center;
   column-gap: var(--calendar-toolbar-column-gap);
   padding: var(--calendar-toolbar-padding);
+  transition: padding 0.3s ease;
 }
 .ohhh-calendar-toolbar--icon,
 .ohhh-calendar-footer--icon {
@@ -33,6 +28,7 @@
 }
 .ohhh-calendar-toolbar--icon {
   fill: var(--calendar-toolbar-icon-color);
+  transition: fill 0.3s ease;
 }
 .ohhh-calendar-toolbar--icon svg {
   width: var(--calendar-toolbar-icon-size);
@@ -42,6 +38,18 @@
   margin: 0 auto;
   font-size: var(--calendar-toolbar-font-size);
   font-weight: 500;
+  color: var(--calendar-text-color-level-1);
+  transition: color 0.3s ease;
+}
+.ohhh-calendar-toolbar--theme-btn {
+  padding: 4px;
+  border-radius: 6px;
+  transition:
+    background-color 0.2s ease,
+    fill 0.3s ease;
+}
+.ohhh-calendar-toolbar--theme-btn:hover {
+  background-color: rgba(64, 158, 255, 0.1);
 }
 
 .ohhh-calendar-weekdays {
@@ -55,6 +63,7 @@
   font-size: var(--calendar-weekdays-font-size);
   font-weight: 500;
   color: var(--calendar-weekdays-color);
+  transition: color 0.3s ease;
 }
 
 .ohhh-calendar-wrapper {
@@ -83,20 +92,25 @@
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-label {
   color: var(--calendar-days-other-month-color);
+  transition: color 0.3s ease;
 }
 .ohhh-calendar-day.is-today .ohhh-calendar-day--inner {
   background: var(--calendar-days-today-background);
+  transition: background-color 0.3s ease;
 }
 .ohhh-calendar-day.is-today .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.is-today .ohhh-calendar-day--inner-label {
   color: var(--calendar-days-today-color);
+  transition: color 0.3s ease;
 }
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner {
   background: var(--calendar-days-selected-background);
+  transition: background-color 0.3s ease;
 }
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-label {
   color: var(--calendar-days-selected-color);
+  transition: color 0.3s ease;
 }
 
 .ohhh-calendar-day--inner {
@@ -109,14 +123,17 @@
   padding: var(--calendar-days-inner-padding);
   border-radius: var(--calendar-days-inner-radius);
   background: var(--calendar-days-inner-background);
+  transition: background-color 0.3s ease;
 }
 .ohhh-calendar-day--inner-value {
   font-size: var(--calendar-days-value-font-size);
   color: var(--calendar-days-value-color);
+  transition: color 0.3s ease;
 }
 .ohhh-calendar-day--inner-label {
   font-size: var(--calendar-days-label-font-size);
   color: var(--calendar-days-label-color);
+  transition: color 0.3s ease;
 }
 .ohhh-calendar-day--marker {
   flex: none;
@@ -124,6 +141,8 @@
   width: var(--calendar-days-marker-size);
   height: var(--calendar-days-marker-size);
   border-radius: 50%;
+  background: var(--calendar-days-marker-color);
+  transition: background-color 0.3s ease;
 }
 
 .ohhh-calendar-footer {
@@ -133,6 +152,7 @@
 }
 .ohhh-calendar-footer--icon {
   fill: var(--calendar-footer-icon-color);
+  transition: fill 0.3s ease;
 }
 .ohhh-calendar-footer--icon svg {
   width: var(--calendar-footer-icon-size);
