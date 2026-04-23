@@ -8,6 +8,28 @@
       '--transition-duration': transitionDuration
     }"
   >
+    <!-- 古文意境背景层 -->
+    <div class="ohhh-calendar-ancient-bg">
+      <div class="ohhh-calendar-ancient-bg__scroll" :key="backgroundKey">
+        <div
+          v-for="(col, colIndex) in backgroundColumns"
+          :key="colIndex"
+          class="ohhh-calendar-ancient-bg__column"
+          :style="{
+            '--font-family': col.fontFamily,
+            '--font-size': col.fontSize,
+            '--font-weight': col.fontWeight,
+            '--column-offset': col.offset,
+            '--animation-delay': col.animationDelay
+          }"
+        >
+          <span v-for="(char, charIndex) in col.chars" :key="charIndex" class="ohhh-calendar-ancient-bg__char">
+            {{ char }}
+          </span>
+        </div>
+      </div>
+    </div>
+
     <!-- 顶部工具栏 -->
     <div v-if="showToolbar" class="ohhh-calendar-toolbar">
       <slot name="toolbar" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
@@ -71,11 +93,12 @@
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref, watch } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
 import { isSameDay, createWeekdays } from './utils'
 import { icons } from './utils/icons.js'
+import { ancientChars } from './utils/ancientChars.js'
 
 const swipeRef = useTemplateRef('swp')
 
@@ -234,6 +257,87 @@ function changeSelectedDate(date) {
 function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
+
+// 古文背景层相关逻辑
+const fontFamilies = [
+  '"ZCOOL KuaiLe", "Ma Shan Zheng", "Zhi Mang Xing", "STKaiti", "KaiTi", "SimKai", "KaiTi_GB2312", cursive',
+  '"Ma Shan Zheng", "Zhi Mang Xing", "ZCOOL KuaiLe", "STKaiti", "KaiTi", "SimKai", "KaiTi_GB2312", cursive',
+  '"Zhi Mang Xing", "Ma Shan Zheng", "ZCOOL KuaiLe", "STKaiti", "KaiTi", "SimKai", "KaiTi_GB2312", cursive'
+]
+
+const backgroundCache = new Map()
+
+function _simpleHash(str) {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash
+  }
+  return Math.abs(hash)
+}
+
+function _getCharForDate(year, month, day) {
+  const dateKey = `${year}-${month + 1}-${day}`
+  const hash = _simpleHash(dateKey)
+  return ancientChars[hash % ancientChars.length]
+}
+
+function _generateMonthChars(year, month) {
+  const cacheKey = `${year}-${month}`
+  if (backgroundCache.has(cacheKey)) {
+    return backgroundCache.get(cacheKey)
+  }
+
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const chars = []
+  
+  for (let day = 1; day <= daysInMonth; day++) {
+    chars.push(_getCharForDate(year, month, day))
+  }
+
+  backgroundCache.set(cacheKey, chars)
+  return chars
+}
+
+const backgroundKey = computed(() => `${currentYear.value}-${currentMonth.value}`)
+
+const backgroundColumns = computed(() => {
+  const monthChars = _generateMonthChars(currentYear.value, currentMonth.value)
+  const columns = []
+  const columnCount = 8
+  const charsPerColumn = Math.ceil(monthChars.length / columnCount)
+  
+  for (let i = 0; i < columnCount; i++) {
+    const startIndex = i * charsPerColumn
+    const endIndex = Math.min(startIndex + charsPerColumn, monthChars.length)
+    const columnChars = monthChars.slice(startIndex, endIndex)
+    
+    const duplicateCount = 3
+    const expandedChars = []
+    for (let d = 0; d < duplicateCount; d++) {
+      expandedChars.push(...columnChars)
+    }
+    
+    const seed = _simpleHash(`${currentYear.value}-${currentMonth.value}-${i}`)
+    const fontFamily = fontFamilies[seed % fontFamilies.length]
+    const fontSize = 32 + (seed % 48)
+    const fontWeight = 100 + Math.floor(seed % 8) * 100
+    const offset = (seed % 200) - 100
+    const animationDelay = (i * 0.5) + (seed % 30) / 10
+    
+    columns.push({
+      chars: expandedChars,
+      fontFamily,
+      fontSize: `${fontSize}px`,
+      fontWeight,
+      offset: `${offset}px`,
+      animationDelay: `${animationDelay}s`
+    })
+  }
+  
+  return columns
+})
 
 defineExpose({
   // 切换周/月视图
