@@ -63,17 +63,17 @@
   font-family: var(--font-family);
   font-size: var(--font-size);
   font-weight: var(--font-weight);
-  color: #2d1b4e;
-  opacity: 0.18;
+  color: #1a0f2e;
+  opacity: 0.28;
   margin: 0 10px;
   transform: translateX(var(--column-offset));
   animation-delay: var(--animation-delay);
 }
 
 .ohhh-calendar-ancient-bg__char {
-  line-height: 1.4;
-  margin: 6px 0;
-  text-shadow: 1px 1px 2px rgba(45, 27, 78, 0.15);
+  line-height: 1.5;
+  margin: 8px 0;
+  text-shadow: 1px 1px 3px rgba(26, 15, 46, 0.25);
 }
 
 .ohhh-calendar-toolbar {
@@ -84,9 +84,7 @@
   align-items: center;
   column-gap: var(--calendar-toolbar-column-gap);
   padding: var(--calendar-toolbar-padding);
-  background: rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: transparent;
 }
 .ohhh-calendar-toolbar--icon,
 .ohhh-calendar-footer--icon {
@@ -114,9 +112,7 @@
   justify-items: center;
   align-items: center;
   height: var(--calendar-weekdays-height);
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: transparent;
 }
 .ohhh-calendar-weekdays--weekday {
   font-size: var(--calendar-weekdays-font-size);
@@ -159,16 +155,11 @@
   padding: var(--calendar-days-inner-padding);
   border-radius: var(--calendar-days-inner-radius);
   background: var(--calendar-days-inner-background);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.3s ease;
 }
 
 .ohhh-calendar-day:hover .ohhh-calendar-day--inner {
-  background: rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-value,
@@ -213,9 +204,7 @@
   display: flex;
   justify-content: center;
   padding: var(--calendar-footer-padding);
-  background: rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: transparent;
 }
 .ohhh-calendar-footer--icon {
   fill: var(--calendar-footer-icon-color);
