@@ -1,12 +1,23 @@
 <template>
   <div
+    ref="calendarContainer"
     class="ohhh-calendar-container"
+    :class="{
+      'is-transitioning': isInTransition,
+      'transition-left': isInTransition && transitionDirection === 'left',
+      'transition-right': isInTransition && transitionDirection === 'right'
+    }"
     :style="{
       '--calendar-rows': renderRows,
       '--calendar-transition-duration': duration,
       '--translate-distance': transformDistance,
-      '--transition-duration': transitionDuration
+      '--transition-duration': transitionDuration,
+      '--tilt-x': tiltX,
+      '--tilt-y': tiltY,
+      '--tilt-scale': tiltScale
     }"
+    @mousemove="handleMouseMove"
+    @mouseleave="handleMouseLeave"
   >
     <!-- 顶部工具栏 -->
     <div v-if="showToolbar" class="ohhh-calendar-toolbar">
@@ -33,6 +44,7 @@
         :key="index"
         :style="{ left: 100 * (index - 1) + '%' }"
         class="ohhh-calendar-days"
+        :data-page="index === 0 ? 'prev' : index === 1 ? 'current' : 'next'"
         @transitionend="onTransitionEnd"
       >
         <div
@@ -85,13 +97,18 @@
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
 import { isSameDay, createWeekdays } from './utils'
 import { icons } from './utils/icons.js'
 
 const swipeRef = useTemplateRef('swp')
+const calendarContainer = useTemplateRef('calendarContainer')
+
+const tiltX = ref('0deg')
+const tiltY = ref('0deg')
+const tiltScale = ref('1')
 
 const emit = defineEmits(['select-change', 'view-change'])
 
@@ -151,6 +168,7 @@ const {
   transitionDuration,
   isInTransition,
   renderRows,
+  transitionDirection,
   switchPageToTargetDate,
   startTransitionAnimation,
   onTransitionEnd,
@@ -260,6 +278,31 @@ function _isBottomRow(dayIndex) {
 // 获取日期所在的行号
 function _getDayRow(dayIndex) {
   return Math.floor(dayIndex / 7)
+}
+
+// 鼠标跟随微动效果
+function handleMouseMove(event) {
+  if (!calendarContainer.value) return
+  
+  const rect = calendarContainer.value.getBoundingClientRect()
+  const centerX = rect.width / 2
+  const centerY = rect.height / 2
+  const mouseX = event.clientX - rect.left
+  const mouseY = event.clientY - rect.top
+  
+  const maxTilt = 8
+  const tiltYValue = ((mouseX - centerX) / centerX) * maxTilt
+  const tiltXValue = -((mouseY - centerY) / centerY) * maxTilt
+  
+  tiltX.value = `${tiltXValue}deg`
+  tiltY.value = `${tiltYValue}deg`
+  tiltScale.value = '1.02'
+}
+
+function handleMouseLeave() {
+  tiltX.value = '0deg'
+  tiltY.value = '0deg'
+  tiltScale.value = '1'
 }
 
 defineExpose({
