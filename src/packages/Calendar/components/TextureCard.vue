@@ -16,29 +16,29 @@
           
           <div class="texture-card-info">
             <div class="texture-card-header">
-              <div>
-                <div class="texture-card-title">{{ textureData?.textureName }}</div>
-                <div class="texture-card-date">{{ formattedDate }}</div>
-              </div>
+              <div class="texture-card-title">{{ textureData?.textureName }}</div>
+              <div class="texture-card-date">{{ formattedDate }}</div>
             </div>
             
-            <div class="texture-card-colors">
-              <div class="texture-card-color-group">
-                <div class="texture-card-color-label">主色调</div>
-                <div class="texture-card-color-row">
-                  <div class="texture-card-color-item" v-for="(color, index) in mainColors" :key="index">
-                    <div class="texture-card-color-swatch" :style="{ background: color }"></div>
-                    <span class="texture-card-color-value">{{ color.toUpperCase() }}</span>
+            <div class="texture-card-content-scroll">
+              <div class="texture-card-colors">
+                <div class="texture-card-color-section">
+                  <div class="texture-card-color-label">主色调</div>
+                  <div class="texture-card-color-row">
+                    <div class="texture-card-color-item" v-for="(color, index) in mainColors" :key="index">
+                      <div class="texture-card-color-swatch" :style="{ background: color }"></div>
+                      <span class="texture-card-color-value">{{ color.toUpperCase() }}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-              
-              <div class="texture-card-color-group" v-if="accentColor">
-                <div class="texture-card-color-label">动态色</div>
-                <div class="texture-card-color-row">
-                  <div class="texture-card-color-item">
-                    <div class="texture-card-color-swatch" :style="{ background: accentColor }"></div>
-                    <span class="texture-card-color-value">{{ accentColor.toUpperCase() }}</span>
+                
+                <div class="texture-card-color-section" v-if="accentColor">
+                  <div class="texture-card-color-label">动态色</div>
+                  <div class="texture-card-color-row">
+                    <div class="texture-card-color-item">
+                      <div class="texture-card-color-swatch" :style="{ background: accentColor }"></div>
+                      <span class="texture-card-color-value">{{ accentColor.toUpperCase() }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -196,7 +196,8 @@ watch(() => props.visible, (newVal) => {
   position: relative;
   width: 320px;
   max-height: 90vh;
-  min-height: 480px;
+  min-height: 450px;
+  max-width: 90vw;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   border-radius: 16px;
@@ -236,7 +237,10 @@ watch(() => props.visible, (newVal) => {
 .texture-card-preview {
   position: relative;
   width: 100%;
-  height: 200px;
+  min-height: 160px;
+  max-height: 220px;
+  height: auto;
+  aspect-ratio: 16 / 10;
   flex-shrink: 0;
   overflow: hidden;
 }
@@ -254,10 +258,12 @@ watch(() => props.visible, (newVal) => {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow: hidden;
 }
 
 .texture-card-header {
   margin-bottom: 12px;
+  flex-shrink: 0;
 }
 
 .texture-card-title {
@@ -272,19 +278,33 @@ watch(() => props.visible, (newVal) => {
   color: #909399;
 }
 
+.texture-card-content-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  padding-right: 4px;
+  margin-right: -4px;
+}
+
 .texture-card-colors {
   background: #f5f7fa;
   border-radius: 12px;
-  padding: 12px 14px;
-  margin-bottom: 14px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  flex-direction: column;
+  gap: 14px;
 }
 
-.texture-card-color-group {
-  flex: 1;
-  min-width: 100px;
+.texture-card-color-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.texture-card-color-section:last-child {
+  margin-bottom: 0;
 }
 
 .texture-card-color-label {
@@ -293,24 +313,23 @@ watch(() => props.visible, (newVal) => {
   color: #909399;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 8px;
 }
 
 .texture-card-color-row {
   display: flex;
-  gap: 12px;
+  gap: 16px;
 }
 
 .texture-card-color-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .texture-card-color-swatch {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   box-shadow: 
     0 2px 8px rgba(0, 0, 0, 0.1),
@@ -326,8 +345,25 @@ watch(() => props.visible, (newVal) => {
 .texture-card-actions {
   display: flex;
   gap: 12px;
-  margin-top: auto;
+  margin-top: 12px;
   flex-shrink: 0;
+}
+
+.texture-card-content-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.texture-card-content-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.texture-card-content-scroll::-webkit-scrollbar-thumb {
+  background: rgba(144, 147, 153, 0.3);
+  border-radius: 2px;
+}
+
+.texture-card-content-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(144, 147, 153, 0.5);
 }
 
 .texture-card-btn {
