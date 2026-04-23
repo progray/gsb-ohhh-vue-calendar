@@ -1,6 +1,8 @@
 .ohhh-calendar-container {
   --calendar-theme-color: #409eff;
-  --calendar-theme-color-light: #{rgba(#409eff, 0.2)};
+  --calendar-theme-color-light: rgba(64, 158, 255, 0.2);
+  --calendar-highlight-color: #67c23a;
+  --calendar-highlight-color-light: rgba(103, 194, 58, 0.2);
 
   --calendar-text-color-level-1: #303133;
   --calendar-text-color-level-2: #606266;
@@ -9,6 +11,8 @@
   --calendar-text-color-level-5: #c0c4cc;
 
   --calendar-background: transparent;
+  --calendar-border-color: transparent;
+  --calendar-box-shadow: none;
   --calendar-row-height: 60px;
 
   --calendar-icon-size: 20px;
@@ -49,4 +53,6 @@
   --calendar-days-marker-top-gap: 4px;
   --calendar-days-marker-size: 4px;
   --calendar-days-marker-color: var(--calendar-theme-color);
+
+  --calendar-font-family: Open Sans, -apple-system, BlinkMacSystemFont, Helvetica Neue, Helvetica, Segoe UI, Arial, Roboto, PingFang SC, miui, Hiragino Sans GB, Microsoft Yahei, sans-serif;
 }
