@@ -1,4 +1,4 @@
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, watch } from 'vue'
 import { createMonthDates, createWeekDates, isSameDay } from '../utils/index.js'
 
 export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit) {
@@ -220,6 +220,13 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     _targetDate.value = null
     isInTransition.value = false
   }
+
+  watch(isInTransition, (newVal) => {
+    if (!newVal) {
+      transformDistance.value = '0px'
+      transitionDuration.value = '0s'
+    }
+  })
 
   return {
     selected,
