@@ -44,6 +44,8 @@ export function useHitokoto(selectedDate) {
   const showToast = ref(false)
   const toastMessage = ref('')
 
+  let activeRequestDateKey = null
+
   const cachedData = computed(() => _getCacheForDate(selectedDate.value))
 
   const hasOpenedToday = computed(() => {
@@ -51,30 +53,58 @@ export function useHitokoto(selectedDate) {
     return cache && cache.isOpened === true
   })
 
-  watch(
-    selectedDate,
-    (newDate, oldDate) => {
-      if (oldDate && !isSameDay(newDate, oldDate)) {
-        resetState()
-      }
+  function _restoreFromCache(cache) {
+    if (cache && cache.data) {
+      hitokotoData.value = cache.data
+      isOpened.value = true
+      isLoading.value = false
+      error.value = null
+    } else {
+      _resetState()
     }
-  )
+  }
 
-  function resetState() {
+  function _resetState() {
     hitokotoData.value = null
     isLoading.value = false
     error.value = null
     isOpened.value = false
   }
 
+  watch(
+    selectedDate,
+    (newDate, oldDate) => {
+      if (oldDate && !isSameDay(newDate, oldDate)) {
+        activeRequestDateKey = null
+
+        const newCache = _getCacheForDate(newDate)
+        if (newCache && newCache.isOpened && newCache.data) {
+          _restoreFromCache(newCache)
+        } else {
+          _resetState()
+        }
+      }
+    }
+  )
+
+  const currentDateCache = computed(() => {
+    return _getCacheForDate(selectedDate.value)
+  })
+
+  if (currentDateCache.value && currentDateCache.value.isOpened && currentDateCache.value.data) {
+    _restoreFromCache(currentDateCache.value)
+  }
+
   async function openHitokoto() {
     if (isLoading.value) return
 
+    const currentDateKey = _getDateKey(selectedDate.value)
     const cache = cachedData.value
+
     if (cache && cache.data) {
       hitokotoData.value = cache.data
       isOpened.value = true
-      _setSessionCache(_getDateKey(selectedDate.value), {
+      _setSessionCache(currentDateKey, {
         isOpened: true,
         data: cache.data,
         openedAt: Date.now()
@@ -82,24 +112,36 @@ export function useHitokoto(selectedDate) {
       return
     }
 
+    activeRequestDateKey = currentDateKey
     isLoading.value = true
     error.value = null
 
     try {
       const data = await HitokotoService.fetchHitokoto()
+
+      if (activeRequestDateKey !== _getDateKey(selectedDate.value)) {
+        return
+      }
+
       hitokotoData.value = data
       isOpened.value = true
 
-      _setSessionCache(_getDateKey(selectedDate.value), {
+      _setSessionCache(currentDateKey, {
         isOpened: true,
         data: data,
         openedAt: Date.now()
       })
     } catch (err) {
+      if (activeRequestDateKey !== _getDateKey(selectedDate.value)) {
+        return
+      }
+
       error.value = err.message || '获取一言失败'
       showToastMessage(error.value)
     } finally {
-      isLoading.value = false
+      if (activeRequestDateKey === _getDateKey(selectedDate.value)) {
+        isLoading.value = false
+      }
     }
   }
 
@@ -154,7 +196,7 @@ export function useHitokoto(selectedDate) {
     hasOpenedToday,
     formattedHitokoto,
     openHitokoto,
-    resetState,
+    resetState: _resetState,
     copyToClipboard
   }
 }
