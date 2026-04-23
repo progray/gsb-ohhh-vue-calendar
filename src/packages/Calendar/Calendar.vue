@@ -47,7 +47,7 @@
             'other-month': !dateObj.current
           }"
           @click="changeSelectedDate(dateObj.date)"
-          @mousedown="onDayMouseDown($event, index, dayIndex)"
+          @mousedown="onDayMouseDown($event, dateObj.key)"
         >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
@@ -92,8 +92,7 @@ let mouseVelX = 0
 let mouseVelY = 0
 let isMouseDown = false
 let isMouseOver = false
-let draggedPageIndex = -1
-let draggedDayIndex = -1
+let draggedCellIndex = -1
 
 const animationFrameId = ref(null)
 let lastTime = 0
@@ -367,17 +366,6 @@ function updatePhysicsLoop(timestamp) {
   
   const mouseSpeed = Math.sqrt(mouseVelX * mouseVelX + mouseVelY * mouseVelY)
   
-  let draggedCellIndex = -1
-  if (isMouseDown && draggedPageIndex >= 0 && draggedDayIndex >= 0) {
-    for (let i = 0; i < gridState.cells.length; i++) {
-      const cell = gridState.cells[i]
-      if (cell.pageIndex === draggedPageIndex && cell.dayIndex === draggedDayIndex) {
-        draggedCellIndex = i
-        break
-      }
-    }
-  }
-  
   const forces = new Array(gridState.cells.length).fill(null).map(() => ({ fx: 0, fy: 0 }))
   
   for (let i = 0; i < gridState.cells.length; i++) {
@@ -390,18 +378,24 @@ function updatePhysicsLoop(timestamp) {
     if (isMouseOver) {
       const distance = dist({ x: mouseX, y: mouseY }, cellCenter)
       
-      if (distance < PHYSICS.WIND_FALLOFF * 2.5 && mouseSpeed > 2) {
+      if (distance < PHYSICS.WIND_FALLOFF * 2.5) {
         const falloff = Math.max(0, 1 - distance / (PHYSICS.WIND_FALLOFF * 2))
-        const speedFactor = Math.min(1, mouseSpeed / 80)
         
         const dx = cellCenter.x - mouseX
         const dy = cellCenter.y - mouseY
         const angle = Math.atan2(dy, dx)
         
-        const strength = PHYSICS.WIND_STRENGTH * falloff * speedFactor * (1 + speedFactor * 0.5)
+        let effectiveStrength = 0
         
-        forces[i].fx += Math.cos(angle) * strength
-        forces[i].fy += Math.sin(angle) * strength
+        if (mouseSpeed > 0.3) {
+          const speedFactor = Math.min(1, Math.pow(mouseSpeed / 50, 0.7))
+          effectiveStrength = PHYSICS.WIND_STRENGTH * falloff * speedFactor * (1 + speedFactor * 0.5)
+        } else {
+          effectiveStrength = PHYSICS.WIND_STRENGTH * falloff * 0.2
+        }
+        
+        forces[i].fx += Math.cos(angle) * effectiveStrength
+        forces[i].fy += Math.sin(angle) * effectiveStrength
       }
     }
     
@@ -559,12 +553,20 @@ function onMouseUp(event) {
   }
 }
 
-function onDayMouseDown(event, pageIndex, dayIndex) {
+function onDayMouseDown(event, dateKey) {
   if (event.button !== 0) return
   
   isMouseDown = true
-  draggedPageIndex = pageIndex
-  draggedDayIndex = dayIndex
+  
+  const clickedElement = event.currentTarget
+  draggedCellIndex = -1
+  
+  for (let i = 0; i < gridState.cells.length; i++) {
+    if (gridState.cells[i].element === clickedElement) {
+      draggedCellIndex = i
+      break
+    }
+  }
 }
 
 function startPhysics() {
