@@ -25,11 +25,25 @@
   align-items: center;
   column-gap: var(--calendar-toolbar-column-gap);
   padding: var(--calendar-toolbar-padding);
+  flex-wrap: nowrap;
+}
+.ohhh-calendar-toolbar--left {
+  display: flex;
+  align-items: center;
+  column-gap: var(--calendar-toolbar-column-gap);
+  flex-shrink: 0;
+}
+.ohhh-calendar-toolbar--right {
+  display: flex;
+  align-items: center;
+  margin-left: 16px;
+  flex-shrink: 0;
 }
 .ohhh-calendar-toolbar--icon,
 .ohhh-calendar-footer--icon {
   display: flex;
   cursor: pointer;
+  flex-shrink: 0;
 }
 .ohhh-calendar-toolbar--icon {
   fill: var(--calendar-toolbar-icon-color);
@@ -39,10 +53,204 @@
   height: var(--calendar-toolbar-icon-size);
 }
 .ohhh-calendar-toolbar--text {
-  margin: 0 auto;
+  margin: 0 var(--calendar-toolbar-column-gap);
   font-size: var(--calendar-toolbar-font-size);
   font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
+
+// 搜索框样式
+.ohhh-calendar-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 200px;
+  height: 32px;
+  padding: 0 32px 0 32px;
+  background: var(--calendar-search-background, rgba(245, 247, 250, 0.8));
+  border-radius: 16px;
+  border: 1px solid var(--calendar-search-border, transparent);
+  transition: all 0.2s ease;
+}
+.ohhh-calendar-search-box:focus-within {
+  background: var(--calendar-search-focus-background, #fff);
+  border-color: var(--calendar-theme-color, #409eff);
+  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.15);
+}
+.ohhh-calendar-search--icon {
+  position: absolute;
+  left: 10px;
+  width: 16px;
+  height: 16px;
+  color: var(--calendar-text-color-level-4, #a8abb2);
+}
+.ohhh-calendar-search--input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  color: var(--calendar-text-color-level-1, #303133);
+  font-family: inherit;
+}
+.ohhh-calendar-search--input::placeholder {
+  color: var(--calendar-text-color-level-4, #a8abb2);
+}
+.ohhh-calendar-search--clear {
+  position: absolute;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--calendar-text-color-level-4, #a8abb2);
+  transition: all 0.2s ease;
+}
+.ohhh-calendar-search--clear:hover {
+  color: var(--calendar-text-color-level-2, #606266);
+  background: rgba(0, 0, 0, 0.05);
+}
+.ohhh-calendar-search--clear svg {
+  width: 14px;
+  height: 14px;
+}
+
+// 搜索结果区域样式
+.search-results-fade-enter-active,
+.search-results-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.search-results-fade-enter-from,
+.search-results-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+.ohhh-calendar-search-results {
+  padding: 12px 16px;
+  background: var(--calendar-search-results-background, rgba(245, 247, 250, 0.5));
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+.ohhh-calendar-search-results--header {
+  font-size: 12px;
+  color: var(--calendar-text-color-level-3, #909399);
+  margin-bottom: 10px;
+}
+.ohhh-calendar-search-results--tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ohhh-calendar-search-result--tag {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 14px;
+  background: var(--calendar-search-tag-background, #fff);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  max-width: calc(50% - 4px);
+}
+.ohhh-calendar-search-result--tag:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  border-color: var(--calendar-theme-color, #409eff);
+}
+.ohhh-calendar-search-result--date {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--calendar-theme-color, #409eff);
+  margin-bottom: 4px;
+}
+.ohhh-calendar-search-result--preview {
+  font-size: 13px;
+  color: var(--calendar-text-color-level-2, #606266);
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-all;
+}
+.ohhh-calendar-search-result--highlight {
+  color: var(--calendar-theme-color, #409eff);
+  background: rgba(64, 158, 255, 0.15);
+  padding: 0 2px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+.ohhh-calendar-search-results--empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  color: var(--calendar-text-color-level-4, #a8abb2);
+  font-size: 14px;
+}
+.ohhh-calendar-search-results--empty svg {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 10px;
+  opacity: 0.5;
+}
+
+// 日期备注标签样式
+.ohhh-calendar-day {
+  position: relative;
+}
+.ohhh-calendar-day--note-tag {
+  position: absolute;
+  top: 2px;
+  right: calc(50% - 24px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.8);
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+.ohhh-calendar-day--note-tag.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
+}
+.ohhh-calendar-day--note-tag.has-note {
+  background: var(--calendar-theme-color, #409eff);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(64, 158, 255, 0.4);
+}
+.ohhh-calendar-day--note-tag:not(.has-note) {
+  background: var(--calendar-note-tag-empty-background, rgba(245, 247, 250, 0.9));
+  color: var(--calendar-text-color-level-4, #a8abb2);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+.ohhh-calendar-day--note-tag:hover:not(.has-note) {
+  background: var(--calendar-theme-color-light, rgba(64, 158, 255, 0.2));
+  color: var(--calendar-theme-color, #409eff);
+  border-color: var(--calendar-theme-color, #409eff);
+}
+.ohhh-calendar-day--note-tag svg {
+  width: 10px;
+  height: 10px;
+}
+
 
 .ohhh-calendar-weekdays {
   display: grid;
