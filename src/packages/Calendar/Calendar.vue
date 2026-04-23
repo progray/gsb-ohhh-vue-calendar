@@ -1,6 +1,7 @@
 <template>
   <div
     class="ohhh-calendar-container"
+    :class="{ 'is-transitioning': isInTransition }"
     :style="{
       '--calendar-rows': renderRows,
       '--calendar-transition-duration': duration,
@@ -37,6 +38,11 @@
         :key="index"
         :style="{ left: 100 * (index - 1) + '%' }"
         class="ohhh-calendar-days"
+        :class="{
+          'is-prev': index === 0,
+          'is-current': index === 1,
+          'is-next': index === 2
+        }"
         @transitionend="onTransitionEnd"
       >
         <div
@@ -60,36 +66,28 @@
           </div>
 
           <div class="ohhh-calendar-day--fitness-summary">
-            <div v-if="goals.length > 0" class="ohhh-calendar-day--mini-progress">
-              <div
-                class="ohhh-calendar-day--mini-progress-bar"
-                :style="{
-                  '--progress-percent': getDaySummary(dateObj.date).overallPercentage + '%',
-                  '--progress-color': getProgressColor(getDaySummary(dateObj.date).overallPercentage)
+            <div v-if="goals.length > 0" class="ohhh-calendar-day--goal-icons">
+              <button
+                v-for="goal in goals"
+                :key="goal.id"
+                class="ohhh-calendar-day--goal-btn"
+                :class="{
+                  'is-completed': getProgress(dateObj.date, goal).isCompleted
                 }"
+                :style="{ '--goal-color': getProgressColor(getProgress(dateObj.date, goal).percentage, goal.color) }"
+                @click.stop="quickCheckIn(dateObj.date, goal)"
+                :title="`${goal.name}: ${getProgress(dateObj.date, goal).current}/${goal.target}${goal.unit}`"
               >
-                <div class="ohhh-calendar-day--mini-progress-fill"></div>
-              </div>
-              <div class="ohhh-calendar-day--emojis">
-                <span
-                  v-for="(progress, idx) in getDaySummary(dateObj.date).progressItems.slice(0, 3)"
-                  :key="progress.goalId"
-                  class="ohhh-calendar-day--emoji"
-                  :class="{ 'is-inactive': !progress.isCompleted }"
-                >
-                  {{ progress.emoji }}
-                </span>
-              </div>
+                <span class="ohhh-calendar-day--goal-emoji">{{ goal.emoji }}</span>
+                <div class="ohhh-calendar-day--goal-progress">
+                  <div
+                    class="ohhh-calendar-day--goal-progress-fill"
+                    :style="{ width: getProgress(dateObj.date, goal).percentage + '%' }"
+                  ></div>
+                </div>
+              </button>
             </div>
           </div>
-
-          <button
-            class="ohhh-calendar-day--checkin-btn"
-            @click.stop="openCheckInPanel(dateObj.date)"
-            title="打开打卡面板"
-          >
-            <span class="ohhh-calendar-day--checkin-icon">✓</span>
-          </button>
 
           <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
         </div>
@@ -306,6 +304,13 @@ function getProgressForGoal(goal) {
   return getProgress(checkInPanelDate.value, goal)
 }
 
+function quickCheckIn(date, goal) {
+  const current = getRecord(date, goal.id)
+  const step = Math.max(1, Math.floor(goal.target / 5))
+  const newValue = current + step
+  setRecord(date, goal.id, Math.min(newValue, goal.target * 2))
+}
+
 defineExpose({
   toggleViewMode,
   changePageTo,
@@ -321,7 +326,7 @@ defineExpose({
 <style scoped lang="scss">
 .ohhh-calendar-day {
   position: relative;
-  padding-bottom: 4px;
+  padding-bottom: 2px;
   
   &.has-fitness-data {
     .ohhh-calendar-day--inner {
@@ -343,100 +348,85 @@ defineExpose({
 .ohhh-calendar-day--fitness-summary {
   position: absolute;
   bottom: 2px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  width: 100%;
-  max-width: 48px;
-}
-
-.ohhh-calendar-day--mini-progress {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.ohhh-calendar-day--mini-progress-bar {
-  width: 100%;
-  height: 4px;
-  background: var(--calendar-fitness-progress-bg, #e2e8f0);
-  border-radius: 2px;
-  overflow: hidden;
-  position: relative;
-}
-
-.ohhh-calendar-day--mini-progress-fill {
-  position: absolute;
   left: 0;
-  top: 0;
-  height: 100%;
-  background: var(--progress-color, var(--calendar-theme-color));
-  border-radius: 2px;
-  width: var(--progress-percent, 0%);
-  transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.ohhh-calendar-day--emojis {
+  right: 0;
   display: flex;
   justify-content: center;
-  gap: 1px;
+  align-items: center;
+  padding: 0 2px;
 }
 
-.ohhh-calendar-day--emoji {
-  font-size: 10px;
-  opacity: 1;
-  transition: all 0.3s ease;
-  
-  &.is-inactive {
-    opacity: 0.25;
-    filter: grayscale(1);
-  }
-}
-
-.ohhh-calendar-day--checkin-btn {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 20px;
-  height: 20px;
+.ohhh-calendar-day--goal-icons {
   display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: nowrap;
+}
+
+.ohhh-calendar-day--goal-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  border-radius: 50%;
+  padding: 2px 3px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid transparent;
+  border-radius: 6px;
   cursor: pointer;
-  opacity: 0;
-  transform: scale(0.8);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 0;
+  min-width: 20px;
   
   &:hover {
-    background: var(--calendar-theme-gradient);
-    transform: scale(1.1);
+    transform: translateY(-2px) scale(1.1);
+    background: white;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+    border-color: var(--goal-color, var(--calendar-theme-color));
+  }
+  
+  &:active {
+    transform: translateY(0) scale(0.95);
+  }
+  
+  &.is-completed {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(67, 160, 71, 0.05) 100%);
+    border-color: rgba(76, 175, 80, 0.4);
     
-    .ohhh-calendar-day--checkin-icon {
-      color: white;
+    .ohhh-calendar-day--goal-emoji {
+      filter: none;
+      opacity: 1;
+    }
+  }
+  
+  &:not(.is-completed) {
+    .ohhh-calendar-day--goal-emoji {
+      filter: grayscale(0.5);
+      opacity: 0.6;
     }
   }
 }
 
-.ohhh-calendar-day:hover .ohhh-calendar-day--checkin-btn,
-.ohhh-calendar-day--checkin-btn:focus {
-  opacity: 1;
-  transform: scale(1);
+.ohhh-calendar-day--goal-emoji {
+  font-size: 12px;
+  line-height: 1;
+  margin-bottom: 1px;
+  transition: all 0.3s ease;
 }
 
-.ohhh-calendar-day--checkin-icon {
-  font-size: 11px;
-  font-weight: bold;
-  color: var(--calendar-theme-color);
-  line-height: 1;
+.ohhh-calendar-day--goal-progress {
+  width: 14px;
+  height: 3px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.ohhh-calendar-day--goal-progress-fill {
+  height: 100%;
+  background: var(--goal-color, var(--calendar-theme-color));
+  border-radius: 2px;
+  transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner {
