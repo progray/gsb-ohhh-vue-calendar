@@ -83,7 +83,7 @@
       :shadowOptions="shadowOptions"
       :fontOptions="fontOptions"
       @close="closeThemePanel"
-      @select-preset="handleSelectPreset"
+      @apply-preset="handleApplyPreset"
       @update-config="handleUpdateConfig"
       @preview="handlePreview"
       @apply="handleApplyCustom"
@@ -257,8 +257,9 @@ function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
-function handleSelectPreset(presetKey) {
+function handleApplyPreset(presetKey) {
   applyPreset(presetKey)
+  closeThemePanel()
 }
 
 function handleUpdateConfig(config) {
@@ -276,6 +277,7 @@ function handlePreview(config) {
 
 function handleApplyCustom() {
   applyCustomTheme()
+  closeThemePanel()
 }
 
 function handleCancelPreview() {

@@ -19,7 +19,7 @@
                 v-for="(theme, key) in presetThemes"
                 :key="key"
                 class="ohhh-theme-panel--preset-card"
-                :class="{ 'is-active': currentPreset === key && !isCustomMode }"
+                :class="{ 'is-active': selectedPreset === key }"
                 @click="handlePresetClick(key)"
               >
                 <div class="ohhh-theme-panel--preset-thumbnail" :style="getThumbnailStyle(theme.config)">
@@ -35,6 +35,7 @@
                         'is-today': i === 8,
                         'is-selected': i === 10
                       }"
+                      :style="getThumbnailDayStyle(theme.config, i)"
                     >
                       {{ i }}
                     </div>
@@ -44,7 +45,7 @@
                   <span class="ohhh-theme-panel--preset-name">{{ theme.name }}</span>
                   <span class="ohhh-theme-panel--preset-desc">{{ theme.description }}</span>
                 </div>
-                <div v-if="currentPreset === key && !isCustomMode" class="ohhh-theme-panel--preset-check">
+                <div v-if="selectedPreset === key" class="ohhh-theme-panel--preset-check">
                   <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                     <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
                   </svg>
@@ -56,9 +57,7 @@
           <div class="ohhh-theme-panel--divider"></div>
 
           <div class="ohhh-theme-panel--custom">
-            <h4>自定义主题
-              <span v-if="isCustomMode" class="ohhh-theme-panel--custom-active">（自定义模式）</span>
-            </h4>
+            <h4>自定义主题</h4>
             <div class="ohhh-theme-panel--custom-grid">
               <div class="ohhh-theme-panel--color-item">
                 <label>背景色</label>
@@ -67,6 +66,7 @@
                     type="color"
                     v-model="tempConfig.background"
                     class="ohhh-theme-panel--color-picker"
+                    @input="handleColorChange"
                   />
                   <input
                     type="text"
@@ -83,6 +83,7 @@
                     type="color"
                     v-model="tempConfig.selected"
                     class="ohhh-theme-panel--color-picker"
+                    @input="handleColorChange"
                   />
                   <input
                     type="text"
@@ -99,6 +100,7 @@
                     type="color"
                     v-model="tempConfig.highlight"
                     class="ohhh-theme-panel--color-picker"
+                    @input="handleColorChange"
                   />
                   <input
                     type="text"
@@ -115,6 +117,7 @@
                     type="color"
                     v-model="tempConfig.text"
                     class="ohhh-theme-panel--color-picker"
+                    @input="handleColorChange"
                   />
                   <input
                     type="text"
@@ -131,6 +134,7 @@
                     type="color"
                     v-model="tempConfig.border"
                     class="ohhh-theme-panel--color-picker"
+                    @input="handleColorChange"
                   />
                   <input
                     type="text"
@@ -147,6 +151,7 @@
                     type="color"
                     v-model="tempConfig.todayMarker"
                     class="ohhh-theme-panel--color-picker"
+                    @input="handleColorChange"
                   />
                   <input
                     type="text"
@@ -156,22 +161,41 @@
                 </div>
               </div>
 
-              <div class="ohhh-theme-panel--select-item">
-                <label>阴影强度</label>
-                <select v-model="tempConfig.shadow" class="ohhh-theme-panel--select">
-                  <option v-for="option in shadowOptions" :key="option.value" :value="option.value">
-                    {{ option.label }}
-                  </option>
-                </select>
+              <div class="ohhh-theme-panel--slider-item">
+                <label>
+                  阴影强度
+                  <span class="ohhh-theme-panel--slider-value">{{ getShadowLabel(tempConfig.shadow) }}</span>
+                </label>
+                <div class="ohhh-theme-panel--slider-wrapper">
+                  <input
+                    type="range"
+                    :min="0"
+                    :max="shadowOptions.length - 1"
+                    :step="1"
+                    v-model="shadowSliderValue"
+                    class="ohhh-theme-panel--slider"
+                    @input="handleShadowChange"
+                  />
+                  <div class="ohhh-theme-panel--slider-labels">
+                    <span v-for="option in shadowOptions" :key="option.value" class="ohhh-theme-panel--slider-label">
+                      {{ option.label }}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <div class="ohhh-theme-panel--select-item">
                 <label>字体</label>
-                <select v-model="tempConfig.font" class="ohhh-theme-panel--select">
-                  <option v-for="option in fontOptions" :key="option.value" :value="option.value">
-                    {{ option.label }}
-                  </option>
-                </select>
+                <div class="ohhh-theme-panel--select-wrapper">
+                  <select v-model="tempConfig.font" class="ohhh-theme-panel--select" @change="handleFontChange">
+                    <option v-for="option in fontOptions" :key="option.value" :value="option.value">
+                      {{ option.label }}
+                    </option>
+                  </select>
+                  <div class="ohhh-theme-panel--font-preview" :style="{ fontFamily: getFontFamily(tempConfig.font) }">
+                    示例文字 Aa
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -223,30 +247,111 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'select-preset', 'update-config', 'preview', 'apply', 'cancel-preview'])
+const emit = defineEmits(['close', 'select-preset', 'update-config', 'preview', 'apply', 'cancel-preview', 'apply-preset'])
 
+const selectedPreset = ref(props.currentPreset === 'custom' ? null : props.currentPreset)
 const tempConfig = ref({ ...props.customConfig })
 
-const isCustomMode = computed(() => props.currentPreset === 'custom')
+const shadowSliderValue = ref(
+  props.shadowOptions.findIndex(o => o.value === props.customConfig.shadow)
+)
+
+watch(() => props.currentPreset, (newPreset) => {
+  if (newPreset === 'custom') {
+    selectedPreset.value = null
+  } else {
+    selectedPreset.value = newPreset
+  }
+}, { immediate: true })
 
 watch(() => props.customConfig, (newVal) => {
   tempConfig.value = { ...newVal }
+  shadowSliderValue.value = props.shadowOptions.findIndex(o => o.value === newVal.shadow)
 }, { deep: true })
 
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
     tempConfig.value = { ...props.customConfig }
+    shadowSliderValue.value = props.shadowOptions.findIndex(o => o.value === props.customConfig.shadow)
+    if (props.currentPreset === 'custom') {
+      selectedPreset.value = null
+    } else {
+      selectedPreset.value = props.currentPreset
+    }
   }
 })
 
 function getThumbnailStyle(config) {
   return {
-    backgroundColor: config.background
+    backgroundColor: config.background,
+    color: config.text
   }
 }
 
+function getThumbnailDayStyle(config, day) {
+  if (day === 8) {
+    return {
+      backgroundColor: hexToRgba(config.todayMarker, 0.2),
+      color: config.todayMarker
+    }
+  }
+  if (day === 10) {
+    return {
+      backgroundColor: config.selected,
+      color: getContrastColor(config.selected)
+    }
+  }
+  return {}
+}
+
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
+function getContrastColor(hex) {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000
+  return brightness > 128 ? '#000000' : '#ffffff'
+}
+
+function getShadowLabel(value) {
+  const option = props.shadowOptions.find(o => o.value === value)
+  return option ? option.label : ''
+}
+
+function getFontFamily(value) {
+  const option = props.fontOptions.find(o => o.value === value)
+  return option ? option.fontFamily : ''
+}
+
 function handlePresetClick(presetKey) {
-  emit('select-preset', presetKey)
+  selectedPreset.value = presetKey
+  const theme = props.presetThemes[presetKey]
+  if (theme) {
+    tempConfig.value = { ...theme.config }
+    shadowSliderValue.value = props.shadowOptions.findIndex(o => o.value === theme.config.shadow)
+  }
+}
+
+function handleShadowChange() {
+  const index = parseInt(shadowSliderValue.value)
+  if (props.shadowOptions[index]) {
+    tempConfig.value.shadow = props.shadowOptions[index].value
+    selectedPreset.value = null
+  }
+}
+
+function handleFontChange() {
+  selectedPreset.value = null
+}
+
+function handleColorChange() {
+  selectedPreset.value = null
 }
 
 function handleOverlayClick() {
@@ -262,8 +367,12 @@ function handleCancelPreview() {
 }
 
 function handleApply() {
-  emit('update-config', { ...tempConfig.value })
-  emit('apply')
+  if (selectedPreset.value && props.presetThemes[selectedPreset.value]) {
+    emit('apply-preset', selectedPreset.value)
+  } else {
+    emit('update-config', { ...tempConfig.value })
+    emit('apply')
+  }
 }
 </script>
 
@@ -295,7 +404,7 @@ function handleApply() {
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  width: 480px;
+  width: 520px;
   max-height: 90vh;
   overflow-y: auto;
   animation: slideUp 0.3s ease;
@@ -396,7 +505,6 @@ function handleApply() {
 .ohhh-theme-panel--thumbnail-weekdays span {
   font-size: 6px;
   text-align: center;
-  color: inherit;
   opacity: 0.7;
 }
 
@@ -411,17 +519,7 @@ function handleApply() {
   text-align: center;
   padding: 2px 0;
   border-radius: 50%;
-  color: inherit;
-}
-
-.ohhh-theme-panel--thumbnail-day.is-today {
-  background: rgba(245, 108, 108, 0.2);
-  color: #f56c6c;
-}
-
-.ohhh-theme-panel--thumbnail-day.is-selected {
-  background: #409eff;
-  color: #fff;
+  transition: all 0.2s;
 }
 
 .ohhh-theme-panel--preset-info {
@@ -471,92 +569,183 @@ function handleApply() {
   font-size: 14px;
   font-weight: 600;
   color: #606266;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.ohhh-theme-panel--custom-active {
-  font-size: 12px;
-  color: #409eff;
-  font-weight: 500;
 }
 
 .ohhh-theme-panel--custom-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: 20px;
   margin-bottom: 20px;
 }
 
 .ohhh-theme-panel--color-item,
-.ohhh-theme-panel--select-item {
+.ohhh-theme-panel--select-item,
+.ohhh-theme-panel--slider-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ohhh-theme-panel--color-item label,
+.ohhh-theme-panel--select-item label,
+.ohhh-theme-panel--slider-item label {
+  font-size: 13px;
+  color: #606266;
+  font-weight: 500;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ohhh-theme-panel--slider-value {
+  font-size: 12px;
+  color: #409eff;
+  font-weight: 600;
+}
+
+.ohhh-theme-panel--color-input-wrapper {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.ohhh-theme-panel--color-picker {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 0;
+  background: none;
+  flex-shrink: 0;
+}
+
+.ohhh-theme-panel--color-picker::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.ohhh-theme-panel--color-picker::-webkit-color-swatch {
+  border: 2px solid #e4e7ed;
+  border-radius: 6px;
+}
+
+.ohhh-theme-panel--color-picker:hover::-webkit-color-swatch {
+  border-color: #409eff;
+}
+
+.ohhh-theme-panel--color-text {
+  flex: 1;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.ohhh-theme-panel--color-text:focus {
+  border-color: #409eff;
+  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.1);
+}
+
+.ohhh-theme-panel--slider-wrapper {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.ohhh-theme-panel--color-item label,
-.ohhh-theme-panel--select-item label {
-  font-size: 12px;
+.ohhh-theme-panel--slider {
+  width: 100%;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: linear-gradient(to right, #e4e7ed, #409eff);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+.ohhh-theme-panel--slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border: 2px solid #409eff;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(64, 158, 255, 0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.ohhh-theme-panel--slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 10px rgba(64, 158, 255, 0.4);
+}
+
+.ohhh-theme-panel--slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border: 2px solid #409eff;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(64, 158, 255, 0.3);
+}
+
+.ohhh-theme-panel--slider-labels {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 2px;
+}
+
+.ohhh-theme-panel--slider-label {
+  font-size: 11px;
   color: #909399;
 }
 
-.ohhh-theme-panel--color-input-wrapper {
+.ohhh-theme-panel--select-wrapper {
   display: flex;
+  flex-direction: column;
   gap: 8px;
-  align-items: center;
-}
-
-.ohhh-theme-panel--color-picker {
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  padding: 0;
-  background: none;
-}
-
-.ohhh-theme-panel--color-picker::-webkit-color-swatch-wrapper {
-  padding: 0;
-}
-
-.ohhh-theme-panel--color-picker::-webkit-color-swatch {
-  border: 1px solid #dcdfe6;
-  border-radius: 6px;
-}
-
-.ohhh-theme-panel--color-text {
-  flex: 1;
-  height: 32px;
-  padding: 0 8px;
-  border: 1px solid #dcdfe6;
-  border-radius: 6px;
-  font-size: 12px;
-  font-family: monospace;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.ohhh-theme-panel--color-text:focus {
-  border-color: #409eff;
 }
 
 .ohhh-theme-panel--select {
-  height: 32px;
-  padding: 0 8px;
+  height: 36px;
+  padding: 0 12px;
   border: 1px solid #dcdfe6;
-  border-radius: 6px;
-  font-size: 12px;
+  border-radius: 8px;
+  font-size: 13px;
   outline: none;
   cursor: pointer;
   background: #fff;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23909399' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
 }
 
 .ohhh-theme-panel--select:focus {
   border-color: #409eff;
+  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.1);
+}
+
+.ohhh-theme-panel--select:hover {
+  border-color: #c0c4cc;
+}
+
+.ohhh-theme-panel--font-preview {
+  padding: 10px 14px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #303133;
+  text-align: center;
+  border: 1px dashed #dcdfe6;
 }
 
 .ohhh-theme-panel--actions {
@@ -566,9 +755,10 @@ function handleApply() {
 }
 
 .ohhh-theme-panel--btn {
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 13px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
   border: 1px solid;
@@ -583,6 +773,7 @@ function handleApply() {
 .ohhh-theme-panel--btn-preview:hover {
   background: #e4e7ed;
   border-color: #dcdfe6;
+  color: #303133;
 }
 
 .ohhh-theme-panel--btn-cancel {
@@ -594,16 +785,25 @@ function handleApply() {
 .ohhh-theme-panel--btn-cancel:hover {
   border-color: #c0c4cc;
   color: #303133;
+  background: #f5f7fa;
 }
 
 .ohhh-theme-panel--btn-apply {
-  background: #409eff;
+  background: linear-gradient(135deg, #409eff, #66b1ff);
   border-color: #409eff;
   color: #fff;
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
 }
 
 .ohhh-theme-panel--btn-apply:hover {
-  background: #66b1ff;
+  background: linear-gradient(135deg, #66b1ff, #409eff);
   border-color: #66b1ff;
+  box-shadow: 0 6px 16px rgba(64, 158, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.ohhh-theme-panel--btn-apply:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3);
 }
 </style>
