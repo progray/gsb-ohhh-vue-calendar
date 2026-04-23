@@ -1,5 +1,6 @@
 <template>
   <div
+    ref="containerRef"
     class="ohhh-calendar-container"
     :style="{
       '--calendar-rows': renderRows,
@@ -62,7 +63,7 @@
     </div>
 
     <!-- 月度色彩河流 -->
-    <MonthColorRiver :year="currentYear" :month="currentMonth" v-if="showColorRiver && viewMode === 'month'" />
+    <MonthColorRiver :year="currentYear" :month="currentMonth" v-if="showColorRiver" />
 
     <!-- 底部工具栏 -->
     <div v-if="showFooter" class="ohhh-calendar-footer">
@@ -96,6 +97,7 @@ import ColorCardPopover from './components/ColorCardPopover.vue'
 import MonthColorRiver from './components/MonthColorRiver.vue'
 
 const swipeRef = useTemplateRef('swp')
+const containerRef = useTemplateRef('containerRef')
 
 const emit = defineEmits(['select-change', 'view-change', 'color-card-open', 'color-card-close'])
 
@@ -270,20 +272,29 @@ function handleDateClick(date, event) {
   if (props.showColorCard) {
     popoverColorInfo.value = formatColorInfo(date)
     
-    const rect = event.currentTarget.getBoundingClientRect()
+    const containerRect = containerRef.value?.getBoundingClientRect()
     const viewportWidth = window.innerWidth
     const viewportHeight = window.innerHeight
     const popoverWidth = 320
     const popoverHeight = 450
     
-    let x = rect.left + rect.width / 2 - popoverWidth / 2
-    let y = rect.bottom + 10
+    let x, y
+    
+    if (containerRect) {
+      x = containerRect.left + containerRect.width / 2 - popoverWidth / 2
+      y = containerRect.top + containerRect.height / 2 - popoverHeight / 2
+    } else {
+      const rect = event.currentTarget.getBoundingClientRect()
+      x = rect.left + rect.width / 2 - popoverWidth / 2
+      y = rect.bottom + 10
+    }
     
     if (x < 10) x = 10
     if (x + popoverWidth > viewportWidth - 10) x = viewportWidth - popoverWidth - 10
     
+    if (y < 10) y = 10
     if (y + popoverHeight > viewportHeight - 10) {
-      y = rect.top - popoverHeight - 10
+      y = viewportHeight - popoverHeight - 10
     }
     
     popoverPosition.value = { x, y }
