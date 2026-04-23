@@ -67,25 +67,78 @@
 
           <div class="ohhh-calendar-day--fitness-summary">
             <div v-if="goals.length > 0" class="ohhh-calendar-day--goal-icons">
-              <button
-                v-for="goal in goals"
-                :key="goal.id"
-                class="ohhh-calendar-day--goal-btn"
-                :class="{
-                  'is-completed': getProgress(dateObj.date, goal).isCompleted
-                }"
-                :style="{ '--goal-color': getProgressColor(getProgress(dateObj.date, goal).percentage, goal.color) }"
-                @click.stop="quickCheckIn(dateObj.date, goal)"
-                :title="`${goal.name}: ${getProgress(dateObj.date, goal).current}/${goal.target}${goal.unit}`"
-              >
-                <span class="ohhh-calendar-day--goal-emoji">{{ goal.emoji }}</span>
-                <div class="ohhh-calendar-day--goal-progress">
+              <template v-if="goals.length < 3">
+                <button
+                  v-for="goal in goals"
+                  :key="goal.id"
+                  class="ohhh-calendar-day--goal-btn"
+                  :class="{
+                    'is-completed': getProgress(dateObj.date, goal).isCompleted
+                  }"
+                  :style="{ '--goal-color': getProgressColor(getProgress(dateObj.date, goal).percentage, goal.color) }"
+                  @click.stop="quickCheckIn(dateObj.date, goal)"
+                  @contextmenu.stop.prevent="quickCheckInSubtract(dateObj.date, goal)"
+                  :title="`${goal.name}: ${getProgress(dateObj.date, goal).current}/${goal.target}${goal.unit}\n左键+ | 右键-`"
+                >
+                  <span class="ohhh-calendar-day--goal-emoji">{{ goal.emoji }}</span>
+                  <div class="ohhh-calendar-day--goal-progress">
+                    <div
+                      class="ohhh-calendar-day--goal-progress-fill"
+                      :style="{ width: getProgress(dateObj.date, goal).percentage + '%' }"
+                    ></div>
+                  </div>
+                </button>
+              </template>
+
+              <template v-else>
+                <div class="ohhh-calendar-day--goal-stack" @click.stop="toggleGoalPanel(dateObj)">
                   <div
-                    class="ohhh-calendar-day--goal-progress-fill"
-                    :style="{ width: getProgress(dateObj.date, goal).percentage + '%' }"
-                  ></div>
+                    v-for="(goal, index) in goals.slice(0, 3)"
+                    :key="goal.id"
+                    class="ohhh-calendar-day--goal-stack-item"
+                    :class="{
+                      'is-completed': getProgress(dateObj.date, goal).isCompleted
+                    }"
+                    :style="{
+                      '--goal-color': getProgressColor(getProgress(dateObj.date, goal).percentage, goal.color),
+                      '--stack-index': index,
+                      '--stack-offset': index * 8 + 'px'
+                    }"
+                  >
+                    <span class="ohhh-calendar-day--goal-emoji">{{ goal.emoji }}</span>
+                  </div>
+                  <div v-if="goals.length > 3" class="ohhh-calendar-day--goal-stack-more">
+                    +{{ goals.length - 3 }}
+                  </div>
                 </div>
-              </button>
+
+                <div
+                  v-if="activeGoalPanelDate && isSameDay(activeGoalPanelDate, dateObj.date)"
+                  class="ohhh-calendar-day--goal-panel"
+                  :class="{ 'goals-3': goals.length >= 3 && goals.length <= 5, 'goals-more': goals.length > 5 }"
+                >
+                  <button
+                    v-for="goal in goals"
+                    :key="goal.id"
+                    class="ohhh-calendar-day--goal-btn"
+                    :class="{
+                      'is-completed': getProgress(dateObj.date, goal).isCompleted
+                    }"
+                    :style="{ '--goal-color': getProgressColor(getProgress(dateObj.date, goal).percentage, goal.color) }"
+                    @click.stop="quickCheckIn(dateObj.date, goal)"
+                    @contextmenu.stop.prevent="quickCheckInSubtract(dateObj.date, goal)"
+                    :title="`${goal.name}: ${getProgress(dateObj.date, goal).current}/${goal.target}${goal.unit}\n左键+ | 右键-`"
+                  >
+                    <span class="ohhh-calendar-day--goal-emoji">{{ goal.emoji }}</span>
+                    <div class="ohhh-calendar-day--goal-progress">
+                      <div
+                        class="ohhh-calendar-day--goal-progress-fill"
+                        :style="{ width: getProgress(dateObj.date, goal).percentage + '%' }"
+                      ></div>
+                    </div>
+                  </button>
+                </div>
+              </template>
             </div>
           </div>
 
@@ -199,6 +252,7 @@ const {
 
 const checkInPanelVisible = ref(false)
 const checkInPanelDate = ref(new Date())
+const activeGoalPanelDate = ref(null)
 
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
 const weekdays = createWeekdays(weekStart.value)
@@ -311,6 +365,21 @@ function quickCheckIn(date, goal) {
   setRecord(date, goal.id, Math.min(newValue, goal.target * 2))
 }
 
+function quickCheckInSubtract(date, goal) {
+  const current = getRecord(date, goal.id)
+  const step = Math.max(1, Math.floor(goal.target / 5))
+  const newValue = current - step
+  setRecord(date, goal.id, Math.max(newValue, 0))
+}
+
+function toggleGoalPanel(dateObj) {
+  if (activeGoalPanelDate.value && isSameDay(activeGoalPanelDate.value, dateObj.date)) {
+    activeGoalPanelDate.value = null
+  } else {
+    activeGoalPanelDate.value = new Date(dateObj.date)
+  }
+}
+
 defineExpose({
   toggleViewMode,
   changePageTo,
@@ -362,6 +431,120 @@ defineExpose({
   align-items: center;
   gap: 2px;
   flex-wrap: nowrap;
+}
+
+.ohhh-calendar-day--goal-stack {
+  display: flex;
+  align-items: center;
+  position: relative;
+  height: 24px;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.ohhh-calendar-day--goal-stack-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid white;
+  border-radius: 50%;
+  margin-left: calc(var(--stack-offset, 0px) * -1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: calc(3 - var(--stack-index, 0));
+  
+  &:hover {
+    transform: translateY(-2px) scale(1.1);
+    z-index: 10;
+  }
+  
+  &.is-completed {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.15) 0%, rgba(67, 160, 71, 0.1) 100%);
+    border-color: rgba(76, 175, 80, 0.5);
+    
+    .ohhh-calendar-day--goal-emoji {
+      filter: none;
+      opacity: 1;
+    }
+  }
+  
+  &:not(.is-completed) {
+    .ohhh-calendar-day--goal-emoji {
+      filter: grayscale(0.5);
+      opacity: 0.6;
+    }
+  }
+}
+
+.ohhh-calendar-day--goal-stack-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border: 2px solid white;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  margin-left: -6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  z-index: 0;
+}
+
+.ohhh-calendar-day--goal-panel {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  margin-bottom: 6px;
+  animation: panelSlideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  min-width: 80px;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid white;
+  }
+  
+  &.goals-3 {
+    width: 120px;
+  }
+  
+  &.goals-more {
+    width: 160px;
+  }
+}
+
+@keyframes panelSlideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 .ohhh-calendar-day--goal-btn {
