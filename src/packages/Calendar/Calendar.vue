@@ -293,6 +293,8 @@ function _getMarkerColor(date) {
 
 // 蒙德里安视图状态
 const isMondrianView = ref(false)
+// 保存进入蒙德里安视图前的视图模式
+const savedViewMode = ref(null)
 
 // 蒙德里安颜色配置
 const MONDRIAN_COLORS = {
@@ -314,7 +316,23 @@ const ENGLISH_WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 // 切换蒙德里安视图
 function toggleMondrianView() {
-  isMondrianView.value = !isMondrianView.value
+  if (!isMondrianView.value) {
+    // 进入蒙德里安视图
+    savedViewMode.value = viewMode.value
+    // 如果当前是周视图，先切换到月视图
+    if (viewMode.value === 'week') {
+      toggleViewMode()
+    }
+    isMondrianView.value = true
+  } else {
+    // 退出蒙德里安视图
+    isMondrianView.value = false
+    // 恢复之前的视图模式
+    if (savedViewMode.value && savedViewMode.value !== viewMode.value) {
+      toggleViewMode()
+    }
+    savedViewMode.value = null
+  }
 }
 
 // 蒙德里安标题（英文月份）
@@ -361,6 +379,7 @@ function _generateMondrianBlocks(year, month, dates) {
   const ROWS = 6
   const COLS = 7
   
+  // 创建网格
   const grid = []
   for (let row = 0; row < ROWS; row++) {
     grid[row] = []
@@ -379,6 +398,7 @@ function _generateMondrianBlocks(year, month, dates) {
     }
   }
   
+  // 第一步：生成初始色块布局（不分配颜色）
   const blocks = []
   let blockIdCounter = 0
   
@@ -420,11 +440,8 @@ function _generateMondrianBlocks(year, month, dates) {
     return true
   }
   
-  function placeBlock(startRow, startCol, blockRows, blockCols) {
+  function placeBlockWithoutColor(startRow, startCol, blockRows, blockCols) {
     const blockId = blockIdCounter++
-    const colorKeys = Object.keys(MONDRIAN_COLORS)
-    const colorKey = colorKeys[rng.nextInt(0, colorKeys.length - 1)]
-    const color = MONDRIAN_COLORS[colorKey]
     
     const cells = []
     for (let r = startRow; r < startRow + blockRows; r++) {
@@ -441,12 +458,13 @@ function _generateMondrianBlocks(year, month, dates) {
       col: startCol,
       rows: blockRows,
       cols: blockCols,
-      color,
-      colorKey,
+      color: null,
+      colorKey: null,
       cells
     })
   }
   
+  // 生成初始色块布局
   for (let row = 0; row < ROWS; row++) {
     for (let col = 0; col < COLS; col++) {
       if (!grid[row][col].visited) {
@@ -462,18 +480,170 @@ function _generateMondrianBlocks(year, month, dates) {
         
         for (const size of sizesToTry) {
           if (canPlaceBlock(row, col, size.rows, size.cols)) {
-            placeBlock(row, col, size.rows, size.cols)
+            placeBlockWithoutColor(row, col, size.rows, size.cols)
             placed = true
             break
           }
         }
         
         if (!placed) {
-          placeBlock(row, col, 1, 1)
+          placeBlockWithoutColor(row, col, 1, 1)
         }
       }
     }
   }
+  
+  // 第二步：分配颜色
+  const colorKeys = Object.keys(MONDRIAN_COLORS)
+  blocks.forEach(block => {
+    const colorKey = colorKeys[rng.nextInt(0, colorKeys.length - 1)]
+    block.colorKey = colorKey
+    block.color = MONDRIAN_COLORS[colorKey]
+  })
+  
+  // 第三步：合并相邻的同色色块
+  function getAdjacentBlocks(block) {
+    const adjacent = []
+    
+    const blockBottom = block.row + block.rows
+    const blockRight = block.col + block.cols
+    
+    for (const other of blocks) {
+      if (other.id === block.id) continue
+      if (other.colorKey !== block.colorKey) continue
+      
+      const otherBottom = other.row + other.rows
+      const otherRight = other.col + other.cols
+      
+      // 检查是否相邻（上下左右）
+      const isAbove = otherBottom === block.row && 
+                      !(otherRight <= block.col || other.col >= blockRight)
+      const isBelow = other.row === blockBottom &&
+                      !(otherRight <= block.col || other.col >= blockRight)
+      const isLeft = otherRight === block.col &&
+                     !(otherBottom <= block.row || other.row >= blockBottom)
+      const isRight = other.col === blockRight &&
+                      !(otherBottom <= block.row || other.row >= blockBottom)
+      
+      if (isAbove || isBelow || isLeft || isRight) {
+        adjacent.push(other)
+      }
+    }
+    
+    return adjacent
+  }
+  
+  function mergeBlocks(blockA, blockB) {
+    const minRow = Math.min(blockA.row, blockB.row)
+    const maxRow = Math.max(blockA.row + blockA.rows, blockB.row + blockB.rows)
+    const minCol = Math.min(blockA.col, blockB.col)
+    const maxCol = Math.max(blockA.col + blockA.cols, blockB.col + blockB.cols)
+    
+    const mergedRows = maxRow - minRow
+    const mergedCols = maxCol - minCol
+    
+    const mergedCells = [...blockA.cells, ...blockB.cells]
+    
+    // 更新合并后的色块
+    blockA.row = minRow
+    blockA.col = minCol
+    blockA.rows = mergedRows
+    blockA.cols = mergedCols
+    blockA.cells = mergedCells
+    
+    // 更新 cells 中的 blockId
+    mergedCells.forEach(cell => {
+      cell.blockId = blockA.id
+    })
+    
+    // 移除被合并的色块
+    const index = blocks.indexOf(blockB)
+    if (index > -1) {
+      blocks.splice(index, 1)
+    }
+  }
+  
+  // 多次迭代合并相邻同色色块
+  let merged = true
+  let iterations = 0
+  const maxIterations = 10
+  
+  while (merged && iterations < maxIterations) {
+    merged = false
+    iterations++
+    
+    // 检查每个色块是否有相邻的同色色块
+    for (let i = 0; i < blocks.length; i++) {
+      const block = blocks[i]
+      const adjacent = getAdjacentBlocks(block)
+      
+      if (adjacent.length > 0) {
+        // 随机选择一个相邻色块合并
+        const toMerge = adjacent[rng.nextInt(0, adjacent.length - 1)]
+        mergeBlocks(block, toMerge)
+        merged = true
+        break
+      }
+    }
+  }
+  
+  // 第四步：计算每个色块的边界线条位置
+  // 检查每个色块的四条边是否需要显示线条
+  blocks.forEach(block => {
+    const blockBottom = block.row + block.rows
+    const blockRight = block.col + block.cols
+    
+    // 检查四条边
+    let showTop = block.row === 0
+    let showBottom = blockBottom === ROWS
+    let showLeft = block.col === 0
+    let showRight = blockRight === COLS
+    
+    // 检查相邻色块是否颜色不同
+    for (const other of blocks) {
+      if (other.id === block.id) continue
+      
+      const otherBottom = other.row + other.rows
+      const otherRight = other.col + other.cols
+      
+      // 上方相邻
+      if (otherBottom === block.row && 
+          !(otherRight <= block.col || other.col >= blockRight)) {
+        if (other.colorKey !== block.colorKey) {
+          showTop = true
+        }
+      }
+      
+      // 下方相邻
+      if (other.row === blockBottom &&
+          !(otherRight <= block.col || other.col >= blockRight)) {
+        if (other.colorKey !== block.colorKey) {
+          showBottom = true
+        }
+      }
+      
+      // 左侧相邻
+      if (otherRight === block.col &&
+          !(otherBottom <= block.row || other.row >= blockBottom)) {
+        if (other.colorKey !== block.colorKey) {
+          showLeft = true
+        }
+      }
+      
+      // 右侧相邻
+      if (other.col === blockRight &&
+          !(otherBottom <= block.row || other.row >= blockBottom)) {
+        if (other.colorKey !== block.colorKey) {
+          showRight = true
+        }
+      }
+    }
+    
+    block.showTop = showTop
+    block.showBottom = showBottom
+    block.showLeft = showLeft
+    block.showRight = showRight
+  })
   
   return blocks
 }
@@ -485,25 +655,25 @@ const mondrianBlocks = computed(() => {
 
 // 获取色块样式
 function getBlockStyle(block) {
+  const borderWidth = '4px'
+  const borderStyle = 'solid'
+  const borderColor = '#000000'
+  
   return {
     gridRow: `${block.row + 1} / span ${block.rows}`,
     gridColumn: `${block.col + 1} / span ${block.cols}`,
-    backgroundColor: block.color
+    backgroundColor: block.color,
+    borderTop: block.showTop ? `${borderWidth} ${borderStyle} ${borderColor}` : 'none',
+    borderBottom: block.showBottom ? `${borderWidth} ${borderStyle} ${borderColor}` : 'none',
+    borderLeft: block.showLeft ? `${borderWidth} ${borderStyle} ${borderColor}` : 'none',
+    borderRight: block.showRight ? `${borderWidth} ${borderStyle} ${borderColor}` : 'none'
   }
 }
 
-// 获取单元格样式
+// 获取单元格样式（移除内部线条，只保留色块边界的线条）
 function getCellStyle(block, cell) {
-  const cellRow = cell.row - block.row
-  const cellCol = cell.col - block.col
-  
-  const borderTop = cellRow === 0 ? 'none' : '4px solid #000000'
-  const borderLeft = cellCol === 0 ? 'none' : '4px solid #000000'
-  
-  return {
-    borderTop,
-    borderLeft
-  }
+  // 不再在单元格内部绘制线条，线条只绘制在色块边界
+  return {}
 }
 
 // 获取数字颜色（根据背景色自适应）
@@ -567,6 +737,7 @@ async function captureMondrianImage() {
     const cellWidth = rect.width / 7
     const cellHeight = (rect.height - gridY - 50) / 6
     
+    // 先填充所有色块
     mondrianBlocks.value.forEach(block => {
       const x = block.col * cellWidth
       const y = gridY + block.row * cellHeight
@@ -575,12 +746,43 @@ async function captureMondrianImage() {
       
       ctx.fillStyle = block.color
       ctx.fillRect(x, y, width, height)
+    })
+    
+    // 然后只在色块边界绘制线条
+    ctx.strokeStyle = '#000000'
+    ctx.lineWidth = 4
+    
+    mondrianBlocks.value.forEach(block => {
+      const x = block.col * cellWidth
+      const y = gridY + block.row * cellHeight
+      const width = block.cols * cellWidth
+      const height = block.rows * cellHeight
       
-      ctx.strokeStyle = '#000000'
-      ctx.lineWidth = 3
-      ctx.strokeRect(x, y, width, height)
+      ctx.beginPath()
       
-      ctx.font = block.rows > 1 || block.cols > 1 ? '14px Arial, Helvetica, sans-serif' : '16px Arial, Helvetica, sans-serif'
+      // 只绘制需要显示的边
+      if (block.showTop) {
+        ctx.moveTo(x, y)
+        ctx.lineTo(x + width, y)
+      }
+      if (block.showBottom) {
+        ctx.moveTo(x, y + height)
+        ctx.lineTo(x + width, y + height)
+      }
+      if (block.showLeft) {
+        ctx.moveTo(x, y)
+        ctx.lineTo(x, y + height)
+      }
+      if (block.showRight) {
+        ctx.moveTo(x + width, y)
+        ctx.lineTo(x + width, y + height)
+      }
+      
+      ctx.stroke()
+      
+      // 绘制日期数字
+      const isLargeBlock = block.rows > 1 || block.cols > 1
+      ctx.font = isLargeBlock ? '14px Arial, Helvetica, sans-serif' : '16px Arial, Helvetica, sans-serif'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       
