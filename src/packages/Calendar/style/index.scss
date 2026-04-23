@@ -138,3 +138,166 @@
   width: var(--calendar-footer-icon-size);
   height: var(--calendar-footer-icon-size);
 }
+
+.ohhh-calendar-day--inner {
+  position: relative;
+}
+
+.ohhh-calendar-day--hitokoto-icon {
+  position: absolute;
+  right: -6px;
+  top: -6px;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  border-radius: 50%;
+  padding: 2px;
+}
+
+.ohhh-calendar-day--hitokoto-icon:hover {
+  transform: scale(1.2);
+}
+
+.ohhh-calendar-day--hitokoto-icon.is-loading .hitokoto-icon-svg {
+  animation: spin 1s linear infinite;
+}
+
+.hitokoto-icon-svg {
+  width: 14px;
+  height: 14px;
+  fill: var(--calendar-days-selected-color, #fff);
+  transition: all 0.3s ease;
+}
+
+.ohhh-calendar-day.is-selected .hitokoto-icon-svg {
+  fill: var(--calendar-days-selected-color, #fff);
+}
+
+.ohhh-calendar-day:not(.is-selected) .hitokoto-icon-svg {
+  fill: var(--calendar-theme-color, #409eff);
+}
+
+.hitokoto-icon-svg.opened {
+  fill: #f59e0b;
+}
+
+.ohhh-calendar-hitokoto-panel {
+  position: relative;
+  margin: 8px 16px;
+  padding: 16px;
+  background: var(--calendar-hitokoto-background, #f8fafc);
+  border-radius: 12px;
+  border: 1px solid var(--calendar-hitokoto-border, #e2e8f0);
+  transition: all 0.3s ease;
+}
+
+.ohhh-calendar-hitokoto--content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ohhh-calendar-hitokoto--text {
+  margin: 0;
+  font-size: var(--calendar-hitokoto-text-size, 15px);
+  line-height: 1.7;
+  color: var(--calendar-hitokoto-text-color, #374151);
+  font-style: italic;
+  text-align: center;
+}
+
+.ohhh-calendar-hitokoto--source {
+  margin: 0;
+  font-size: var(--calendar-hitokoto-source-size, 12px);
+  color: var(--calendar-hitokoto-source-color, #9ca3af);
+  text-align: right;
+}
+
+.ohhh-calendar-hitokoto--actions {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+}
+
+.ohhh-calendar-hitokoto--copy-btn {
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ohhh-calendar-hitokoto--copy-btn:hover {
+  background: var(--calendar-hitokoto-copy-hover, #e5e7eb);
+}
+
+.ohhh-calendar-hitokoto--copy-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--calendar-hitokoto-copy-color, #6b7280);
+  stroke-width: 2;
+}
+
+.ohhh-calendar-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.hitokoto-icon-fade-enter-active,
+.hitokoto-icon-fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.hitokoto-icon-fade-enter-from,
+.hitokoto-icon-fade-leave-to {
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.hitokoto-panel-enter-active,
+.hitokoto-panel-leave-active {
+  transition: all 0.3s ease;
+}
+
+.hitokoto-panel-enter-from,
+.hitokoto-panel-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.toast-fade-enter-active,
+.toast-fade-leave-active {
+  transition: all 0.2s ease;
+}
+
+.toast-fade-enter-from,
+.toast-fade-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.9);
+}
