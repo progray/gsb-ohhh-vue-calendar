@@ -1,12 +1,23 @@
 <template>
   <div
+    ref="calendarContainer"
     class="ohhh-calendar-container"
+    :class="{
+      'is-transitioning': isInTransition,
+      'transition-left': isInTransition && transitionDirection === 'left',
+      'transition-right': isInTransition && transitionDirection === 'right'
+    }"
     :style="{
       '--calendar-rows': renderRows,
       '--calendar-transition-duration': duration,
       '--translate-distance': transformDistance,
-      '--transition-duration': transitionDuration
+      '--transition-duration': transitionDuration,
+      '--tilt-x': tiltX,
+      '--tilt-y': tiltY,
+      '--tilt-scale': tiltScale
     }"
+    @mousemove="handleMouseMove"
+    @mouseleave="handleMouseLeave"
   >
     <!-- 顶部工具栏 -->
     <div v-if="showToolbar" class="ohhh-calendar-toolbar">
@@ -33,26 +44,41 @@
         :key="index"
         :style="{ left: 100 * (index - 1) + '%' }"
         class="ohhh-calendar-days"
+        :data-page="index === 0 ? 'prev' : index === 1 ? 'current' : 'next'"
         @transitionend="onTransitionEnd"
       >
         <div
-          v-for="dateObj in item"
+          v-for="(dateObj, dayIndex) in item"
           :key="dateObj.key"
           class="ohhh-calendar-day"
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'is-bottom-row': _isBottomRow(dayIndex)
+          }"
+          :style="{
+            '--day-index': dayIndex,
+            '--day-row': _getDayRow(dayIndex)
           }"
           @click="changeSelectedDate(dateObj.date)"
         >
-          <div class="ohhh-calendar-day--inner">
-            <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
-            <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
-              <slot name="day-label" :date="dateObj.date" />
+          <div class="ohhh-calendar-day--card">
+            <div class="ohhh-calendar-day--card-front">
+              <div class="ohhh-calendar-day--inner">
+                <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
+                <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
+                  <slot name="day-label" :date="dateObj.date" />
+                </div>
+              </div>
+              <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+            </div>
+            <div class="ohhh-calendar-day--card-back">
+              <div class="ohhh-calendar-day--inner">
+                <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
+              </div>
             </div>
           </div>
-          <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
         </div>
       </div>
     </div>
@@ -71,13 +97,18 @@
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
 import { isSameDay, createWeekdays } from './utils'
 import { icons } from './utils/icons.js'
 
 const swipeRef = useTemplateRef('swp')
+const calendarContainer = useTemplateRef('calendarContainer')
+
+const tiltX = ref('0deg')
+const tiltY = ref('0deg')
+const tiltScale = ref('1')
 
 const emit = defineEmits(['select-change', 'view-change'])
 
@@ -137,6 +168,7 @@ const {
   transitionDuration,
   isInTransition,
   renderRows,
+  transitionDirection,
   switchPageToTargetDate,
   startTransitionAnimation,
   onTransitionEnd,
@@ -233,6 +265,44 @@ function changeSelectedDate(date) {
 // 获取 marker 颜色
 function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
+}
+
+// 判断是否为最后一行
+function _isBottomRow(dayIndex) {
+  const totalDays = currentRenderDates.value.length
+  const rows = Math.ceil(totalDays / 7)
+  const currentRow = Math.floor(dayIndex / 7)
+  return currentRow === rows - 1
+}
+
+// 获取日期所在的行号
+function _getDayRow(dayIndex) {
+  return Math.floor(dayIndex / 7)
+}
+
+// 鼠标跟随微动效果
+function handleMouseMove(event) {
+  if (!calendarContainer.value) return
+  
+  const rect = calendarContainer.value.getBoundingClientRect()
+  const centerX = rect.width / 2
+  const centerY = rect.height / 2
+  const mouseX = event.clientX - rect.left
+  const mouseY = event.clientY - rect.top
+  
+  const maxTilt = 8
+  const tiltYValue = ((mouseX - centerX) / centerX) * maxTilt
+  const tiltXValue = -((mouseY - centerY) / centerY) * maxTilt
+  
+  tiltX.value = `${tiltXValue}deg`
+  tiltY.value = `${tiltYValue}deg`
+  tiltScale.value = '1.02'
+}
+
+function handleMouseLeave() {
+  tiltX.value = '0deg'
+  tiltY.value = '0deg'
+  tiltScale.value = '1'
 }
 
 defineExpose({
