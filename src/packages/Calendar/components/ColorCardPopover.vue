@@ -143,15 +143,12 @@ onUnmounted(() => {
   right: 0;
   bottom: 0;
   z-index: 9999;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   background: rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(2px);
 }
 
 .color-card-popover {
-  position: relative;
+  position: absolute;
   width: 320px;
   max-width: 90vw;
   background: rgba(255, 255, 255, 0.95);
