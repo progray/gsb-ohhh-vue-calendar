@@ -1,15 +1,16 @@
 .ohhh-calendar-container {
-  --calendar-theme-color: #409eff;
-  --calendar-theme-color-light: #{rgba(#409eff, 0.2)};
+  --calendar-theme-color: #6366f1;
+  --calendar-theme-color-light: #{rgba(#6366f1, 0.15)};
+  --calendar-theme-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
 
-  --calendar-text-color-level-1: #303133;
-  --calendar-text-color-level-2: #606266;
-  --calendar-text-color-level-3: #909399;
-  --calendar-text-color-level-4: #a8abb2;
-  --calendar-text-color-level-5: #c0c4cc;
+  --calendar-text-color-level-1: #1e293b;
+  --calendar-text-color-level-2: #475569;
+  --calendar-text-color-level-3: #64748b;
+  --calendar-text-color-level-4: #94a3b8;
+  --calendar-text-color-level-5: #cbd5e1;
 
   --calendar-background: transparent;
-  --calendar-row-height: 60px;
+  --calendar-row-height: 80px;
 
   --calendar-icon-size: 20px;
   --calendar-icon-color: var(--calendar-text-color-level-3);
@@ -24,19 +25,19 @@
   --calendar-footer-icon-color: var(--calendar-icon-color);
   --calendar-footer-padding: 12px;
 
-  --calendar-weekdays-height: 30px;
-  --calendar-weekdays-font-size: 14px;
-  --calendar-weekdays-color: var(--calendar-text-color-level-1);
+  --calendar-weekdays-height: 36px;
+  --calendar-weekdays-font-size: 13px;
+  --calendar-weekdays-color: var(--calendar-text-color-level-2);
 
-  --calendar-days-value-font-size: 14px;
+  --calendar-days-value-font-size: 15px;
   --calendar-days-value-color: var(--calendar-text-color-level-1);
   --calendar-days-label-font-size: 10px;
   --calendar-days-label-color: var(--calendar-text-color-level-2);
 
-  --calendar-days-today-color: var(--calendar-theme-color);
-  --calendar-days-today-background: var(--calendar-theme-color-light);
+  --calendar-days-today-color: #6366f1;
+  --calendar-days-today-background: #{rgba(#6366f1, 0.1)};
   --calendar-days-selected-color: #fff;
-  --calendar-days-selected-background: var(--calendar-theme-color);
+  --calendar-days-selected-background: var(--calendar-theme-gradient);
   --calendar-days-other-month-color: var(--calendar-text-color-level-5);
 
   --calendar-days-inner-size: 34px;
@@ -49,4 +50,9 @@
   --calendar-days-marker-top-gap: 4px;
   --calendar-days-marker-size: 4px;
   --calendar-days-marker-color: var(--calendar-theme-color);
+
+  --calendar-fitness-success-color: #4CAF50;
+  --calendar-fitness-warning-color: #FFD93D;
+  --calendar-fitness-danger-color: #FF6B6B;
+  --calendar-fitness-progress-bg: #e2e8f0;
 }
