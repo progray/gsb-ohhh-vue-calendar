@@ -482,12 +482,29 @@ onUnmounted(() => {
   bottom: 0;
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
   z-index: 9999;
+  display: grid;
+  place-items: center;
   overflow-y: auto;
-  padding: 20px;
+  overflow-x: hidden;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+@supports not (display: grid) {
+  .zodiac-card-overlay {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+}
+
+@media (max-height: 620px) {
+  .zodiac-card-overlay {
+    place-items: start center;
+    align-items: flex-start;
+    padding-top: 24px;
+  }
 }
 
 .zodiac-overlay-enter-active,
