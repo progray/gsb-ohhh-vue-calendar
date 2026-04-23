@@ -44,7 +44,7 @@
             'is-today': isSameDay(dateObj.date, new Date()),
             'other-month': !dateObj.current
           }"
-          @click="changeSelectedDate(dateObj.date)"
+          @click="handleDateClick(dateObj.date)"
         >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
@@ -67,15 +67,23 @@
         />
       </slot>
     </div>
+
+    <!-- 星座卡片 -->
+    <ZodiacCard
+      :visible="showZodiacCard"
+      :selected-date="selected"
+      @close="closeZodiacCard"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
 import { isSameDay, createWeekdays } from './utils'
 import { icons } from './utils/icons.js'
+import ZodiacCard from './components/ZodiacCard.vue'
 
 const swipeRef = useTemplateRef('swp')
 
@@ -121,6 +129,11 @@ const props = defineProps({
   duration: {
     type: String,
     default: '0.3s'
+  },
+  // 是否启用星座生日卡功能
+  enableZodiacCard: {
+    type: Boolean,
+    default: true
   }
 })
 
@@ -221,6 +234,9 @@ function changePageTo(param) {
   switchPageToTargetDate(targetDate)
 }
 
+// 星座卡片显示状态
+const showZodiacCard = ref(false)
+
 // 切换选中的日期
 function changeSelectedDate(date) {
   changePageTo(date)
@@ -228,6 +244,19 @@ function changeSelectedDate(date) {
     selected.value = new Date(date)
     emit('select-change', selected.value)
   }
+}
+
+// 处理日期点击
+function handleDateClick(date) {
+  changeSelectedDate(date)
+  if (props.enableZodiacCard) {
+    showZodiacCard.value = true
+  }
+}
+
+// 关闭星座卡片
+function closeZodiacCard() {
+  showZodiacCard.value = false
 }
 
 // 获取 marker 颜色
