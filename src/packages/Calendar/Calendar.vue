@@ -58,7 +58,11 @@
               <slot name="day-label" :date="dateObj.date" />
             </div>
           </div>
-          <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+          <div
+            v-if="hasMarker(dateObj.date)"
+            class="ohhh-calendar-day--marker"
+            :style="{ background: _getMarkerColor(dateObj.date) }"
+          />
         </div>
       </div>
     </div>
@@ -255,6 +259,10 @@ function changeSelectedDate(date) {
 
 function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
+}
+
+function hasMarker(date) {
+  return markerDateList.value.some(d => isSameDay(d.date, date))
 }
 
 function handleApplyPreset(presetKey) {
