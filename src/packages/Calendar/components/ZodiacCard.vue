@@ -21,7 +21,7 @@
               <div class="zodiac-card-icon-wrapper">
                 <div
                   class="zodiac-card-icon"
-                  :style="{ color: zodiac?.elementColor }"
+                  :style="{ color: 'white' }"
                   v-html="zodiacIcon"
                 ></div>
               </div>
@@ -166,58 +166,256 @@ async function copyCard() {
   }
 }
 
+function drawRoundRect(ctx, x, y, width, height, radius) {
+  ctx.beginPath()
+  ctx.moveTo(x + radius, y)
+  ctx.lineTo(x + width - radius, y)
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius)
+  ctx.lineTo(x + width, y + height - radius)
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height)
+  ctx.lineTo(x + radius, y + height)
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius)
+  ctx.lineTo(x, y + radius)
+  ctx.quadraticCurveTo(x, y, x + radius, y)
+  ctx.closePath()
+}
+
+function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+  const words = text.split('')
+  let line = ''
+  let lines = []
+  
+  for (let n = 0; n < words.length; n++) {
+    const testLine = line + words[n]
+    const metrics = ctx.measureText(testLine)
+    const testWidth = metrics.width
+    if (testWidth > maxWidth && n > 0) {
+      lines.push(line)
+      line = words[n]
+    } else {
+      line = testLine
+    }
+  }
+  lines.push(line)
+  
+  for (let i = 0; i < lines.length; i++) {
+    ctx.fillText(lines[i], x, y + (i * lineHeight))
+  }
+  return lines.length
+}
+
 async function createCanvasFromElement(element) {
-  const rect = element.getBoundingClientRect()
-  const width = Math.ceil(rect.width * window.devicePixelRatio)
-  const height = Math.ceil(rect.height * window.devicePixelRatio)
+  const cardWidth = 360
+  const cardHeight = 560
+  const dpr = window.devicePixelRatio || 2
 
   const canvas = document.createElement('canvas')
-  canvas.width = width
-  canvas.height = height
+  canvas.width = cardWidth * dpr
+  canvas.height = cardHeight * dpr
 
   const ctx = canvas.getContext('2d')
-  ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
+  ctx.scale(dpr, dpr)
 
-  const gradient = ctx.createLinearGradient(0, 0, rect.width, rect.height)
+  const gradient = ctx.createLinearGradient(0, 0, cardWidth, cardHeight)
   gradient.addColorStop(0, zodiac.value.gradient.from)
   gradient.addColorStop(1, zodiac.value.gradient.to)
 
   const borderRadius = 24
   ctx.fillStyle = gradient
-  ctx.beginPath()
-  ctx.moveTo(borderRadius, 0)
-  ctx.lineTo(rect.width - borderRadius, 0)
-  ctx.quadraticCurveTo(rect.width, 0, rect.width, borderRadius)
-  ctx.lineTo(rect.width, rect.height - borderRadius)
-  ctx.quadraticCurveTo(rect.width, rect.height, rect.width - borderRadius, rect.height)
-  ctx.lineTo(borderRadius, rect.height)
-  ctx.quadraticCurveTo(0, rect.height, 0, rect.height - borderRadius)
-  ctx.lineTo(0, borderRadius)
-  ctx.quadraticCurveTo(0, 0, borderRadius, 0)
-  ctx.closePath()
+  drawRoundRect(ctx, 0, 0, cardWidth, cardHeight, borderRadius)
   ctx.fill()
 
-  ctx.fillStyle = 'white'
-  ctx.font = 'bold 32px "Microsoft Yahei", sans-serif'
-  ctx.textAlign = 'center'
-  ctx.fillText(zodiac.value.name, rect.width / 2, 100)
+  ctx.save()
+  ctx.beginPath()
+  drawRoundRect(ctx, 0, 0, cardWidth, cardHeight, borderRadius)
+  ctx.clip()
 
+  const closeBtnX = cardWidth - 16 - 36
+  const closeBtnY = 16
+  const closeBtnSize = 36
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.15)'
+  ctx.beginPath()
+  ctx.arc(closeBtnX + closeBtnSize / 2, closeBtnY + closeBtnSize / 2, closeBtnSize / 2, 0, Math.PI * 2)
+  ctx.fill()
+
+  ctx.strokeStyle = 'white'
+  ctx.lineWidth = 2
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(closeBtnX + 10, closeBtnY + 10)
+  ctx.lineTo(closeBtnX + 26, closeBtnY + 26)
+  ctx.moveTo(closeBtnX + 26, closeBtnY + 10)
+  ctx.lineTo(closeBtnX + 10, closeBtnY + 26)
+  ctx.stroke()
+
+  const iconX = cardWidth / 2 - 60
+  const iconY = 40
+  const iconSize = 120
+  
+  if (zodiacIcon.value) {
+    try {
+      const svgString = zodiacIcon.value
+      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' })
+      const url = URL.createObjectURL(svgBlob)
+      
+      const img = new Image()
+      await new Promise((resolve, reject) => {
+        img.onload = resolve
+        img.onerror = reject
+        img.src = url
+      })
+      
+      ctx.fillStyle = 'white'
+      ctx.drawImage(img, iconX, iconY, iconSize, iconSize)
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      console.log('SVG绘制失败，使用备用方案')
+    }
+  }
+
+  ctx.fillStyle = 'white'
+  ctx.textAlign = 'center'
+  
+  const nameY = iconY + iconSize + 20
+  ctx.font = 'bold 32px "Microsoft Yahei", sans-serif'
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.2)'
+  ctx.shadowOffsetX = 0
+  ctx.shadowOffsetY = 2
+  ctx.shadowBlur = 8
+  ctx.fillText(zodiac.value.name, cardWidth / 2, nameY)
+  ctx.shadowBlur = 0
+  ctx.shadowOffsetY = 0
+
+  const dateY = nameY + 28
   ctx.font = '16px "Microsoft Yahei", sans-serif'
   ctx.globalAlpha = 0.9
-  ctx.fillText(zodiac.value.dateRange, rect.width / 2, 130)
+  ctx.fillText(zodiac.value.dateRange, cardWidth / 2, dateY)
   ctx.globalAlpha = 1
 
-  ctx.font = '14px "Microsoft Yahei", sans-serif'
-  ctx.globalAlpha = 0.8
-  ctx.fillText(`元素属性: ${zodiac.value.element}`, rect.width / 2, 165)
-  ctx.fillText(`守护星: ${zodiac.value.rulingPlanet}`, rect.width / 2, 190)
-  ctx.globalAlpha = 1
+  const infoBoxX = 32
+  const infoBoxY = dateY + 32
+  const infoBoxWidth = cardWidth - 64
+  const infoBoxHeight = 80
+  const infoBoxRadius = 16
+  
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'
+  drawRoundRect(ctx, infoBoxX, infoBoxY, infoBoxWidth, infoBoxHeight, infoBoxRadius)
+  ctx.fill()
 
-  const keywords = zodiac.value.keywords.join(' · ')
-  ctx.font = '14px "Microsoft Yahei", sans-serif'
+  ctx.textAlign = 'center'
+  const leftInfoX = cardWidth / 2 - 50
+  const rightInfoX = cardWidth / 2 + 50
+  const infoLabelY = infoBoxY + 25
+  const infoValueY = infoBoxY + 55
+
+  ctx.font = '12px "Microsoft Yahei", sans-serif'
   ctx.globalAlpha = 0.7
-  ctx.fillText(keywords, rect.width / 2, 225)
+  ctx.fillText('元素属性', leftInfoX, infoLabelY)
+  ctx.fillText('守护星', rightInfoX, infoLabelY)
   ctx.globalAlpha = 1
+
+  ctx.font = 'bold 16px "Microsoft Yahei", sans-serif'
+  ctx.globalAlpha = 1
+  ctx.fillText(zodiac.value.element, leftInfoX, infoValueY)
+  ctx.fillText(zodiac.value.rulingPlanet, rightInfoX, infoValueY)
+  ctx.globalAlpha = 1
+
+  const keywordsY = infoBoxY + infoBoxHeight + 24
+  const keywords = zodiac.value.keywords
+  
+  ctx.textAlign = 'center'
+  ctx.font = '13px "Microsoft Yahei", sans-serif'
+  ctx.fontWeight = '500'
+  
+  const keywordPaddingX = 14
+  const keywordPaddingY = 6
+  const keywordGap = 8
+  const keywordRadius = 20
+  
+  let totalWidth = 0
+  keywords.forEach((kw, i) => {
+    const metrics = ctx.measureText(kw)
+    totalWidth += metrics.width + keywordPaddingX * 2
+    if (i < keywords.length - 1) totalWidth += keywordGap
+  })
+  
+  let keywordX = (cardWidth - totalWidth) / 2
+  const keywordY = keywordsY
+  
+  keywords.forEach((kw) => {
+    const metrics = ctx.measureText(kw)
+    const kwWidth = metrics.width + keywordPaddingX * 2
+    const kwHeight = 26
+    
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'
+    drawRoundRect(ctx, keywordX, keywordY, kwWidth, kwHeight, keywordRadius)
+    ctx.fill()
+    
+    ctx.fillStyle = 'white'
+    ctx.globalAlpha = 1
+    ctx.fillText(kw, keywordX + kwWidth / 2, keywordY + 17)
+    
+    keywordX += kwWidth + keywordGap
+  })
+  ctx.globalAlpha = 1
+
+  const footerY = keywordsY + 60
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(32, footerY)
+  ctx.lineTo(cardWidth - 32, footerY)
+  ctx.stroke()
+
+  const btnY = footerY + 16
+  const btnText = '复制卡片'
+  ctx.font = '14px "Microsoft Yahei", sans-serif'
+  const btnMetrics = ctx.measureText(btnText)
+  const iconBtnWidth = 18
+  const btnGap = 8
+  const btnPaddingX = 32
+  const btnPaddingY = 14
+  const btnWidth = iconBtnWidth + btnGap + btnMetrics.width + btnPaddingX * 2
+  const btnHeight = btnPaddingY * 2 + 1
+  const btnX = (cardWidth - btnWidth) / 2
+  const btnRadius = 12
+  
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'
+  drawRoundRect(ctx, btnX, btnY, btnWidth, 44, btnRadius)
+  ctx.fill()
+  
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'
+  ctx.lineWidth = 1
+  drawRoundRect(ctx, btnX, btnY, btnWidth, 44, btnRadius)
+  ctx.stroke()
+
+  ctx.strokeStyle = 'white'
+  ctx.fillStyle = 'white'
+  ctx.lineWidth = 2
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  
+  const copyIconX = btnX + btnPaddingX
+  const copyIconY = btnY + 14
+  const copyIconSize = 16
+  
+  ctx.strokeRect(copyIconX + 2, copyIconY + 2, copyIconSize - 4, copyIconSize - 4)
+  ctx.beginPath()
+  ctx.moveTo(copyIconX, copyIconY + 4)
+  ctx.lineTo(copyIconX - 2, copyIconY + 4)
+  ctx.lineTo(copyIconX - 2, copyIconY - 8)
+  ctx.lineTo(copyIconX + 10, copyIconY - 8)
+  ctx.lineTo(copyIconX + 10, copyIconY - 6)
+  ctx.stroke()
+
+  ctx.fillStyle = 'white'
+  ctx.textAlign = 'left'
+  ctx.font = 'bold 15px "Microsoft Yahei", sans-serif'
+  ctx.globalAlpha = 1
+  ctx.fillText(btnText, btnX + btnPaddingX + iconBtnWidth + btnGap, btnY + 29)
+  ctx.globalAlpha = 1
+
+  ctx.restore()
 
   return canvas
 }
@@ -288,6 +486,8 @@ onUnmounted(() => {
   justify-content: center;
   align-items: center;
   z-index: 9999;
+  overflow-y: auto;
+  padding: 20px;
 }
 
 .zodiac-overlay-enter-active,
