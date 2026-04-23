@@ -1,6 +1,16 @@
 @use './variable.scss';
 
+@keyframes ancient-bg-scroll {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
 .ohhh-calendar-container {
+  position: relative;
   -webkit-tap-highlight-color: transparent;
   background: var(--calendar-background);
   font-family:
@@ -17,14 +27,66 @@
     Hiragino Sans GB,
     Microsoft Yahei,
     sans-serif;
+  overflow: hidden;
+}
+
+.ohhh-calendar-ancient-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ohhh-calendar-ancient-bg__scroll {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 200%;
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-around;
+  align-items: flex-start;
+  animation: ancient-bg-scroll 25s linear infinite;
+}
+
+.ohhh-calendar-ancient-bg__column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  font-family: var(--font-family);
+  font-size: var(--font-size);
+  font-weight: var(--font-weight);
+  color: #1a1a2e;
+  opacity: 0.09;
+  margin: 0 10px;
+  transform: translateX(var(--column-offset));
+  animation-delay: var(--animation-delay);
+}
+
+.ohhh-calendar-ancient-bg__char {
+  line-height: 1.2;
+  margin: 4px 0;
+  text-shadow: 0 0 1px rgba(26, 26, 46, 0.1);
 }
 
 .ohhh-calendar-toolbar {
+  position: relative;
+  z-index: 10;
   display: flex;
   justify-content: space-between;
   align-items: center;
   column-gap: var(--calendar-toolbar-column-gap);
   padding: var(--calendar-toolbar-padding);
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .ohhh-calendar-toolbar--icon,
 .ohhh-calendar-footer--icon {
@@ -45,11 +107,16 @@
 }
 
 .ohhh-calendar-weekdays {
+  position: relative;
+  z-index: 10;
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   justify-items: center;
   align-items: center;
   height: var(--calendar-weekdays-height);
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 .ohhh-calendar-weekdays--weekday {
   font-size: var(--calendar-weekdays-font-size);
@@ -59,6 +126,7 @@
 
 .ohhh-calendar-wrapper {
   position: relative;
+  z-index: 10;
   overflow: hidden;
   height: calc(var(--calendar-rows) * var(--calendar-row-height));
   transition: height var(--calendar-transition-duration) ease;
@@ -109,6 +177,17 @@
   padding: var(--calendar-days-inner-padding);
   border-radius: var(--calendar-days-inner-radius);
   background: var(--calendar-days-inner-background);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.ohhh-calendar-day:hover .ohhh-calendar-day--inner {
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 .ohhh-calendar-day--inner-value {
   font-size: var(--calendar-days-value-font-size);
@@ -127,9 +206,14 @@
 }
 
 .ohhh-calendar-footer {
+  position: relative;
+  z-index: 10;
   display: flex;
   justify-content: center;
   padding: var(--calendar-footer-padding);
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .ohhh-calendar-footer--icon {
   fill: var(--calendar-footer-icon-color);
