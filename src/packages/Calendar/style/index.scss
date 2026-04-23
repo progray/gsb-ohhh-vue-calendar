@@ -73,6 +73,7 @@
   transition: transform var(--transition-duration) ease;
 }
 .ohhh-calendar-day {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -92,11 +93,25 @@
   color: var(--calendar-days-today-color);
 }
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner {
-  background: var(--calendar-days-selected-background);
+  border: 2px solid var(--calendar-days-selected-background);
+  background: transparent;
 }
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-label {
-  color: var(--calendar-days-selected-color);
+  color: var(--calendar-days-value-color);
+  font-weight: 600;
+}
+
+.ohhh-calendar-day--color-ribbon {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 4px;
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15), 0 0 2px rgba(0, 0, 0, 0.1);
+  z-index: 1;
 }
 
 .ohhh-calendar-day--inner {
