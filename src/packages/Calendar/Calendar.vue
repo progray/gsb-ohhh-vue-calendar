@@ -260,9 +260,9 @@ function _getMarkerColor(date) {
 
 // 古文背景层相关逻辑
 const fontFamilies = [
-  '"ZCOOL KuaiLe", cursive',
-  '"Liu Jian Mao Cao", cursive',
-  '"Zhi Mang Xing", cursive'
+  '"ZCOOL KuaiLe", "Ma Shan Zheng", "Zhi Mang Xing", "STKaiti", "KaiTi", "SimKai", "KaiTi_GB2312", cursive',
+  '"Ma Shan Zheng", "Zhi Mang Xing", "ZCOOL KuaiLe", "STKaiti", "KaiTi", "SimKai", "KaiTi_GB2312", cursive',
+  '"Zhi Mang Xing", "Ma Shan Zheng", "ZCOOL KuaiLe", "STKaiti", "KaiTi", "SimKai", "KaiTi_GB2312", cursive'
 ]
 
 const backgroundCache = new Map()
