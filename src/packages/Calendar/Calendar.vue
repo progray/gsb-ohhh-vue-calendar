@@ -13,79 +13,112 @@
 
     <div v-if="enableBackground" class="ohhh-calendar-glass-glow" :style="{ '--glow-color': glowColor }"></div>
 
-    <div v-if="showSettingsBar && enableBackground" class="ohhh-calendar-settings">
-      <div class="ohhh-calendar-settings--section">
-        <div class="ohhh-calendar-settings--label">背景</div>
-        <div class="ohhh-calendar-settings--presets">
-          <div
-            v-for="preset in gradientPresets"
-            :key="preset.id"
-            class="ohhh-calendar-settings--preset"
-            :class="{ 'is-active': selectedPreset === preset.id && backgroundType === 'preset' }"
-            :style="{ background: preset.value }"
-            @click="onPresetClick(preset.id)"
-          ></div>
-          <label class="ohhh-calendar-settings--preset ohhh-calendar-settings--upload" :class="{ 'is-active': backgroundType === 'custom' }">
-            <input type="file" accept="image/*" @change="onImageUpload" style="display: none" />
-            <span v-if="!hasCustomImage">+</span>
-            <span v-else class="ohhh-calendar-settings--upload-preview" :style="{ backgroundImage: `url(${customImage})` }"></span>
-          </label>
+    <div v-if="showSettingsBar && enableBackground" class="ohhh-calendar-settings-bar">
+      <button class="ohhh-calendar-settings-bar--toggle" @click="isSettingsExpanded = !isSettingsExpanded">
+        <span class="ohhh-calendar-settings-bar--icon" :class="{ 'is-expanded': isSettingsExpanded }">⚙</span>
+        <span class="ohhh-calendar-settings-bar--label">{{ isSettingsExpanded ? '收起' : '背景设置' }}</span>
+      </button>
+
+      <div class="ohhh-calendar-settings-bar--quick">
+        <div
+          v-for="preset in quickPresets"
+          :key="preset.id"
+          class="ohhh-calendar-settings-bar--preset"
+          :class="{ 'is-active': selectedPreset === preset.id && backgroundType === 'preset' }"
+          :style="{ background: preset.value }"
+          @click="onPresetClick(preset.id)"
+          :title="preset.name"
+        ></div>
+        <label class="ohhh-calendar-settings-bar--upload" :class="{ 'is-active': backgroundType === 'custom' }" title="上传自定义背景">
+          <input type="file" accept="image/*" @change="onImageUpload" style="display: none" />
+          <span v-if="!hasCustomImage" class="ohhh-calendar-settings-bar--upload-icon">📷</span>
+          <span v-else class="ohhh-calendar-settings-bar--upload-preview" :style="{ backgroundImage: `url(${customImage})` }"></span>
+        </label>
+      </div>
+
+      <button class="ohhh-calendar-settings-bar--screenshot" @click="onScreenshotClick" :disabled="isTakingScreenshot" title="截图并复制到剪贴板">
+        {{ isTakingScreenshot ? '...' : '📷' }}
+      </button>
+    </div>
+
+    <transition name="settings-expand">
+      <div v-if="showSettingsBar && enableBackground && isSettingsExpanded" class="ohhh-calendar-settings-panel">
+        <div class="ohhh-calendar-settings-panel--section">
+          <div class="ohhh-calendar-settings-panel--title">渐变预设</div>
+          <div class="ohhh-calendar-settings-panel--presets">
+            <div
+              v-for="preset in gradientPresets"
+              :key="preset.id"
+              class="ohhh-calendar-settings-panel--preset"
+              :class="{ 'is-active': selectedPreset === preset.id && backgroundType === 'preset' }"
+              :style="{ background: preset.value }"
+              @click="onPresetClick(preset.id)"
+              :title="preset.name"
+            >
+              <span class="ohhh-calendar-settings-panel--preset-name">{{ preset.name }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ohhh-calendar-settings-panel--section">
+          <div class="ohhh-calendar-settings-panel--title">显示设置</div>
+          <div class="ohhh-calendar-settings-panel--controls">
+            <div class="ohhh-calendar-settings-panel--control">
+              <label>显示方式</label>
+              <select class="ohhh-calendar-settings-panel--select" :value="displayMode" @change="onDisplayModeChange">
+                <option v-for="mode in displayModes" :key="mode.value" :value="mode.value">{{ mode.label }}</option>
+              </select>
+            </div>
+
+            <div class="ohhh-calendar-settings-panel--control">
+              <label>模糊度: {{ blurAmount }}px</label>
+              <input
+                type="range"
+                min="0"
+                max="50"
+                :value="blurAmount"
+                class="ohhh-calendar-settings-panel--slider"
+                @input="onBlurChange"
+              />
+            </div>
+
+            <div class="ohhh-calendar-settings-panel--control">
+              <label>旋转: {{ rotationAngle }}°</label>
+              <input
+                type="range"
+                min="-180"
+                max="180"
+                :value="rotationAngle"
+                class="ohhh-calendar-settings-panel--slider"
+                @input="onRotationChange"
+              />
+            </div>
+
+            <div class="ohhh-calendar-settings-panel--control">
+              <label>视差: {{ parallaxIntensity }}px</label>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                :value="parallaxIntensity"
+                class="ohhh-calendar-settings-panel--slider"
+                @input="onParallaxChange"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div v-if="hasCustomImage" class="ohhh-calendar-settings-panel--section">
+          <div class="ohhh-calendar-settings-panel--title">自定义图片</div>
+          <div class="ohhh-calendar-settings-panel--custom-image">
+            <div class="ohhh-calendar-settings-panel--preview" :style="{ backgroundImage: `url(${customImage})` }"></div>
+            <button class="ohhh-calendar-settings-panel--clear-btn" @click="onClearCustomImage">
+              清除自定义图片
+            </button>
+          </div>
         </div>
       </div>
-
-      <div class="ohhh-calendar-settings--section">
-        <div class="ohhh-calendar-settings--label">显示</div>
-        <select class="ohhh-calendar-settings--select" :value="displayMode" @change="onDisplayModeChange">
-          <option v-for="mode in displayModes" :key="mode.value" :value="mode.value">{{ mode.label }}</option>
-        </select>
-      </div>
-
-      <div class="ohhh-calendar-settings--section">
-        <div class="ohhh-calendar-settings--label">模糊: {{ blurAmount }}px</div>
-        <input
-          type="range"
-          min="0"
-          max="50"
-          :value="blurAmount"
-          class="ohhh-calendar-settings--slider"
-          @input="onBlurChange"
-        />
-      </div>
-
-      <div class="ohhh-calendar-settings--section">
-        <div class="ohhh-calendar-settings--label">旋转: {{ rotationAngle }}°</div>
-        <input
-          type="range"
-          min="-180"
-          max="180"
-          :value="rotationAngle"
-          class="ohhh-calendar-settings--slider"
-          @input="onRotationChange"
-        />
-      </div>
-
-      <div class="ohhh-calendar-settings--section">
-        <div class="ohhh-calendar-settings--label">视差: {{ parallaxIntensity }}px</div>
-        <input
-          type="range"
-          min="0"
-          max="100"
-          :value="parallaxIntensity"
-          class="ohhh-calendar-settings--slider"
-          @input="onParallaxChange"
-        />
-      </div>
-
-      <div class="ohhh-calendar-settings--section">
-        <button
-          class="ohhh-calendar-settings--screenshot-btn"
-          :disabled="isTakingScreenshot"
-          @click="onScreenshotClick"
-        >
-          {{ isTakingScreenshot ? '截图中...' : '截图' }}
-        </button>
-      </div>
-    </div>
+    </transition>
 
     <div v-if="showToolbar" class="ohhh-calendar-toolbar ohhh-calendar--glass-panel ohhh-calendar--glass-light" :style="glassPanelStyle">
       <slot name="toolbar" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
@@ -146,7 +179,7 @@
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs, watch, nextTick } from 'vue'
+import { computed, useTemplateRef, toRefs, watch, nextTick, ref } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
 import { useBackground } from './hooks/useBackground.js'
@@ -314,6 +347,12 @@ const {
 
 const { isTakingScreenshot, takeScreenshotAndCopy } = useScreenshot()
 
+const isSettingsExpanded = ref(false)
+
+const quickPresets = computed(() => {
+  return gradientPresets.slice(0, 4)
+})
+
 watch(themeColor, (newColor) => {
   if (newColor) {
     document.documentElement.style.setProperty('--calendar-theme-color', newColor)
@@ -446,6 +485,11 @@ function onImageUpload(event) {
   }
 }
 
+function onClearCustomImage() {
+  clearCustomImage()
+  emit('background-change', { type: 'preset', preset: selectedPreset.value })
+}
+
 function onDisplayModeChange(event) {
   setDisplayMode(event.target.value)
 }
@@ -475,15 +519,14 @@ function onMouseLeave() {
 async function onScreenshotClick() {
   if (!containerRef.value) return
 
-  const mainArea = containerRef.value.querySelector('.ohhh-calendar-toolbar, .ohhh-calendar-weekdays, .ohhh-calendar-wrapper, .ohhh-calendar-footer')
-  if (!mainArea) return
-
-  const settingsBar = containerRef.value.querySelector('.ohhh-calendar-settings')
-  const background = containerRef.value.querySelector('.ohhh-calendar-background')
-  const glow = containerRef.value.querySelector('.ohhh-calendar-glass-glow')
+  const settingsBar = containerRef.value.querySelector('.ohhh-calendar-settings-bar')
+  const settingsPanel = containerRef.value.querySelector('.ohhh-calendar-settings-panel')
 
   if (settingsBar) {
     settingsBar.style.display = 'none'
+  }
+  if (settingsPanel) {
+    settingsPanel.style.display = 'none'
   }
 
   await nextTick()
@@ -495,6 +538,9 @@ async function onScreenshotClick() {
 
   if (settingsBar) {
     settingsBar.style.display = ''
+  }
+  if (settingsPanel) {
+    settingsPanel.style.display = ''
   }
 
   emit('screenshot-complete', {
