@@ -33,19 +33,19 @@
         @transitionend="onTransitionEnd"
       >
         <div
-          v-for="dateObj in item"
-          :key="dateObj.key"
-          class="ohhh-calendar-day"
-          :class="{
-            'is-selected': isSameDay(dateObj.date, selected),
-            'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current,
-            'has-events': _getEventColorBars(dateObj.date).length > 0
-          }"
-          @click="changeSelectedDate(dateObj.date)"
-          @mouseenter="handleDayHover(dateObj, $event)"
-          @mouseleave="handleDayLeave"
-        >
+        v-for="dateObj in item"
+        :key="dateObj.key"
+        class="ohhh-calendar-day"
+        :class="{
+          'is-selected': isSameDay(dateObj.date, selected),
+          'is-today': isSameDay(dateObj.date, new Date()),
+          'other-month': !dateObj.current,
+          'has-events': _getEventColorBars(dateObj.date).length > 0
+        }"
+        @click="changeSelectedDate(dateObj.date)"
+        @mouseenter="handleDayMouseEnter(dateObj, $event)"
+        @mouseleave="handleDayMouseLeave"
+      >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
             <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
@@ -85,8 +85,11 @@
     <Transition name="ohhh-calendar-popup">
       <div
         v-if="hoveredDayEvents.length > 0 && showPopup"
+        ref="popupRef"
         class="ohhh-calendar-popup"
         :style="popupStyle"
+        @mouseenter="handlePopupMouseEnter"
+        @mouseleave="handlePopupMouseLeave"
       >
         <div class="ohhh-calendar-popup--header">
           <span class="ohhh-calendar-popup--date">{{ popupDateLabel }}</span>
@@ -184,6 +187,7 @@ const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration, 
 const emit = defineEmits(['select-change', 'view-change', 'event-hover', 'import-ics'])
 
 const swipeRef = useTemplateRef('swp')
+const popupRef = useTemplateRef('popupRef')
 
 const {
   selected,
@@ -259,6 +263,31 @@ const hoveredDateKey = ref(null)
 const showPopup = ref(false)
 const popupStyle = ref({})
 const popupDateLabel = ref('')
+const hideTimer = ref(null)
+const isMouseOnPopup = ref(false)
+const isMouseOnDay = ref(false)
+
+const POPUP_HIDE_DELAY = 200
+const POPUP_WIDTH = 260
+const POPUP_PADDING = 12
+
+function clearHideTimer() {
+  if (hideTimer.value) {
+    clearTimeout(hideTimer.value)
+    hideTimer.value = null
+  }
+}
+
+function scheduleHidePopup() {
+  clearHideTimer()
+  hideTimer.value = setTimeout(() => {
+    if (!isMouseOnPopup.value && !isMouseOnDay.value) {
+      showPopup.value = false
+      hoveredDayEvents.value = []
+      hoveredDateKey.value = null
+    }
+  }, POPUP_HIDE_DELAY)
+}
 
 function formatDateKey(date) {
   if (!date) return ''
@@ -300,41 +329,86 @@ function _getEventColorBars(date) {
   })
 }
 
-function handleDayHover(dateObj, event) {
+function calculatePopupPosition(dayRect, containerRect) {
+  const containerWidth = containerRect.width
+  const containerHeight = containerRect.height
+  
+  let popupLeft = dayRect.left - containerRect.left
+  let popupTop = dayRect.bottom - containerRect.top + 8
+  
+  const rightEdge = popupLeft + POPUP_WIDTH
+  if (rightEdge > containerWidth - POPUP_PADDING) {
+    popupLeft = containerWidth - POPUP_WIDTH - POPUP_PADDING
+  }
+  
+  if (popupLeft < POPUP_PADDING) {
+    popupLeft = POPUP_PADDING
+  }
+  
+  const estimatedHeight = 200
+  const bottomEdge = popupTop + estimatedHeight
+  if (bottomEdge > containerHeight - POPUP_PADDING) {
+    popupTop = dayRect.top - containerRect.top - estimatedHeight - 8
+  }
+  
+  if (popupTop < POPUP_PADDING) {
+    popupTop = POPUP_PADDING
+  }
+  
+  return {
+    top: `${popupTop}px`,
+    left: `${popupLeft}px`
+  }
+}
+
+function handleDayMouseEnter(dateObj, event) {
   if (!props.showEventPopup) return
   
   const dateKey = formatDateKey(dateObj.date)
   const events = _getEventsForDate(dateObj.date)
   
-  if (events.length > 0) {
-    hoveredDayEvents.value = events
-    hoveredDateKey.value = dateKey
-    
-    const dayElement = event.currentTarget
-    const rect = dayElement.getBoundingClientRect()
-    const calendarRect = swipeRef.value?.getBoundingClientRect()
-    
-    if (calendarRect) {
-      popupStyle.value = {
-        top: `${rect.bottom - calendarRect.top + 8}px`,
-        left: `${rect.left - calendarRect.left}px`
-      }
-    }
-    
-    popupDateLabel.value = `${dateObj.fullDate.year}年${dateObj.fullDate.month}月${dateObj.fullDate.date}日`
-    
-    nextTick(() => {
-      showPopup.value = true
-    })
-    
-    emit('event-hover', dateObj.date, events)
+  if (events.length === 0) return
+  
+  isMouseOnDay.value = true
+  clearHideTimer()
+  
+  if (hoveredDateKey.value === dateKey && showPopup.value) {
+    return
   }
+  
+  hoveredDayEvents.value = events
+  hoveredDateKey.value = dateKey
+  
+  const dayElement = event.currentTarget
+  const dayRect = dayElement.getBoundingClientRect()
+  const containerRect = swipeRef.value?.getBoundingClientRect()
+  
+  if (containerRect) {
+    popupStyle.value = calculatePopupPosition(dayRect, containerRect)
+  }
+  
+  popupDateLabel.value = `${dateObj.fullDate.year}年${dateObj.fullDate.month}月${dateObj.fullDate.date}日`
+  
+  nextTick(() => {
+    showPopup.value = true
+  })
+  
+  emit('event-hover', dateObj.date, events)
 }
 
-function handleDayLeave() {
-  showPopup.value = false
-  hoveredDayEvents.value = []
-  hoveredDateKey.value = null
+function handleDayMouseLeave() {
+  isMouseOnDay.value = false
+  scheduleHidePopup()
+}
+
+function handlePopupMouseEnter() {
+  isMouseOnPopup.value = true
+  clearHideTimer()
+}
+
+function handlePopupMouseLeave() {
+  isMouseOnPopup.value = false
+  scheduleHidePopup()
 }
 
 const { lengthX } = useSwipe(swipeRef, {
