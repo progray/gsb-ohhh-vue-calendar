@@ -66,8 +66,8 @@
             v-if="isPeriodStart(dateObj.date) && dateObj.current"
             class="ohhh-calendar-day--icon-start"
             :class="{ 'is-dragging': isDraggingType('start') && isDraggingDate(dateObj.date) }"
-            @mousedown.prevent="onStartDrag('start', dateObj.date)"
-            @touchstart.prevent="onStartDrag('start', dateObj.date)"
+            @mousedown="(e) => onStartDrag('start', dateObj.date, e)"
+            @touchstart="(e) => onStartDrag('start', dateObj.date, e)"
             title="拖动调整经期开始日期"
           />
 
@@ -76,8 +76,8 @@
             v-if="isPeriodEnd(dateObj.date) && dateObj.current"
             class="ohhh-calendar-day--icon-end"
             :class="{ 'is-dragging': isDraggingType('end') && isDraggingDate(dateObj.date) }"
-            @mousedown.prevent="onStartDrag('end', dateObj.date)"
-            @touchstart.prevent="onStartDrag('end', dateObj.date)"
+            @mousedown="(e) => onStartDrag('end', dateObj.date, e)"
+            @touchstart="(e) => onStartDrag('end', dateObj.date, e)"
             title="拖动调整经期结束日期"
           />
 
@@ -87,8 +87,8 @@
             class="ohhh-calendar-day--icon-ovulation"
             :class="{ 'is-dragging': isDraggingType('ovulation') && isDraggingDate(dateObj.date) }"
             v-html="icons.flower"
-            @mousedown.prevent="onStartDrag('ovulation', dateObj.date)"
-            @touchstart.prevent="onStartDrag('ovulation', dateObj.date)"
+            @mousedown="(e) => onStartDrag('ovulation', dateObj.date, e)"
+            @touchstart="(e) => onStartDrag('ovulation', dateObj.date, e)"
             title="拖动调整排卵日期"
           />
         </div>
