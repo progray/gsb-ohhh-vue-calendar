@@ -195,7 +195,7 @@
   box-sizing: border-box;
 }
 
-// 未翻开状态 - 凸起的3D按钮
+// 未翻开状态 - 使用内阴影模拟3D凸起效果，外框尺寸始终一致
 .cell-unrevealed {
   width: 100%;
   height: 100%;
@@ -203,15 +203,23 @@
   justify-content: center;
   align-items: center;
   background: var(--cell-unrevealed-bg);
-  border: var(--cell-border-width) solid;
-  border-color: var(--cell-border-light) var(--cell-border-dark) var(--cell-border-dark) var(--cell-border-light);
   box-sizing: border-box;
   position: relative;
+  // 使用内阴影模拟3D效果，不影响外框尺寸
+  box-shadow: 
+    inset 2px 2px 0 0 var(--cell-border-light),
+    inset -2px -2px 0 0 var(--cell-border-dark),
+    inset 3px 3px 0 0 var(--minesweeper-bg),
+    inset -3px -3px 0 0 var(--minesweeper-border-darker);
 }
 
-// 按下状态
+// 按下状态 - 内阴影反转模拟凹陷效果
 .minesweeper-cell.cell-pressed .cell-unrevealed {
-  border-color: var(--cell-border-dark) var(--cell-border-light) var(--cell-border-light) var(--cell-border-dark);
+  box-shadow: 
+    inset 2px 2px 0 0 var(--cell-border-dark),
+    inset -2px -2px 0 0 var(--cell-border-light),
+    inset 3px 3px 0 0 var(--minesweeper-border-darker),
+    inset -3px -3px 0 0 var(--minesweeper-bg);
   background: #b0b0b0;
 }
 
@@ -224,7 +232,7 @@
   line-height: 1;
 }
 
-// 已翻开状态
+// 已翻开状态 - 平坦，没有内阴影，外框尺寸与未翻开完全一致
 .cell-revealed {
   width: 100%;
   height: 100%;
@@ -232,8 +240,10 @@
   justify-content: center;
   align-items: center;
   background: var(--cell-revealed-bg);
-  border: 1px solid var(--cell-border-dark);
   box-sizing: border-box;
+  position: relative;
+  // 没有内阴影，保持平坦
+  // 外框尺寸由父容器和gap控制，始终一致
 }
 
 // 周末已翻开 - 白色底
