@@ -17,6 +17,7 @@ export function createWeekdays(index) {
 }
 
 export function isSameDay(date1, date2) {
+  if (!date1 || !date2) return false
   return (
     date1.getFullYear() === date2.getFullYear() &&
     date1.getMonth() === date2.getMonth() &&
@@ -27,23 +28,20 @@ export function isSameDay(date1, date2) {
 export function createMonthDates(date, index) {
   const year = date.getFullYear()
   const month = date.getMonth()
-  const monthFirstDate = new Date(year, month, 1) // 当月第一天
-  const monthLastDate = new Date(year, month + 1, 0) // 当月最后一天
-  const firstDateOfWeekIndex = (monthFirstDate.getDay() - index + 7) % 7 // 调整为指定周起始日的索引
+  const monthFirstDate = new Date(year, month, 1)
+  const monthLastDate = new Date(year, month + 1, 0)
+  const firstDateOfWeekIndex = (monthFirstDate.getDay() - index + 7) % 7
   const dates = []
-  // 填充当前月份第一周前面上个月的日期
   for (let i = 0; i < firstDateOfWeekIndex; i++) {
     const d = new Date(year, month, i - firstDateOfWeekIndex + 1)
     const cDate = new CalendarDate(d, false)
     dates.push(cDate)
   }
-  // 填充当前月份的日期
   for (let i = 1; i <= monthLastDate.getDate(); i++) {
     const d = new Date(year, month, i)
     const cDate = new CalendarDate(d, true)
     dates.push(cDate)
   }
-  // 填充当前月份最后一周后面下个月的日期
   const extra = (7 - (dates.length % 7)) % 7
   for (let i = 1; i <= extra; i++) {
     const d = new Date(year, month + 1, i)
@@ -54,7 +52,7 @@ export function createMonthDates(date, index) {
 }
 
 export function createWeekDates(date, index) {
-  const weekDay = date.getDay() // 获取当前日期是星期几
+  const weekDay = date.getDay()
   const offsetToStart = (weekDay - index + 7) % 7
   const startDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - offsetToStart)
   const dates = []
@@ -64,4 +62,41 @@ export function createWeekDates(date, index) {
     dates.push(cDate)
   }
   return dates
+}
+
+export function addDays(date, days) {
+  const result = new Date(date)
+  result.setDate(result.getDate() + days)
+  return result
+}
+
+export function getDaysBetween(date1, date2) {
+  const d1 = new Date(date1.getFullYear(), date1.getMonth(), date1.getDate())
+  const d2 = new Date(date2.getFullYear(), date2.getMonth(), date2.getDate())
+  const diffTime = d2.getTime() - d1.getTime()
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24))
+  return diffDays
+}
+
+export function formatDate(date, format = 'YYYY-MM-DD') {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  
+  return format
+    .replace('YYYY', year)
+    .replace('MM', month)
+    .replace('DD', day)
+}
+
+export function parseDate(dateString) {
+  const parts = dateString.split('-')
+  if (parts.length === 3) {
+    return new Date(
+      parseInt(parts[0]),
+      parseInt(parts[1]) - 1,
+      parseInt(parts[2])
+    )
+  }
+  return new Date(dateString)
 }
