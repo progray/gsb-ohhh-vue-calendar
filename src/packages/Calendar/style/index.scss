@@ -17,6 +17,9 @@
     Hiragino Sans GB,
     Microsoft Yahei,
     sans-serif;
+  border-radius: 20px;
+  padding: 8px;
+  box-shadow: 0 4px 20px rgba(93, 78, 78, 0.06);
 }
 
 .ohhh-calendar-toolbar {
@@ -30,6 +33,12 @@
 .ohhh-calendar-footer--icon {
   display: flex;
   cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.ohhh-calendar-toolbar--icon:hover,
+.ohhh-calendar-footer--icon:hover {
+  transform: scale(1.1);
+  opacity: 0.8;
 }
 .ohhh-calendar-toolbar--icon {
   fill: var(--calendar-toolbar-icon-color);
@@ -41,7 +50,9 @@
 .ohhh-calendar-toolbar--text {
   margin: 0 auto;
   font-size: var(--calendar-toolbar-font-size);
-  font-weight: 500;
+  font-weight: 600;
+  color: var(--calendar-text-color-level-1);
+  letter-spacing: 0.5px;
 }
 
 .ohhh-calendar-weekdays {
@@ -50,6 +61,7 @@
   justify-items: center;
   align-items: center;
   height: var(--calendar-weekdays-height);
+  margin-bottom: 4px;
 }
 .ohhh-calendar-weekdays--weekday {
   font-size: var(--calendar-weekdays-font-size);
@@ -73,12 +85,18 @@
   transition: transform var(--transition-duration) ease;
 }
 .ohhh-calendar-day {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   height: var(--calendar-row-height);
   cursor: pointer;
+  transition: background 0.2s ease;
+}
+.ohhh-calendar-day:hover:not(.is-selected):not(.other-month) {
+  background: var(--calendar-theme-color-hover);
+  border-radius: 8px;
 }
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-label {
@@ -86,20 +104,26 @@
 }
 .ohhh-calendar-day.is-today .ohhh-calendar-day--inner {
   background: var(--calendar-days-today-background);
+  border: 1px solid rgba(232, 168, 124, 0.3);
 }
 .ohhh-calendar-day.is-today .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.is-today .ohhh-calendar-day--inner-label {
   color: var(--calendar-days-today-color);
+  font-weight: 600;
 }
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner {
   background: var(--calendar-days-selected-background);
+  border-radius: var(--calendar-days-inner-radius);
+  box-shadow: 0 2px 8px rgba(232, 168, 124, 0.3);
 }
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-label {
   color: var(--calendar-days-selected-color);
+  font-weight: 500;
 }
 
 .ohhh-calendar-day--inner {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -109,14 +133,19 @@
   padding: var(--calendar-days-inner-padding);
   border-radius: var(--calendar-days-inner-radius);
   background: var(--calendar-days-inner-background);
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
 }
 .ohhh-calendar-day--inner-value {
   font-size: var(--calendar-days-value-font-size);
   color: var(--calendar-days-value-color);
+  font-weight: 400;
+  transition: color 0.2s ease;
 }
 .ohhh-calendar-day--inner-label {
   font-size: var(--calendar-days-label-font-size);
   color: var(--calendar-days-label-color);
+  margin-top: 2px;
 }
 .ohhh-calendar-day--marker {
   flex: none;
@@ -124,6 +153,107 @@
   width: var(--calendar-days-marker-size);
   height: var(--calendar-days-marker-size);
   border-radius: 50%;
+}
+
+.ohhh-calendar-day--phase-period {
+  .ohhh-calendar-day--inner {
+    background: var(--cycle-period-light);
+  }
+  &.is-predicted .ohhh-calendar-day--inner {
+    background: var(--cycle-period-light-predicted);
+    opacity: var(--cycle-predicted-opacity);
+  }
+}
+
+.ohhh-calendar-day--phase-ovulation {
+  .ohhh-calendar-day--inner {
+    background: var(--cycle-ovulation-light);
+  }
+  &.is-predicted .ohhh-calendar-day--inner {
+    background: var(--cycle-ovulation-light-predicted);
+    opacity: var(--cycle-predicted-opacity);
+  }
+}
+
+.ohhh-calendar-day--phase-fertile {
+  .ohhh-calendar-day--inner {
+    background: var(--cycle-fertile-light);
+  }
+  &.is-predicted .ohhh-calendar-day--inner {
+    background: var(--cycle-fertile-light-predicted);
+    opacity: var(--cycle-predicted-opacity);
+  }
+}
+
+.ohhh-calendar-day--phase-luteal {
+  .ohhh-calendar-day--inner {
+    background: var(--cycle-luteal-light);
+  }
+  &.is-predicted .ohhh-calendar-day--inner {
+    background: var(--cycle-luteal-light-predicted);
+    opacity: var(--cycle-predicted-opacity);
+  }
+}
+
+.ohhh-calendar-day--icon-start,
+.ohhh-calendar-day--icon-end,
+.ohhh-calendar-day--icon-ovulation {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  cursor: grab;
+  z-index: 10;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+  touch-action: none;
+}
+
+.ohhh-calendar-day--icon-start {
+  top: 4px;
+  right: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--cycle-start-dot-color);
+  box-shadow: 0 1px 3px rgba(232, 122, 122, 0.4);
+}
+
+.ohhh-calendar-day--icon-end {
+  top: 4px;
+  right: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--cycle-end-dot-color);
+  box-shadow: 0 1px 3px rgba(232, 122, 122, 0.4);
+}
+
+.ohhh-calendar-day--icon-ovulation {
+  top: 4px;
+  left: 4px;
+  width: 14px;
+  height: 14px;
+}
+
+.ohhh-calendar-day--icon-start:hover,
+.ohhh-calendar-day--icon-end:hover,
+.ohhh-calendar-day--icon-ovulation:hover {
+  transform: scale(1.2);
+}
+
+.ohhh-calendar-day--icon-start.is-dragging,
+.ohhh-calendar-day--icon-end.is-dragging,
+.ohhh-calendar-day--icon-ovulation.is-dragging {
+  cursor: grabbing;
+  transform: scale(1.4);
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.ohhh-calendar-day--drag-indicator {
+  position: absolute;
+  pointer-events: none;
+  z-index: 1000;
 }
 
 .ohhh-calendar-footer {
@@ -137,4 +267,60 @@
 .ohhh-calendar-footer--icon svg {
   width: var(--calendar-footer-icon-size);
   height: var(--calendar-footer-icon-size);
+}
+
+.cycle-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 16px;
+  margin-top: 8px;
+}
+
+.cycle-legend--item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--calendar-text-color-level-3);
+}
+
+.cycle-legend--dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+}
+
+.cycle-legend--dot.period {
+  background: var(--cycle-period-light);
+}
+
+.cycle-legend--dot.ovulation {
+  background: var(--cycle-ovulation-light);
+}
+
+.cycle-legend--dot.fertile {
+  background: var(--cycle-fertile-light);
+}
+
+.cycle-legend--dot.luteal {
+  background: var(--cycle-luteal-light);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.8;
+  }
+}
+
+.ohhh-calendar-day--icon-ovulation {
+  animation: pulse 2s ease-in-out infinite;
 }

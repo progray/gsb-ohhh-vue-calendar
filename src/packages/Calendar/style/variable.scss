@@ -1,52 +1,75 @@
 .ohhh-calendar-container {
-  --calendar-theme-color: #409eff;
-  --calendar-theme-color-light: #{rgba(#409eff, 0.2)};
+  --calendar-theme-color: #e8a87c;
+  --calendar-theme-color-light: rgba(232, 168, 124, 0.2);
+  --calendar-theme-color-hover: rgba(232, 168, 124, 0.15);
 
-  --calendar-text-color-level-1: #303133;
-  --calendar-text-color-level-2: #606266;
-  --calendar-text-color-level-3: #909399;
-  --calendar-text-color-level-4: #a8abb2;
-  --calendar-text-color-level-5: #c0c4cc;
+  --calendar-text-color-level-1: #5d4e4e;
+  --calendar-text-color-level-2: #7a6a6a;
+  --calendar-text-color-level-3: #9a8a8a;
+  --calendar-text-color-level-4: #b8a8a8;
+  --calendar-text-color-level-5: #d4c8c8;
 
-  --calendar-background: transparent;
-  --calendar-row-height: 60px;
+  --calendar-background: #fffaf5;
+  --calendar-row-height: 72px;
 
-  --calendar-icon-size: 20px;
+  --calendar-icon-size: 22px;
   --calendar-icon-color: var(--calendar-text-color-level-3);
 
-  --calendar-toolbar-font-size: 16px;
+  --calendar-toolbar-font-size: 18px;
   --calendar-toolbar-icon-size: var(--calendar-icon-size);
   --calendar-toolbar-icon-color: var(--calendar-icon-color);
-  --calendar-toolbar-column-gap: 16px;
-  --calendar-toolbar-padding: 12px 16px;
+  --calendar-toolbar-column-gap: 20px;
+  --calendar-toolbar-padding: 16px 20px;
 
   --calendar-footer-icon-size: var(--calendar-icon-size);
   --calendar-footer-icon-color: var(--calendar-icon-color);
-  --calendar-footer-padding: 12px;
+  --calendar-footer-padding: 16px;
 
-  --calendar-weekdays-height: 30px;
+  --calendar-weekdays-height: 36px;
   --calendar-weekdays-font-size: 14px;
-  --calendar-weekdays-color: var(--calendar-text-color-level-1);
+  --calendar-weekdays-color: var(--calendar-text-color-level-2);
 
-  --calendar-days-value-font-size: 14px;
+  --calendar-days-value-font-size: 15px;
   --calendar-days-value-color: var(--calendar-text-color-level-1);
   --calendar-days-label-font-size: 10px;
-  --calendar-days-label-color: var(--calendar-text-color-level-2);
+  --calendar-days-label-color: var(--calendar-text-color-level-3);
 
   --calendar-days-today-color: var(--calendar-theme-color);
-  --calendar-days-today-background: var(--calendar-theme-color-light);
+  --calendar-days-today-background: rgba(232, 168, 124, 0.1);
   --calendar-days-selected-color: #fff;
   --calendar-days-selected-background: var(--calendar-theme-color);
   --calendar-days-other-month-color: var(--calendar-text-color-level-5);
 
-  --calendar-days-inner-size: 34px;
+  --calendar-days-inner-size: 44px;
   --calendar-days-inner-width: var(--calendar-days-inner-size);
   --calendar-days-inner-height: var(--calendar-days-inner-size);
-  --calendar-days-inner-padding: 2px;
-  --calendar-days-inner-radius: 50%;
+  --calendar-days-inner-padding: 4px;
+  --calendar-days-inner-radius: 12px;
   --calendar-days-inner-background: transparent;
 
   --calendar-days-marker-top-gap: 4px;
-  --calendar-days-marker-size: 4px;
+  --calendar-days-marker-size: 5px;
   --calendar-days-marker-color: var(--calendar-theme-color);
+
+  --cycle-period-color: #f5a9a9;
+  --cycle-period-light: rgba(245, 169, 169, 0.25);
+  --cycle-period-light-predicted: rgba(245, 169, 169, 0.12);
+
+  --cycle-ovulation-color: #f0c068;
+  --cycle-ovulation-light: rgba(240, 192, 104, 0.25);
+  --cycle-ovulation-light-predicted: rgba(240, 192, 104, 0.12);
+
+  --cycle-fertile-color: #f5b8b8;
+  --cycle-fertile-light: rgba(245, 184, 184, 0.2);
+  --cycle-fertile-light-predicted: rgba(245, 184, 184, 0.1);
+
+  --cycle-luteal-color: #d4c5e8;
+  --cycle-luteal-light: rgba(212, 197, 232, 0.2);
+  --cycle-luteal-light-predicted: rgba(212, 197, 232, 0.1);
+
+  --cycle-start-dot-color: #e87a7a;
+  --cycle-end-dot-color: #e87a7a;
+  --cycle-ovulation-flower-color: #f0a848;
+
+  --cycle-predicted-opacity: 0.5;
 }
