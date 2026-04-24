@@ -172,6 +172,7 @@
       <div
         v-if="showTooltip && tooltipData"
         class="ohhh-calendar-tooltip"
+        :class="[`placement-${tooltipPlacement}`]"
         :style="{
           left: tooltipPosition.x + 'px',
           top: tooltipPosition.y + 'px'
@@ -271,6 +272,7 @@ const {
   showLabelInput,
   tooltipData,
   tooltipPosition,
+  tooltipPlacement,
   showTooltip,
   deletingAnnotation,
   showTagDropdown,

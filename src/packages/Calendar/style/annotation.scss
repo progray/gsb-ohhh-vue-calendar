@@ -378,10 +378,17 @@
 
 .ohhh-calendar-tooltip {
   position: fixed;
-  transform: translate(-50%, -100%);
-  margin-top: -12px;
   z-index: 1001;
   pointer-events: none;
+  max-width: 240px;
+}
+
+.ohhh-calendar-tooltip.placement-top {
+  transform: translate(-50%, -100%);
+}
+
+.ohhh-calendar-tooltip.placement-bottom {
+  transform: translate(-50%, 0);
 }
 
 .ohhh-calendar-tooltip--content {
@@ -394,6 +401,8 @@
   border-radius: 8px;
   font-size: 13px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 .ohhh-calendar-tooltip--label {
@@ -409,13 +418,23 @@
 .ohhh-calendar-tooltip--arrow {
   position: absolute;
   left: 50%;
-  bottom: -6px;
   transform: translateX(-50%);
   width: 0;
   height: 0;
+}
+
+.ohhh-calendar-tooltip.placement-top .ohhh-calendar-tooltip--arrow {
+  bottom: -6px;
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
   border-top: 6px solid rgba(0, 0, 0, 0.85);
+}
+
+.ohhh-calendar-tooltip.placement-bottom .ohhh-calendar-tooltip--arrow {
+  top: -6px;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid rgba(0, 0, 0, 0.85);
 }
 
 .fade-enter-active,

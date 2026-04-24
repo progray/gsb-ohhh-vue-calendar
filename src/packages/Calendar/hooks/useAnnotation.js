@@ -40,11 +40,17 @@ export function useAnnotation() {
   const showLabelInput = ref(false)
   const tooltipData = ref(null)
   const tooltipPosition = ref({ x: 0, y: 0 })
+  const tooltipPlacement = ref('top')
   const showTooltip = ref(false)
   const deletingAnnotation = ref(null)
   const showTagDropdown = ref(false)
   const selectedTag = ref(null)
   const tagDropdownDates = ref([])
+
+  const TOOLTIP_WIDTH_ESTIMATE = 180
+  const TOOLTIP_HEIGHT_ESTIMATE = 60
+  const TOOLTIP_OFFSET = 12
+  const TOOLTIP_ARROW_HEIGHT = 8
 
   watch(annotations, () => {
     saveAnnotations(annotations)
@@ -136,14 +142,46 @@ export function useAnnotation() {
     }, 300)
   }
 
+  function calculateTooltipPosition(mouseX, mouseY) {
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+    
+    const tooltipHalfWidth = TOOLTIP_WIDTH_ESTIMATE / 2
+    
+    let x = mouseX
+    let y = mouseY
+    let placement = 'top'
+    
+    const spaceAbove = mouseY - TOOLTIP_OFFSET - TOOLTIP_HEIGHT_ESTIMATE
+    const spaceBelow = viewportHeight - mouseY - TOOLTIP_OFFSET - TOOLTIP_HEIGHT_ESTIMATE
+    
+    if (spaceAbove >= 0) {
+      placement = 'top'
+      y = mouseY - TOOLTIP_OFFSET - TOOLTIP_ARROW_HEIGHT
+    } else if (spaceBelow >= 0) {
+      placement = 'bottom'
+      y = mouseY + TOOLTIP_OFFSET + TOOLTIP_ARROW_HEIGHT
+    } else {
+      placement = 'top'
+      y = Math.max(TOOLTIP_OFFSET, mouseY - TOOLTIP_OFFSET - TOOLTIP_HEIGHT_ESTIMATE)
+    }
+    
+    x = Math.max(tooltipHalfWidth + TOOLTIP_OFFSET, Math.min(viewportWidth - tooltipHalfWidth - TOOLTIP_OFFSET, x))
+    
+    return { x, y, placement }
+  }
+
   function showAnnotationTooltip(annotation, event) {
     if (!annotation.label) return
 
+    const pos = calculateTooltipPosition(event.clientX, event.clientY)
+    
     tooltipData.value = annotation
     tooltipPosition.value = {
-      x: event.clientX,
-      y: event.clientY
+      x: pos.x,
+      y: pos.y
     }
+    tooltipPlacement.value = pos.placement
     showTooltip.value = true
   }
 
@@ -180,6 +218,7 @@ export function useAnnotation() {
     showLabelInput,
     tooltipData,
     tooltipPosition,
+    tooltipPlacement,
     showTooltip,
     deletingAnnotation,
     showTagDropdown,
