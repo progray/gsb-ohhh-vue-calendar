@@ -258,7 +258,7 @@ function handleDelete() {
 }
 
 .record-modal--input.expense-input:focus {
-  border-color: #cd853f;
+  border-color: #e64340;
 }
 
 .record-modal--preview {
@@ -292,7 +292,7 @@ function handleDelete() {
 }
 
 .record-modal--preview-expense {
-  color: #cd853f;
+  color: #e64340;
 }
 
 .record-modal--preview-balance {
@@ -304,7 +304,7 @@ function handleDelete() {
 }
 
 .record-modal--preview-balance.is-negative {
-  color: #cd853f;
+  color: #e64340;
 }
 
 .record-modal--footer {

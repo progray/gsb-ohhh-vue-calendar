@@ -127,8 +127,10 @@
 
     <!-- Tooltip -->
     <div
+      ref="tooltipRef"
       v-if="tooltipVisible"
       class="calendar-tooltip"
+      :class="tooltipClass"
       :style="{
         left: tooltipPosition.x + 'px',
         top: tooltipPosition.y + 'px'
@@ -182,6 +184,7 @@ import BalanceBar from './components/BalanceBar.vue'
 import RecordModal from './components/RecordModal.vue'
 
 const swipeRef = useTemplateRef('swp')
+const tooltipRef = useTemplateRef('tooltipRef')
 
 const emit = defineEmits(['select-change', 'view-change', 'record-change'])
 
@@ -260,6 +263,7 @@ const selectedRecord = ref(null)
 
 const tooltipVisible = ref(false)
 const tooltipPosition = ref({ x: 0, y: 0 })
+const tooltipClass = ref('')
 const tooltipDate = ref('')
 const tooltipRecord = ref({ income: 0, expense: 0, balance: 0, remark: '' })
 
@@ -382,10 +386,34 @@ function handleDateHover(date, event) {
   }
 
   const rect = event.currentTarget.getBoundingClientRect()
-  tooltipPosition.value = {
-    x: rect.left + rect.width / 2,
-    y: rect.top - 10
+  const viewportWidth = window.innerWidth
+  const viewportHeight = window.innerHeight
+  
+  const estimatedTooltipWidth = 200
+  const estimatedTooltipHeight = 150
+  const gap = 10
+  const arrowSize = 6
+
+  let x = rect.left + rect.width / 2
+  let y = rect.top - gap
+  
+  let tooltipClasses = []
+  
+  if (x - estimatedTooltipWidth / 2 < 0) {
+    x = arrowSize + 12
+    tooltipClasses.push('align-left')
+  } else if (x + estimatedTooltipWidth / 2 > viewportWidth) {
+    x = viewportWidth - estimatedTooltipWidth + arrowSize
+    tooltipClasses.push('align-right')
   }
+  
+  if (y - estimatedTooltipHeight < 0) {
+    y = rect.bottom + gap
+    tooltipClasses.push('position-bottom')
+  }
+  
+  tooltipPosition.value = { x, y }
+  tooltipClass.value = tooltipClasses.join(' ')
   tooltipVisible.value = true
 }
 
@@ -475,7 +503,7 @@ defineExpose({
 }
 
 .monthly-summary--expense .monthly-summary--amount {
-  color: #cd853f;
+  color: #e64340;
 }
 
 .monthly-summary--balance .monthly-summary--amount.is-positive {
@@ -483,7 +511,7 @@ defineExpose({
 }
 
 .monthly-summary--balance .monthly-summary--amount.is-negative {
-  color: #cd853f;
+  color: #e64340;
 }
 
 .monthly-summary--bar {
@@ -523,6 +551,26 @@ defineExpose({
   pointer-events: none;
 }
 
+.calendar-tooltip.align-left {
+  transform: translateY(-100%);
+}
+
+.calendar-tooltip.align-right {
+  transform: translateX(-100%) translateY(-100%);
+}
+
+.calendar-tooltip.position-bottom {
+  transform: translateX(-50%);
+}
+
+.calendar-tooltip.position-bottom.align-left {
+  transform: none;
+}
+
+.calendar-tooltip.position-bottom.align-right {
+  transform: translateX(-100%);
+}
+
 .calendar-tooltip::before {
   content: '';
   position: absolute;
@@ -532,6 +580,26 @@ defineExpose({
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
   border-top: 6px solid #fff;
+}
+
+.calendar-tooltip.align-left::before {
+  left: 12px;
+  transform: none;
+}
+
+.calendar-tooltip.align-right::before {
+  left: auto;
+  right: 12px;
+  transform: none;
+}
+
+.calendar-tooltip.position-bottom::before {
+  bottom: auto;
+  top: -6px;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid #fff;
+  border-top: none;
 }
 
 .calendar-tooltip--header {
@@ -559,7 +627,7 @@ defineExpose({
 }
 
 .calendar-tooltip--balance.is-negative {
-  color: #cd853f;
+  color: #e64340;
 }
 
 .calendar-tooltip--details {
@@ -586,7 +654,7 @@ defineExpose({
 }
 
 .calendar-tooltip--value.expense {
-  color: #cd853f;
+  color: #e64340;
 }
 
 .calendar-tooltip--remark {

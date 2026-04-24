@@ -66,7 +66,7 @@ const expenseWidth = computed(() => {
 }
 
 .balance-bar--expense {
-  background: var(--balance-bar-expense-color, #cd853f);
+  background: var(--balance-bar-expense-color, #e64340);
   border-radius: 0 var(--balance-bar-radius, 4px) var(--balance-bar-radius, 4px) 0;
 }
 
