@@ -178,11 +178,14 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
   const isInTransition = ref(false)
   // 页面实际渲染的行数
   const renderRows = ref(currentRenderRows.value)
+  // 最后一次过渡的方向
+  const lastTransitionDirection = ref(null)
 
   // 开始播放过渡动画
   function startTransitionAnimation(direction) {
     transitionDuration.value = duration.value
     isInTransition.value = true
+    lastTransitionDirection.value = direction
     if (direction === 'left') {
       transformDistance.value = '-100%'
       renderRows.value = nextRenderRows.value
@@ -232,6 +235,7 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     transitionDuration,
     isInTransition,
     renderRows,
+    lastTransitionDirection,
     switchPageToTargetDate,
     startTransitionAnimation,
     onTransitionEnd,

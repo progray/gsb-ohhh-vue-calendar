@@ -27,24 +27,48 @@
     </div>
 
     <!-- 日历主体 -->
-    <div ref="swp" class="ohhh-calendar-wrapper">
+    <div
+      ref="swp"
+      class="ohhh-calendar-wrapper"
+      @mousedown="onMouseDown"
+      @mousemove="onMouseMove"
+      @mouseup="onMouseUp"
+      @mouseleave="onMouseUp"
+    >
+      <!-- Canvas 层用于波纹效果 -->
+      <canvas
+        ref="canvasRef"
+        class="ohhh-calendar-canvas"
+        :width="canvasSize.width"
+        :height="canvasSize.height"
+      />
+
       <div
-        v-for="(item, index) in allRenderDates"
-        :key="index"
-        :style="{ left: 100 * (index - 1) + '%' }"
+        v-for="(item, pageIndex) in allRenderDates"
+        :key="pageIndex"
+        :style="{ left: 100 * (pageIndex - 1) + '%' }"
         class="ohhh-calendar-days"
+        :class="{
+          'page-exit': isPageExiting(pageIndex),
+          'page-enter': isPageEntering(pageIndex)
+        }"
         @transitionend="onTransitionEnd"
       >
         <div
-          v-for="dateObj in item"
+          v-for="(dateObj, cellIndex) in item"
           :key="dateObj.key"
           class="ohhh-calendar-day"
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'wind-chime-active': isCellActive(getCellKey(pageIndex, cellIndex))
           }"
-          @click="changeSelectedDate(dateObj.date)"
+          :style="getCellStyle(getCellKey(pageIndex, cellIndex))"
+          :data-index="cellIndex"
+          :data-page="pageIndex"
+          @mouseenter="onCellMouseEnter(pageIndex, cellIndex)"
+          @click="onCellClick(pageIndex, cellIndex, dateObj.date)"
         >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
@@ -71,53 +95,47 @@
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
+import { usePhysicsAnimation } from './hooks/usePhysicsAnimation.js'
 import { isSameDay, createWeekdays } from './utils'
 import { icons } from './utils/icons.js'
 
 const swipeRef = useTemplateRef('swp')
+const canvasRef = useTemplateRef('canvasRef')
 
 const emit = defineEmits(['select-change', 'view-change'])
 
 const props = defineProps({
-  // 初始选中的日期
   initialSelectedDate: {
     type: Date,
     default: () => new Date()
   },
-  // 初始视图模式
   initialViewMode: {
     type: String,
-    default: 'month' // month or week
+    default: 'month'
   },
-  // 以周几作为每周的起始
   weekStart: {
     type: Number,
-    default: 0 // 0: Sunday, 1: Monday, etc.
+    default: 0
   },
-  // 标记的日期
   markerDates: {
     type: Array,
     default: () => []
   },
-  // 是否显示顶部工具栏
   showToolbar: {
     type: Boolean,
     default: true
   },
-  // 是否显示底部工具栏
   showFooter: {
     type: Boolean,
     default: true
   },
-  // 是否显示weekdays栏
   showWeekdays: {
     type: Boolean,
     default: true
   },
-  // 过渡动画时长
   duration: {
     type: String,
     default: '0.3s'
@@ -140,14 +158,23 @@ const {
   switchPageToTargetDate,
   startTransitionAnimation,
   onTransitionEnd,
-  toggleViewMode
+  toggleViewMode,
+  lastTransitionDirection
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
 
-// 顶部工具栏标题
+const {
+  cellStates,
+  rippleEffects,
+  triggerWindChime,
+  triggerRipple,
+  getCellTransform,
+  resetAllCells,
+  startAnimation
+} = usePhysicsAnimation()
+
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
-// 星期栏
 const weekdays = createWeekdays(weekStart.value)
-// 标记日期
+
 const markerDateList = computed(() =>
   markerDates.value.map(item => ({
     date: new Date(typeof item === 'object' && item.date ? item.date : item),
@@ -155,16 +182,18 @@ const markerDateList = computed(() =>
   }))
 )
 
-// 监听滑动事件
+const canvasSize = ref({ width: 0, height: 0 })
+const isMouseDown = ref(false)
+const lastMouseCellIndex = ref(-1)
+const lastMousePageIndex = ref(-1)
+const pageTransitionDirection = ref(null)
+
 const { lengthX } = useSwipe(swipeRef, {
-  // 滑动阈值
   threshold: 0,
-  // 手指滑动过程中
   onSwipe: () => {
     if (isInTransition.value) return
     transformDistance.value = -lengthX.value + 'px'
   },
-  // 手指抬起滑动结束，开始滑动动画
   onSwipeEnd: (_, direction) => {
     if (isInTransition.value) return
     if (direction === 'left') {
@@ -172,14 +201,132 @@ const { lengthX } = useSwipe(swipeRef, {
     } else if (direction === 'right') {
       changePageTo('prev-page')
     } else {
-      // 如果方向不是左右，则将页面复位
       startTransitionAnimation(direction)
     }
   }
 })
 
-// 归一化参数
-// 支持 'prev-page', 'next-page', 'prev-year', 'next-year', 以及合法的日期
+function getCellKey(pageIndex, cellIndex) {
+  return `${pageIndex}-${cellIndex}`
+}
+
+function getCellStyle(cellKey) {
+  const transform = getCellTransform(cellKey)
+  return {
+    transform: `translate(${transform.x}px, ${transform.y}px) rotate(${transform.rotation}rad)`
+  }
+}
+
+function isCellActive(cellKey) {
+  const state = cellStates.get(cellKey)
+  return state ? state.isActive : false
+}
+
+function isPageExiting(pageIndex) {
+  if (!pageTransitionDirection.value) return false
+  return pageIndex === 1
+}
+
+function isPageEntering(pageIndex) {
+  if (!pageTransitionDirection.value) return false
+  if (pageTransitionDirection.value === 'next' && pageIndex === 2) return true
+  if (pageTransitionDirection.value === 'prev' && pageIndex === 0) return true
+  return false
+}
+
+function onMouseDown(event) {
+  if (isInTransition.value) return
+  isMouseDown.value = true
+  lastMouseCellIndex.value = -1
+  lastMousePageIndex.value = -1
+}
+
+function onMouseMove(event) {
+  if (!isMouseDown.value || isInTransition.value) return
+
+  const target = event.target.closest('.ohhh-calendar-day')
+  if (target) {
+    const cellIndex = parseInt(target.dataset.index)
+    const pageIndex = parseInt(target.dataset.page)
+
+    if (cellIndex !== lastMouseCellIndex.value || pageIndex !== lastMousePageIndex.value) {
+      const direction = cellIndex > lastMouseCellIndex.value ? 'right' : 'left'
+      const cellKey = getCellKey(pageIndex, cellIndex)
+
+      triggerWindChime(cellKey, direction, 1.5)
+
+      lastMouseCellIndex.value = cellIndex
+      lastMousePageIndex.value = pageIndex
+    }
+  }
+}
+
+function onMouseUp() {
+  isMouseDown.value = false
+  lastMouseCellIndex.value = -1
+  lastMousePageIndex.value = -1
+}
+
+function onCellMouseEnter(pageIndex, cellIndex) {
+  if (!isMouseDown.value || isInTransition.value) return
+
+  const cellKey = getCellKey(pageIndex, cellIndex)
+
+  if (lastMouseCellIndex.value !== -1 && lastMousePageIndex.value === pageIndex) {
+    const direction = cellIndex > lastMouseCellIndex.value ? 'right' : 'left'
+    triggerWindChime(cellKey, direction, 1.5)
+  }
+
+  lastMouseCellIndex.value = cellIndex
+  lastMousePageIndex.value = pageIndex
+}
+
+function onCellClick(pageIndex, cellIndex, date) {
+  if (isInTransition.value) return
+
+  const cellKey = getCellKey(pageIndex, cellIndex)
+  const currentPageDates = allRenderDates.value[pageIndex]
+
+  for (let i = 0; i < currentPageDates.length; i++) {
+    const row = Math.floor(i / 7)
+    const col = i % 7
+    const centerRow = Math.floor(cellIndex / 7)
+    const centerCol = cellIndex % 7
+
+    const distance = Math.sqrt(
+      Math.pow(row - centerRow, 2) + Math.pow(col - centerCol, 2)
+    )
+
+    const maxDistance = Math.sqrt(49 + 25)
+    const normalizedDistance = distance / maxDistance
+
+    const delay = normalizedDistance * 200
+
+    setTimeout(() => {
+      const key = getCellKey(pageIndex, i)
+      const angle = Math.atan2(row - centerRow, col - centerCol)
+      const force = 50 * (1 - normalizedDistance * 0.6)
+
+      const state = cellStates.get(key)
+      if (state) {
+        state.isActive = true
+        state.velocity.x = Math.cos(angle) * force
+        state.velocity.y = Math.sin(angle) * force * 0.5
+        state.rotationVelocity = (Math.random() - 0.5) * 1.5
+      }
+      startAnimation()
+    }, delay)
+  }
+
+  triggerRipple(cellKey, currentPageDates.length, 7)
+
+  changePageTo(date)
+  if (!isSameDay(new Date(date), selected.value)) {
+    selected.value = new Date(date)
+    emit('select-change', selected.value)
+  }
+}
+
 function _normalize(param) {
   if (!param) {
     throw new Error('参数不能为空')
@@ -215,32 +362,136 @@ function _normalize(param) {
   throw new Error('日期不合法')
 }
 
-// 切换日历页面
 function changePageTo(param) {
   const targetDate = _normalize(param)
-  switchPageToTargetDate(targetDate)
-}
 
-// 切换选中的日期
-function changeSelectedDate(date) {
-  changePageTo(date)
-  if (!isSameDay(new Date(date), selected.value)) {
-    selected.value = new Date(date)
-    emit('select-change', selected.value)
+  const isPrev = (
+    (param === 'prev-page' || param === 'prev-year') ||
+    (targetDate.getFullYear() < currentYear.value) ||
+    (targetDate.getFullYear() === currentYear.value && targetDate.getMonth() < currentMonth.value)
+  )
+
+  if (isPrev) {
+    pageTransitionDirection.value = 'prev'
+  } else if (
+    param === 'next-page' || param === 'next-year' ||
+    targetDate.getFullYear() > currentYear.value ||
+    (targetDate.getFullYear() === currentYear.value && targetDate.getMonth() > currentMonth.value)
+  ) {
+    pageTransitionDirection.value = 'next'
   }
+
+  const currentPageDates = allRenderDates.value[1]
+  for (let i = 0; i < currentPageDates.length; i++) {
+    const row = Math.floor(i / 7)
+    const col = i % 7
+    const delay = (row * 80 + col * 40)
+
+    setTimeout(() => {
+      const cellKey = getCellKey(1, i)
+      const state = cellStates.get(cellKey)
+      if (state) {
+        state.isActive = true
+        if (pageTransitionDirection.value === 'next') {
+          state.velocity.y = 100
+          state.velocity.x = (Math.random() - 0.5) * 60
+          state.rotationVelocity = (Math.random() - 0.5) * 3
+        } else {
+          state.velocity.y = -80
+          state.velocity.x = (Math.random() - 0.5) * 50
+          state.rotationVelocity = (Math.random() - 0.5) * 2
+        }
+      }
+      startAnimation()
+    }, Math.abs(delay))
+  }
+
+  switchPageToTargetDate(targetDate)
+
+  nextTick(() => {
+    setTimeout(() => {
+      pageTransitionDirection.value = null
+      resetAllCells()
+    }, 800)
+  })
 }
 
-// 获取 marker 颜色
 function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
+let animationFrameId = null
+
+function drawRipples() {
+  const canvas = canvasRef.value
+  if (!canvas) return
+
+  const ctx = canvas.getContext('2d')
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+  if (rippleEffects.value.length > 0) {
+    rippleEffects.value.forEach(ripple => {
+      const gradient = ctx.createRadialGradient(
+        canvas.width / 2, canvas.height / 2,
+        ripple.radius - 40,
+        canvas.width / 2, canvas.height / 2,
+        ripple.radius
+      )
+      gradient.addColorStop(0, `rgba(64, 158, 255, 0)`)
+      gradient.addColorStop(0.5, `rgba(64, 158, 255, ${0.4 * ripple.alpha})`)
+      gradient.addColorStop(1, `rgba(64, 158, 255, 0)`)
+
+      ctx.beginPath()
+      ctx.arc(canvas.width / 2, canvas.height / 2, ripple.radius, 0, Math.PI * 2)
+      ctx.strokeStyle = `rgba(64, 158, 255, ${0.6 * ripple.alpha})`
+      ctx.lineWidth = 4
+      ctx.stroke()
+    })
+  }
+
+  animationFrameId = requestAnimationFrame(drawRipples)
+}
+
+function updateCanvasSize() {
+  if (swipeRef.value) {
+    const rect = swipeRef.value.getBoundingClientRect()
+    canvasSize.value = {
+      width: rect.width,
+      height: rect.height
+    }
+  }
+}
+
+onMounted(() => {
+  updateCanvasSize()
+  window.addEventListener('resize', updateCanvasSize)
+  drawRipples()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateCanvasSize)
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId)
+  }
+})
+
+watch(isInTransition, (val) => {
+  if (!val) {
+    setTimeout(() => {
+      pageTransitionDirection.value = null
+    }, 100)
+  }
+})
+
 defineExpose({
-  // 切换周/月视图
   toggleViewMode,
-  // 切换日历页
   changePageTo,
-  // 切换选中日期
-  changeSelectedDate
+  changeSelectedDate: (date) => {
+    changePageTo(date)
+    if (!isSameDay(new Date(date), selected.value)) {
+      selected.value = new Date(date)
+      emit('select-change', selected.value)
+    }
+  }
 })
 </script>
