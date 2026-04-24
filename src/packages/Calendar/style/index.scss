@@ -484,6 +484,10 @@
   font-size: var(--calendar-toolbar-font-size);
   font-weight: 500;
   color: var(--text-color, var(--calendar-text-color-level-1));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
 }
 
 .ohhh-calendar-weekdays {

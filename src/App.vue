@@ -24,7 +24,7 @@
 import { ref, computed } from 'vue'
 import { useTemplateRef } from 'vue'
 import OhhhVueCalendar from './packages/Calendar/Calendar.vue'
-import '/src/packages/Calendar/style/mobile/mobile.scss'
+import '/src/packages/Calendar/style/index.scss'
 
 const calendarRef = useTemplateRef('calendarRef')
 

@@ -377,10 +377,10 @@ const markerDateList = computed(() =>
 )
 
 const containerStyle = computed(() => ({
-  '--calendar-rows': renderRows,
-  '--calendar-transition-duration': duration,
-  '--translate-distance': transformDistance,
-  '--transition-duration': transitionDuration,
+  '--calendar-rows': renderRows.value,
+  '--calendar-transition-duration': duration.value,
+  '--translate-distance': transformDistance.value,
+  '--transition-duration': transitionDuration.value,
   '--calendar-glass-overlay': glassOverlayColor.value,
   '--calendar-text-color': textColor.value,
   '--calendar-theme-color': themeColor.value

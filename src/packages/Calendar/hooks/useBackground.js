@@ -4,50 +4,50 @@ const gradientPresets = [
   {
     id: 'sunset',
     name: '日落',
-    value: 'linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb)',
-    colors: ['#ff6b6b', '#feca57', '#48dbfb']
+    value: 'linear-gradient(135deg, #ff9a9e, #fecfef, #a8edea)',
+    colors: ['#ff9a9e', '#fecfef', '#a8edea']
   },
   {
     id: 'ocean',
     name: '海洋',
-    value: 'linear-gradient(135deg, #667eea, #764ba2, #6B8DD6)',
-    colors: ['#667eea', '#764ba2', '#6B8DD6']
+    value: 'linear-gradient(135deg, #a1c4fd, #c2e9fb, #d4fc79)',
+    colors: ['#a1c4fd', '#c2e9fb', '#d4fc79']
   },
   {
     id: 'forest',
     name: '森林',
-    value: 'linear-gradient(135deg, #11998e, #38ef7d, #a8e063)',
-    colors: ['#11998e', '#38ef7d', '#a8e063']
+    value: 'linear-gradient(135deg, #d4fc79, #96e6a1, #84fab0)',
+    colors: ['#d4fc79', '#96e6a1', '#84fab0']
   },
   {
     id: 'aurora',
     name: '极光',
-    value: 'linear-gradient(135deg, #00c6ff, #0072ff, #7f53ac)',
-    colors: ['#00c6ff', '#0072ff', '#7f53ac']
+    value: 'linear-gradient(135deg, #a8edea, #fed6e3, #fccb90)',
+    colors: ['#a8edea', '#fed6e3', '#fccb90']
   },
   {
     id: 'rose',
     name: '玫瑰',
-    value: 'linear-gradient(135deg, #f093fb, #f5576c, #ff9a9e)',
-    colors: ['#f093fb', '#f5576c', '#ff9a9e']
+    value: 'linear-gradient(135deg, #ffecd2, #fcb69f, #fecfef)',
+    colors: ['#ffecd2', '#fcb69f', '#fecfef']
   },
   {
     id: 'golden',
     name: '金色',
-    value: 'linear-gradient(135deg, #f7971e, #ffd200, #fff200)',
-    colors: ['#f7971e', '#ffd200', '#fff200']
+    value: 'linear-gradient(135deg, #fff1eb, #ace0f9, #d299c2)',
+    colors: ['#fff1eb', '#ace0f9', '#d299c2']
   },
   {
     id: 'midnight',
     name: '午夜',
-    value: 'linear-gradient(135deg, #232526, #414345, #000000)',
-    colors: ['#232526', '#414345', '#000000']
+    value: 'linear-gradient(135deg, #434343, #667eea, #764ba2)',
+    colors: ['#434343', '#667eea', '#764ba2']
   },
   {
     id: 'rainbow',
     name: '彩虹',
-    value: 'linear-gradient(135deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #8b00ff)',
-    colors: ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#0000ff', '#8b00ff']
+    value: 'linear-gradient(135deg, #ffecd2, #fcb69f, #a8edea, #a1c4fd, #c2e9fb, #fecfef)',
+    colors: ['#ffecd2', '#fcb69f', '#a8edea', '#a1c4fd', '#c2e9fb', '#fecfef']
   }
 ]
 
