@@ -8,15 +8,59 @@
       '--transition-duration': transitionDuration
     }"
   >
-    <!-- 顶部工具栏 -->
-    <div v-if="showToolbar" class="ohhh-calendar-toolbar">
-      <slot name="toolbar" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
-        <div v-html="icons.arrowDoubleLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-year')" />
-        <div v-html="icons.arrowLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-page')" />
-        <div class="ohhh-calendar-toolbar--text">{{ headerLabel }}</div>
-        <div v-html="icons.arrowRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-page')" />
-        <div v-html="icons.arrowDoubleRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-year')" />
-      </slot>
+    <!-- 顶部工具栏 - 扫雷风格 -->
+    <div v-if="showToolbar" class="minesweeper-toolbar">
+      <!-- 左侧液晶数字显示：当月天数 -->
+      <div class="lcd-display">
+        <span class="lcd-digit">{{ formattedDaysInMonth[0] }}</span>
+        <span class="lcd-digit">{{ formattedDaysInMonth[1] }}</span>
+      </div>
+
+      <!-- 中间笑脸按钮 -->
+      <button class="smiley-button" :class="{ 'smiley-pressed': smileyPressed }"
+        @mousedown="smileyPressed = true"
+        @mouseup="smileyPressed = false; resetToCurrentMonth()"
+        @mouseleave="smileyPressed = false"
+      >
+        {{ currentSmiley }}
+      </button>
+
+      <!-- 右侧液晶数字显示：年份 -->
+      <div class="lcd-display">
+        <span class="lcd-digit">{{ formattedYear[0] }}</span>
+        <span class="lcd-digit">{{ formattedYear[1] }}</span>
+        <span class="lcd-digit">{{ formattedYear[2] }}</span>
+        <span class="lcd-digit">{{ formattedYear[3] }}</span>
+      </div>
+    </div>
+
+    <!-- 月份导航栏 - 扫雷3D按钮风格 -->
+    <div class="minesweeper-nav">
+      <button class="nav-button" @click="changePageTo('prev-year')"
+        @mousedown="setButtonPressed('prevYear', true)"
+        @mouseup="setButtonPressed('prevYear', false)"
+        @mouseleave="setButtonPressed('prevYear', false)"
+        :class="{ 'button-pressed': buttonPressed.prevYear }"
+      >◀◀</button>
+      <button class="nav-button" @click="changePageTo('prev-page')"
+        @mousedown="setButtonPressed('prevMonth', true)"
+        @mouseup="setButtonPressed('prevMonth', false)"
+        @mouseleave="setButtonPressed('prevMonth', false)"
+        :class="{ 'button-pressed': buttonPressed.prevMonth }"
+      >◀</button>
+      <span class="month-label">{{ monthName }}</span>
+      <button class="nav-button" @click="changePageTo('next-page')"
+        @mousedown="setButtonPressed('nextMonth', true)"
+        @mouseup="setButtonPressed('nextMonth', false)"
+        @mouseleave="setButtonPressed('nextMonth', false)"
+        :class="{ 'button-pressed': buttonPressed.nextMonth }"
+      >▶</button>
+      <button class="nav-button" @click="changePageTo('next-year')"
+        @mousedown="setButtonPressed('nextYear', true)"
+        @mouseup="setButtonPressed('nextYear', false)"
+        @mouseleave="setButtonPressed('nextYear', false)"
+        :class="{ 'button-pressed': buttonPressed.nextYear }"
+      >▶▶</button>
     </div>
 
     <!-- 星期栏 -->
@@ -26,8 +70,8 @@
       </div>
     </div>
 
-    <!-- 日历主体 -->
-    <div ref="swp" class="ohhh-calendar-wrapper">
+    <!-- 日历主体 - 扫雷格子风格 -->
+    <div ref="swp" class="ohhh-calendar-wrapper minesweeper-grid">
       <div
         v-for="(item, index) in allRenderDates"
         :key="index"
@@ -36,23 +80,31 @@
         @transitionend="onTransitionEnd"
       >
         <div
-          v-for="dateObj in item"
+          v-for="(dateObj, cellIndex) in item"
           :key="dateObj.key"
-          class="ohhh-calendar-day"
+          class="minesweeper-cell"
           :class="{
-            'is-selected': isSameDay(dateObj.date, selected),
+            'is-revealed': isRevealed(dateObj.key),
+            'is-weekend': isWeekend(dateObj.date),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'cell-pressed': cellPressed === dateObj.key
           }"
-          @click="changeSelectedDate(dateObj.date)"
+          @mousedown="onCellMouseDown(dateObj)"
+          @mouseup="onCellMouseUp(dateObj, cellIndex, item)"
+          @mouseleave="onCellMouseLeave(dateObj)"
         >
-          <div class="ohhh-calendar-day--inner">
-            <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
-            <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
-              <slot name="day-label" :date="dateObj.date" />
-            </div>
+          <!-- 未翻开状态 -->
+          <div v-if="!isRevealed(dateObj.key)" class="cell-unrevealed">
+            <!-- 周末显示小红旗 -->
+            <span v-if="isWeekend(dateObj.date) && dateObj.current" class="flag-icon">🚩</span>
           </div>
-          <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+          <!-- 已翻开状态 -->
+          <div v-else class="cell-revealed">
+            <span class="cell-number" :class="`number-${dateObj.fullDate.date}`">
+              {{ dateObj.fullDate.date }}
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -71,10 +123,10 @@
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref, watch } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
-import { isSameDay, createWeekdays } from './utils'
+import { isSameDay, createWeekdays, getDaysInMonth } from './utils'
 import { icons } from './utils/icons.js'
 
 const swipeRef = useTemplateRef('swp')
@@ -82,42 +134,34 @@ const swipeRef = useTemplateRef('swp')
 const emit = defineEmits(['select-change', 'view-change'])
 
 const props = defineProps({
-  // 初始选中的日期
   initialSelectedDate: {
     type: Date,
     default: () => new Date()
   },
-  // 初始视图模式
   initialViewMode: {
     type: String,
-    default: 'month' // month or week
+    default: 'month'
   },
-  // 以周几作为每周的起始
   weekStart: {
     type: Number,
-    default: 0 // 0: Sunday, 1: Monday, etc.
+    default: 0
   },
-  // 标记的日期
   markerDates: {
     type: Array,
     default: () => []
   },
-  // 是否显示顶部工具栏
   showToolbar: {
     type: Boolean,
     default: true
   },
-  // 是否显示底部工具栏
   showFooter: {
     type: Boolean,
     default: true
   },
-  // 是否显示weekdays栏
   showWeekdays: {
     type: Boolean,
     default: true
   },
-  // 过渡动画时长
   duration: {
     type: String,
     default: '0.3s'
@@ -143,10 +187,42 @@ const {
   toggleViewMode
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
 
-// 顶部工具栏标题
-const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
+// 扫雷状态
+const revealedCells = ref(new Set())
+const cellPressed = ref(null)
+const smileyPressed = ref(false)
+const buttonPressed = ref({
+  prevYear: false,
+  prevMonth: false,
+  nextMonth: false,
+  nextYear: false
+})
+
+// 笑脸表情
+const currentSmiley = computed(() => {
+  return '🙂'
+})
+
+// 月份名称
+const monthName = computed(() => {
+  const months = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
+  return months[currentMonth.value]
+})
+
+// 格式化年份为4位数字符串
+const formattedYear = computed(() => {
+  return String(currentYear.value).padStart(4, '0').split('')
+})
+
+// 格式化当月天数为2位数字符串
+const formattedDaysInMonth = computed(() => {
+  const days = getDaysInMonth(new Date(currentYear.value, currentMonth.value))
+  return String(days).padStart(2, '0').split('')
+})
+
 // 星期栏
 const weekdays = createWeekdays(weekStart.value)
+
 // 标记日期
 const markerDateList = computed(() =>
   markerDates.value.map(item => ({
@@ -157,14 +233,11 @@ const markerDateList = computed(() =>
 
 // 监听滑动事件
 const { lengthX } = useSwipe(swipeRef, {
-  // 滑动阈值
   threshold: 0,
-  // 手指滑动过程中
   onSwipe: () => {
     if (isInTransition.value) return
     transformDistance.value = -lengthX.value + 'px'
   },
-  // 手指抬起滑动结束，开始滑动动画
   onSwipeEnd: (_, direction) => {
     if (isInTransition.value) return
     if (direction === 'left') {
@@ -172,14 +245,17 @@ const { lengthX } = useSwipe(swipeRef, {
     } else if (direction === 'right') {
       changePageTo('prev-page')
     } else {
-      // 如果方向不是左右，则将页面复位
       startTransitionAnimation(direction)
     }
   }
 })
 
+// 月份/年份切换时重置翻开状态
+watch([currentYear, currentMonth], () => {
+  revealedCells.value = new Set()
+})
+
 // 归一化参数
-// 支持 'prev-page', 'next-page', 'prev-year', 'next-year', 以及合法的日期
 function _normalize(param) {
   if (!param) {
     throw new Error('参数不能为空')
@@ -235,12 +311,130 @@ function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
+// 检查是否是周末 (周六日)
+function isWeekend(date) {
+  const day = date.getDay()
+  return day === 0 || day === 6
+}
+
+// 检查格子是否已翻开
+function isRevealed(cellKey) {
+  return revealedCells.value.has(cellKey)
+}
+
+// 格子按下
+function onCellMouseDown(dateObj) {
+  if (isRevealed(dateObj.key)) return
+  cellPressed.value = dateObj.key
+}
+
+// 格子离开
+function onCellMouseLeave(dateObj) {
+  if (cellPressed.value === dateObj.key) {
+    cellPressed.value = null
+  }
+}
+
+// 格子松开 - 触发翻开
+function onCellMouseUp(dateObj, cellIndex, datesArray) {
+  if (cellPressed.value !== dateObj.key) return
+  cellPressed.value = null
+  
+  if (isRevealed(dateObj.key)) return
+  
+  // 如果是其他月份的日期，直接翻开不连锁
+  if (!dateObj.current) {
+    revealedCells.value.add(dateObj.key)
+    changeSelectedDate(dateObj.date)
+    return
+  }
+  
+  // 周末格子：连锁展开
+  if (isWeekend(dateObj.date)) {
+    revealChain(dateObj, cellIndex, datesArray)
+  } else {
+    // 工作日：只翻开自己
+    revealedCells.value.add(dateObj.key)
+  }
+  
+  changeSelectedDate(dateObj.date)
+}
+
+// 连锁展开（BFS算法）
+function revealChain(startDateObj, startIndex, datesArray) {
+  const queue = [{ dateObj: startDateObj, index: startIndex }]
+  const visited = new Set([startDateObj.key])
+  
+  while (queue.length > 0) {
+    const { dateObj, index } = queue.shift()
+    
+    if (revealedCells.value.has(dateObj.key)) continue
+    if (!dateObj.current) continue
+    
+    revealedCells.value.add(dateObj.key)
+    
+    // 如果是工作日，停止连锁
+    if (!isWeekend(dateObj.date)) continue
+    
+    // 获取相邻的8个格子
+    const neighbors = getNeighborIndices(index, datesArray.length)
+    
+    for (const neighborIdx of neighbors) {
+      const neighborObj = datesArray[neighborIdx]
+      if (neighborObj && !visited.has(neighborObj.key) && neighborObj.current) {
+        visited.add(neighborObj.key)
+        queue.push({ dateObj: neighborObj, index: neighborIdx })
+      }
+    }
+  }
+}
+
+// 获取相邻格子索引（8个方向）
+function getNeighborIndices(index, totalCount) {
+  const cols = 7
+  const row = Math.floor(index / cols)
+  const col = index % cols
+  
+  const neighbors = []
+  const directions = [
+    [-1, -1], [-1, 0], [-1, 1],
+    [0, -1],           [0, 1],
+    [1, -1],  [1, 0],  [1, 1]
+  ]
+  
+  for (const [dr, dc] of directions) {
+    const newRow = row + dr
+    const newCol = col + dc
+    
+    if (newRow >= 0 && newCol >= 0 && newCol < cols) {
+      const newIndex = newRow * cols + newCol
+      if (newIndex < totalCount) {
+        neighbors.push(newIndex)
+      }
+    }
+  }
+  
+  return neighbors
+}
+
+// 设置导航按钮按下状态
+function setButtonPressed(button, pressed) {
+  buttonPressed.value[button] = pressed
+}
+
+// 重置到当月
+function resetToCurrentMonth() {
+  const today = new Date()
+  currentYear.value = today.getFullYear()
+  currentMonth.value = today.getMonth()
+  revealedCells.value = new Set()
+  selected.value = today
+  emit('select-change', selected.value)
+}
+
 defineExpose({
-  // 切换周/月视图
   toggleViewMode,
-  // 切换日历页
   changePageTo,
-  // 切换选中日期
   changeSelectedDate
 })
 </script>

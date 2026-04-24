@@ -54,7 +54,7 @@ export function createMonthDates(date, index) {
 }
 
 export function createWeekDates(date, index) {
-  const weekDay = date.getDay() // 获取当前日期是星期几
+  const weekDay = date.getDay()
   const offsetToStart = (weekDay - index + 7) % 7
   const startDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - offsetToStart)
   const dates = []
@@ -64,4 +64,10 @@ export function createWeekDates(date, index) {
     dates.push(cDate)
   }
   return dates
+}
+
+export function getDaysInMonth(date) {
+  const year = date.getFullYear()
+  const month = date.getMonth()
+  return new Date(year, month + 1, 0).getDate()
 }
