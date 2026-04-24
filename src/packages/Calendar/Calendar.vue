@@ -1,17 +1,15 @@
 <template>
   <div
     class="ohhh-calendar-container"
-    :style="containerStyle"
+    :style="{
+      '--calendar-rows': renderRows,
+      '--calendar-transition-duration': duration,
+      '--translate-distance': transformDistance,
+      '--transition-duration': transitionDuration
+    }"
   >
-    <!-- 背景光晕层 -->
-    <div 
-      class="ohhh-calendar-background-glow" 
-      v-if="showMusicVisualizer"
-      :style="backgroundGlowStyle"
-    />
-
     <!-- 顶部工具栏 -->
-    <div v-if="showToolbar" class="ohhh-calendar-toolbar glass-effect">
+    <div v-if="showToolbar" class="ohhh-calendar-toolbar">
       <slot name="toolbar" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
         <div v-html="icons.arrowDoubleLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-year')" />
         <div v-html="icons.arrowLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-page')" />
@@ -24,21 +22,20 @@
     <!-- 音乐频谱可视化区 -->
     <div v-if="showMusicVisualizer" class="ohhh-calendar-visualizer">
       <MusicVisualizer 
-        ref="visualizerRef"
         :themeColor="themeColor"
         :height="visualizerHeight"
       />
     </div>
 
     <!-- 星期栏 -->
-    <div v-if="showWeekdays" class="ohhh-calendar-weekdays glass-effect">
+    <div v-if="showWeekdays" class="ohhh-calendar-weekdays">
       <div v-for="(day, index) in weekdays" :key="day" class="ohhh-calendar-weekdays--weekday">
         <slot name="weekday" :weekday="day" :index="(index + weekStart) % 7">{{ day }}</slot>
       </div>
     </div>
 
     <!-- 日历主体 -->
-    <div ref="swp" class="ohhh-calendar-wrapper glass-effect">
+    <div ref="swp" class="ohhh-calendar-wrapper">
       <div
         v-for="(item, index) in allRenderDates"
         :key="index"
@@ -69,7 +66,7 @@
     </div>
 
     <!-- 底部工具栏 -->
-    <div v-if="showFooter" class="ohhh-calendar-footer glass-effect">
+    <div v-if="showFooter" class="ohhh-calendar-footer">
       <slot name="footer" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
         <div
           v-html="viewMode === 'week' ? icons.arrowDown : icons.arrowUp"
@@ -82,7 +79,7 @@
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs, ref } from 'vue'
+import { computed, useTemplateRef, toRefs } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
 import { isSameDay, createWeekdays } from './utils'
@@ -90,62 +87,50 @@ import { icons } from './utils/icons.js'
 import MusicVisualizer from './components/MusicVisualizer.vue'
 
 const swipeRef = useTemplateRef('swp')
-const visualizerRef = useTemplateRef('visualizerRef')
 
 const emit = defineEmits(['select-change', 'view-change'])
 
 const props = defineProps({
-  // 初始选中的日期
   initialSelectedDate: {
     type: Date,
     default: () => new Date()
   },
-  // 初始视图模式
   initialViewMode: {
     type: String,
-    default: 'month' // month or week
+    default: 'month'
   },
-  // 以周几作为每周的起始
   weekStart: {
     type: Number,
-    default: 0 // 0: Sunday, 1: Monday, etc.
+    default: 0
   },
-  // 标记的日期
   markerDates: {
     type: Array,
     default: () => []
   },
-  // 是否显示顶部工具栏
   showToolbar: {
     type: Boolean,
     default: true
   },
-  // 是否显示底部工具栏
   showFooter: {
     type: Boolean,
     default: true
   },
-  // 是否显示weekdays栏
   showWeekdays: {
     type: Boolean,
     default: true
   },
-  // 过渡动画时长
   duration: {
     type: String,
     default: '0.3s'
   },
-  // 主题颜色
   themeColor: {
     type: String,
     default: '#409eff'
   },
-  // 是否显示音乐频谱可视化
   showMusicVisualizer: {
     type: Boolean,
     default: true
   },
-  // 频谱可视化高度
   visualizerHeight: {
     type: Number,
     default: 90
@@ -171,11 +156,8 @@ const {
   toggleViewMode
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
 
-// 顶部工具栏标题
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
-// 星期栏
 const weekdays = createWeekdays(weekStart.value)
-// 标记日期
 const markerDateList = computed(() =>
   markerDates.value.map(item => ({
     date: new Date(typeof item === 'object' && item.date ? item.date : item),
@@ -183,53 +165,12 @@ const markerDateList = computed(() =>
   }))
 )
 
-// 背景光晕强度（从可视化组件获取）
-const backgroundGlow = computed(() => {
-  return visualizerRef.value?.backgroundGlow?.value || 0
-})
-
-// 解析hex颜色为RGB
-function hexToRgb(hex) {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-  return result ? {
-    r: parseInt(result[1], 16),
-    g: parseInt(result[2], 16),
-    b: parseInt(result[3], 16)
-  } : { r: 64, g: 158, b: 255 }
-}
-
-// 主题颜色RGB值
-const themeColorRgb = computed(() => hexToRgb(props.themeColor))
-
-// 容器样式
-const containerStyle = computed(() => ({
-  '--calendar-rows': renderRows,
-  '--calendar-transition-duration': duration,
-  '--translate-distance': transformDistance,
-  '--transition-duration': transitionDuration,
-  '--visualizer-glow': backgroundGlow.value,
-  '--calendar-theme-color-r': themeColorRgb.value.r,
-  '--calendar-theme-color-g': themeColorRgb.value.g,
-  '--calendar-theme-color-b': themeColorRgb.value.b,
-  '--calendar-theme-color': props.themeColor,
-  '--calendar-theme-color-light': `rgba(${themeColorRgb.value.r}, ${themeColorRgb.value.g}, ${themeColorRgb.value.b}, 0.2)`
-}))
-
-// 背景光晕样式
-const backgroundGlowStyle = computed(() => ({
-  opacity: 0.3 + backgroundGlow.value * 0.4
-}))
-
-// 监听滑动事件
 const { lengthX } = useSwipe(swipeRef, {
-  // 滑动阈值
   threshold: 0,
-  // 手指滑动过程中
   onSwipe: () => {
     if (isInTransition.value) return
     transformDistance.value = -lengthX.value + 'px'
   },
-  // 手指抬起滑动结束，开始滑动动画
   onSwipeEnd: (_, direction) => {
     if (isInTransition.value) return
     if (direction === 'left') {
@@ -237,14 +178,11 @@ const { lengthX } = useSwipe(swipeRef, {
     } else if (direction === 'right') {
       changePageTo('prev-page')
     } else {
-      // 如果方向不是左右，则将页面复位
       startTransitionAnimation(direction)
     }
   }
 })
 
-// 归一化参数
-// 支持 'prev-page', 'next-page', 'prev-year', 'next-year', 以及合法的日期
 function _normalize(param) {
   if (!param) {
     throw new Error('参数不能为空')
@@ -280,13 +218,11 @@ function _normalize(param) {
   throw new Error('日期不合法')
 }
 
-// 切换日历页面
 function changePageTo(param) {
   const targetDate = _normalize(param)
   switchPageToTargetDate(targetDate)
 }
 
-// 切换选中的日期
 function changeSelectedDate(date) {
   changePageTo(date)
   if (!isSameDay(new Date(date), selected.value)) {
@@ -295,17 +231,13 @@ function changeSelectedDate(date) {
   }
 }
 
-// 获取 marker 颜色
 function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
 defineExpose({
-  // 切换周/月视图
   toggleViewMode,
-  // 切换日历页
   changePageTo,
-  // 切换选中日期
   changeSelectedDate
 })
 </script>

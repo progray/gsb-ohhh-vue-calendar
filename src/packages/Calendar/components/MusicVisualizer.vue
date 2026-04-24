@@ -710,14 +710,14 @@ defineExpose({
     right: 8px;
     display: flex;
     align-items: center;
-    gap: 6px;
-    opacity: 0.25;
+    gap: 4px;
+    opacity: 0.5;
     transition: all 0.3s ease;
   }
   
   &:hover .visualizer-controls,
   .visualizer-controls:hover {
-    opacity: 0.9;
+    opacity: 1;
   }
   
   .control-btn {
@@ -728,14 +728,14 @@ defineExpose({
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.5);
     transition: all 0.2s ease;
     border-radius: 4px;
     
     &:hover {
       color: rgba(255, 255, 255, 1);
-      background: rgba(255, 255, 255, 0.1);
-      transform: scale(1.15);
+      background: rgba(255, 255, 255, 0.15);
+      transform: scale(1.1);
     }
     
     svg {
@@ -747,24 +747,22 @@ defineExpose({
   .volume-control {
     display: flex;
     align-items: center;
-    gap: 4px;
-    opacity: 0;
+    gap: 3px;
+    opacity: 0.6;
     transition: opacity 0.3s ease;
-    pointer-events: none;
     
     .visualizer-controls:hover & {
       opacity: 1;
-      pointer-events: auto;
     }
     
     .volume-icon {
-      width: 12px;
-      height: 12px;
-      color: rgba(255, 255, 255, 0.6);
+      width: 11px;
+      height: 11px;
+      color: rgba(255, 255, 255, 0.5);
     }
     
     .volume-slider {
-      width: 50px;
+      width: 40px;
       height: 3px;
       -webkit-appearance: none;
       appearance: none;
@@ -776,23 +774,23 @@ defineExpose({
       &::-webkit-slider-thumb {
         -webkit-appearance: none;
         appearance: none;
-        width: 10px;
-        height: 10px;
-        background: rgba(255, 255, 255, 0.7);
+        width: 9px;
+        height: 9px;
+        background: rgba(255, 255, 255, 0.6);
         border-radius: 50%;
         cursor: pointer;
         transition: all 0.2s ease;
         
         &:hover {
-          transform: scale(1.2);
+          transform: scale(1.15);
           background: #fff;
         }
       }
       
       &::-moz-range-thumb {
-        width: 10px;
-        height: 10px;
-        background: rgba(255, 255, 255, 0.7);
+        width: 9px;
+        height: 9px;
+        background: rgba(255, 255, 255, 0.6);
         border-radius: 50%;
         cursor: pointer;
         border: none;
@@ -803,17 +801,15 @@ defineExpose({
   .mode-selector {
     display: flex;
     align-items: center;
-    gap: 2px;
-    padding-left: 6px;
-    margin-left: 4px;
-    border-left: 1px solid rgba(255, 255, 255, 0.1);
-    opacity: 0;
+    gap: 1px;
+    padding-left: 5px;
+    margin-left: 3px;
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+    opacity: 0.5;
     transition: opacity 0.3s ease;
-    pointer-events: none;
     
     .visualizer-controls:hover & {
       opacity: 1;
-      pointer-events: auto;
     }
   }
   
@@ -830,18 +826,18 @@ defineExpose({
     border-radius: 3px;
     
     &:hover {
-      color: rgba(255, 255, 255, 0.8);
-      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.1);
     }
     
     &.active {
-      color: rgba(255, 255, 255, 0.9);
+      color: rgba(255, 255, 255, 0.8);
       background: rgba(255, 255, 255, 0.12);
     }
     
     svg {
-      width: 12px;
-      height: 12px;
+      width: 11px;
+      height: 11px;
     }
   }
 }
