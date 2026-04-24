@@ -9,17 +9,19 @@
         class="sleep-editor-panel"
         @click.stop
       >
+        <div class="sleep-editor-handle-bar"></div>
+        
         <div class="sleep-editor-header">
           <div class="sleep-editor-date">{{ formattedDate }}</div>
           <div class="sleep-editor-close" @click="closePanel">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M18 6L6 18M6 6L18 18" stroke="#8a8aa0" stroke-width="2" stroke-linecap="round"/>
             </svg>
           </div>
         </div>
         
         <div class="sleep-editor-emoji">
-          <SleepEmoji :rating="currentRating" :size="80" variant="outline" />
+          <SleepEmoji :rating="currentRating" :size="64" variant="outline" />
         </div>
         
         <div class="sleep-editor-slider-container">
@@ -44,9 +46,8 @@
         </div>
         
         <div class="sleep-editor-footer">
-          <div class="sleep-editor-rating-display">
-            当前评分: <span class="sleep-editor-rating-value">{{ currentRating.toFixed(1) }}</span>
-          </div>
+          <span class="sleep-editor-rating-label">当前评分</span>
+          <span class="sleep-editor-rating-value">{{ currentRating.toFixed(1) }}</span>
         </div>
       </div>
     </div>
@@ -112,7 +113,7 @@ function getRatingFromPosition(clientX) {
   if (!trackRef.value) return currentRating.value
   
   const rect = trackRef.value.getBoundingClientRect()
-  const thumbRadius = 12
+  const thumbRadius = 10
   const trackPadding = thumbRadius
   const availableWidth = rect.width - trackPadding * 2
   
@@ -208,24 +209,24 @@ function handleKeyDown(e) {
 .sleep-editor-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: flex-end;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(2px);
 }
 
 .sleep-editor-panel {
   width: 100%;
-  max-width: 480px;
+  max-width: 360px;
   background: #1e1e2e;
-  border-radius: 24px 24px 0 0;
-  padding: 24px;
+  border-radius: 20px 20px 0 0;
+  padding: 8px 20px 20px;
   box-shadow: 
-    0 -8px 32px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(255, 255, 255, 0.05);
-  animation: panel-appear 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    0 -4px 24px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+  animation: panel-appear 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes panel-appear {
@@ -239,22 +240,30 @@ function handleKeyDown(e) {
   }
 }
 
+.sleep-editor-handle-bar {
+  width: 36px;
+  height: 4px;
+  background: #3a3a4a;
+  border-radius: 2px;
+  margin: 8px auto 16px;
+}
+
 .sleep-editor-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .sleep-editor-date {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 500;
-  color: #c0c0d0;
+  color: #b0b0c0;
 }
 
 .sleep-editor-close {
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -271,83 +280,88 @@ function handleKeyDown(e) {
 .sleep-editor-emoji {
   display: flex;
   justify-content: center;
-  margin: 24px 0;
+  margin: 16px 0;
 }
 
 .sleep-editor-slider-container {
-  padding: 0 8px;
+  padding: 0 4px;
 }
 
 .sleep-editor-slider-track {
   position: relative;
-  height: 48px;
-  border-radius: 24px;
-  background: #2a2a3a;
-  padding: 6px;
+  height: 40px;
+  border-radius: 20px;
+  background: #252535;
+  padding: 5px;
   cursor: pointer;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: 
+    inset 0 1px 3px rgba(0, 0, 0, 0.4),
+    0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .sleep-editor-slider-gradient {
   position: absolute;
-  inset: 6px;
-  border-radius: 18px;
+  inset: 5px;
+  border-radius: 15px;
   opacity: 0.9;
 }
 
 .sleep-editor-slider-thumb {
   position: absolute;
   top: 50%;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: #ffffff;
   box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.4),
-    0 0 0 2px rgba(255, 255, 255, 0.3);
+    0 2px 6px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.2);
   transform: translate(-50%, -50%);
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow 0.15s ease;
   z-index: 1;
   
   &:active {
     box-shadow: 
-      0 4px 16px rgba(0, 0, 0, 0.5),
-      0 0 0 4px rgba(255, 255, 255, 0.2);
+      0 3px 12px rgba(0, 0, 0, 0.45),
+      0 0 0 3px rgba(255, 255, 255, 0.15);
   }
 }
 
 .sleep-editor-labels {
   display: flex;
   justify-content: space-between;
-  margin-top: 12px;
-  padding: 0 8px;
+  margin-top: 8px;
+  padding: 0 4px;
 }
 
 .sleep-editor-label {
-  font-size: 13px;
-  color: #6a6a80;
+  font-size: 12px;
+  color: #5a5a70;
 }
 
 .sleep-editor-footer {
-  margin-top: 24px;
-  text-align: center;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 16px;
 }
 
-.sleep-editor-rating-display {
-  font-size: 14px;
-  color: #8a8aa0;
+.sleep-editor-rating-label {
+  font-size: 12px;
+  color: #6a6a80;
 }
 
 .sleep-editor-rating-value {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   color: #c0c0d0;
-  margin-left: 4px;
+  font-variant-numeric: tabular-nums;
 }
 
 .slide-up-enter-active,
 .slide-up-leave-active {
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .slide-up-enter-from,

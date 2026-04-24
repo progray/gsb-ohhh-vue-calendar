@@ -3,46 +3,51 @@
     <ohhh-vue-calendar 
       ref="calendarRef" 
       :week-start="1" 
-      :show-footer="false"
+      :show-footer="true"
       :duration="'0.5s'"
       @select-change="handleSelectChange"
+      @view-change="handleViewChange"
     >
-      <template #toolbar="{ year, month }">
+      <template #toolbar="{ year, month, viewMode }">
         <div class="sleep-calendar-toolbar">
-          <div 
-            class="sleep-calendar-toolbar--icon" 
-            @click="changePageTo('prev-year')"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M18 17L12 11L6 17" stroke="#8a8aa0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M18 7L12 1L6 7" stroke="#8a8aa0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div 
-            class="sleep-calendar-toolbar--icon" 
-            @click="changePageTo('prev-page')"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M15 18L9 12L15 6" stroke="#8a8aa0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+          <div class="sleep-calendar-toolbar--left">
+            <div 
+              class="sleep-calendar-toolbar--icon" 
+              @click="handlePrevYear"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M18 17L12 11L6 17" stroke="#8a8aa0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M18 7L12 1L6 7" stroke="#8a8aa0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div 
+              class="sleep-calendar-toolbar--icon" 
+              @click="handlePrevPage"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M15 18L9 12L15 6" stroke="#8a8aa0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
           </div>
           <div class="sleep-calendar-toolbar--text">{{ year }}年{{ month + 1 }}月</div>
-          <div 
-            class="sleep-calendar-toolbar--icon" 
-            @click="changePageTo('next-page')"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M9 6L15 12L9 18" stroke="#8a8aa0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div 
-            class="sleep-calendar-toolbar--icon" 
-            @click="changePageTo('next-year')"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M6 7L12 13L18 7" stroke="#8a8aa0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M6 17L12 23L18 17" stroke="#8a8aa0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+          <div class="sleep-calendar-toolbar--right">
+            <div 
+              class="sleep-calendar-toolbar--icon" 
+              @click="handleNextPage"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M9 6L15 12L9 18" stroke="#8a8aa0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div 
+              class="sleep-calendar-toolbar--icon" 
+              @click="handleNextYear"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M6 7L12 13L18 7" stroke="#8a8aa0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M6 17L12 23L18 17" stroke="#8a8aa0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
           </div>
         </div>
       </template>
@@ -64,6 +69,34 @@
           ></div>
         </div>
       </template>
+      
+      <template #footer="{ year, month, viewMode }">
+        <div class="sleep-calendar-footer">
+          <div 
+            class="sleep-calendar-footer--icon" 
+            @click="handleToggleViewMode"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path 
+                v-if="viewMode === 'week'"
+                d="M6 9L12 15L18 9" 
+                stroke="#8a8aa0" 
+                stroke-width="2" 
+                stroke-linecap="round" 
+                stroke-linejoin="round"
+              />
+              <path 
+                v-else
+                d="M6 15L12 9L18 15" 
+                stroke="#8a8aa0" 
+                stroke-width="2" 
+                stroke-linecap="round" 
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+        </div>
+      </template>
     </ohhh-vue-calendar>
     
     <div class="sleep-calendar-overview">
@@ -75,14 +108,14 @@
           </span>
         </div>
         <div class="sleep-calendar-overview--emoji" v-if="monthAverage !== null">
-          <SleepEmoji :rating="roundedAverage" :size="48" variant="outline" />
+          <SleepEmoji :rating="roundedAverage" :size="40" variant="outline" />
         </div>
       </div>
       <div class="sleep-calendar-overview--sparkline">
         <Sparkline 
           :data="sortedRatings" 
-          :width="140" 
-          :height="36"
+          :width="120" 
+          :height="32"
           stroke="#6a6a80"
           :stroke-width="1.5"
           :min-value="1"
@@ -101,30 +134,30 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import OhhhVueCalendar from '../Calendar/Calendar.vue'
 import SleepEmoji from './components/SleepEmoji.vue'
 import Sparkline from './components/Sparkline.vue'
 import SleepEditor from './components/SleepEditor.vue'
-import { getSleepColor, SLEEP_COLORS } from './utils/colors.js'
+import { getSleepColor } from './utils/colors.js'
 import { 
   getSleepRating, 
   setSleepRating, 
   calculateMonthAverage,
-  getSortedMonthRatings,
-  formatDateKey
+  getSortedMonthRatings
 } from './utils/storage.js'
-import { isSameDay } from '../Calendar/utils/index.js'
 
 const calendarRef = ref(null)
 const editorVisible = ref(false)
 const selectedDate = ref(new Date())
-const currentYear = ref(new Date().getFullYear())
-const currentMonth = ref(new Date().getMonth())
+const currentViewMode = ref('month')
 
 const selectedRating = computed(() => {
   return getSleepRating(selectedDate.value)
 })
+
+const currentYear = computed(() => selectedDate.value.getFullYear())
+const currentMonth = computed(() => selectedDate.value.getMonth())
 
 const monthAverage = computed(() => {
   return calculateMonthAverage(currentYear.value, currentMonth.value)
@@ -146,44 +179,77 @@ const sortedRatings = computed(() => {
 
 function handleSelectChange(date) {
   selectedDate.value = new Date(date)
-  currentYear.value = date.getFullYear()
-  currentMonth.value = date.getMonth()
   editorVisible.value = true
+}
+
+function handleViewChange(viewMode) {
+  currentViewMode.value = viewMode
 }
 
 function handleSaveRating({ date, rating }) {
   setSleepRating(date, rating)
 }
 
-function changePageTo(direction) {
+function handlePrevPage() {
   if (calendarRef.value?.changePageTo) {
-    calendarRef.value.changePageTo(direction)
-    
-    setTimeout(() => {
-      const now = new Date()
-      if (direction === 'prev-page') {
-        const prevMonth = currentMonth.value - 1
-        if (prevMonth < 0) {
-          currentYear.value--
-          currentMonth.value = 11
-        } else {
-          currentMonth.value = prevMonth
-        }
-      } else if (direction === 'next-page') {
-        const nextMonth = currentMonth.value + 1
-        if (nextMonth > 11) {
-          currentYear.value++
-          currentMonth.value = 0
-        } else {
-          currentMonth.value = nextMonth
-        }
-      } else if (direction === 'prev-year') {
-        currentYear.value--
-      } else if (direction === 'next-year') {
-        currentYear.value++
-      }
-    }, 100)
+    calendarRef.value.changePageTo('prev-page')
+    updateSelectedDateForPrevPage()
   }
+}
+
+function handleNextPage() {
+  if (calendarRef.value?.changePageTo) {
+    calendarRef.value.changePageTo('next-page')
+    updateSelectedDateForNextPage()
+  }
+}
+
+function handlePrevYear() {
+  if (calendarRef.value?.changePageTo) {
+    calendarRef.value.changePageTo('prev-year')
+    selectedDate.value = new Date(
+      selectedDate.value.getFullYear() - 1,
+      selectedDate.value.getMonth(),
+      Math.min(selectedDate.value.getDate(), new Date(selectedDate.value.getFullYear() - 1, selectedDate.value.getMonth() + 1, 0).getDate())
+    )
+  }
+}
+
+function handleNextYear() {
+  if (calendarRef.value?.changePageTo) {
+    calendarRef.value.changePageTo('next-year')
+    selectedDate.value = new Date(
+      selectedDate.value.getFullYear() + 1,
+      selectedDate.value.getMonth(),
+      Math.min(selectedDate.value.getDate(), new Date(selectedDate.value.getFullYear() + 1, selectedDate.value.getMonth() + 1, 0).getDate())
+    )
+  }
+}
+
+function handleToggleViewMode() {
+  if (calendarRef.value?.toggleViewMode) {
+    calendarRef.value.toggleViewMode()
+  }
+}
+
+function updateSelectedDateForPrevPage() {
+  const d = new Date(selectedDate.value)
+  if (currentViewMode.value === 'week') {
+    d.setDate(d.getDate() - 7)
+  } else {
+    d.setMonth(d.getMonth() - 1)
+  }
+  selectedDate.value = d
+}
+
+function updateSelectedDateForNextPage() {
+  const d = new Date(selectedDate.value)
+  if (currentViewMode.value === 'week') {
+    d.setDate(d.getDate() + 7)
+  } else {
+    d.setMonth(d.getMonth() + 1)
+  }
+  selectedDate.value = d
 }
 </script>
 
@@ -207,6 +273,14 @@ function changePageTo(direction) {
   justify-content: space-between;
   align-items: center;
   padding: 16px 8px;
+  column-gap: 12px;
+}
+
+.sleep-calendar-toolbar--left,
+.sleep-calendar-toolbar--right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .sleep-calendar-toolbar--icon {
@@ -234,6 +308,8 @@ function changePageTo(direction) {
   font-weight: 600;
   color: #c0c0d0;
   letter-spacing: 0.5px;
+  margin: 0 auto;
+  white-space: nowrap;
 }
 
 .sleep-calendar-weekday {
@@ -242,11 +318,37 @@ function changePageTo(direction) {
   font-weight: 500;
 }
 
+.sleep-calendar-footer {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+}
+
+.sleep-calendar-footer--icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 12px;
+  background: #2a2a3a;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: #3a3a4a;
+  }
+  
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
 .sleep-calendar-day-label {
   position: absolute;
-  bottom: 4px;
-  left: 4px;
-  right: 4px;
+  bottom: 6px;
+  left: 6px;
+  right: 6px;
   height: 8px;
 }
 
@@ -266,10 +368,10 @@ function changePageTo(direction) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 24px;
-  padding: 20px;
+  margin-top: 20px;
+  padding: 16px;
   background: #1e1e2e;
-  border-radius: 20px;
+  border-radius: 16px;
   box-shadow: 
     0 4px 24px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
@@ -278,24 +380,24 @@ function changePageTo(direction) {
 .sleep-calendar-overview--left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .sleep-calendar-overview--average {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .sleep-calendar-overview--average-label {
-  font-size: 12px;
+  font-size: 11px;
   color: #6a6a80;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
 .sleep-calendar-overview--average-value {
-  font-size: 42px;
+  font-size: 36px;
   font-weight: 700;
   color: #e0e0f0;
   line-height: 1;
@@ -307,8 +409,8 @@ function changePageTo(direction) {
 }
 
 .sleep-calendar-overview--sparkline {
-  padding: 8px;
+  padding: 6px;
   background: #252535;
-  border-radius: 12px;
+  border-radius: 10px;
 }
 </style>
