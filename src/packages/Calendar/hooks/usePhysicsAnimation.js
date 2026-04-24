@@ -1,27 +1,27 @@
-import { ref, onUnmounted } from 'vue'
+import { ref, reactive, onUnmounted, computed } from 'vue'
 
 const SPRING_CONFIG = {
-  stiffness: 80,
-  damping: 12,
+  stiffness: 45,
+  damping: 5,
   mass: 1
 }
 
 const RIPPLE_CONFIG = {
   maxRadius: 300,
-  speed: 200,
-  strength: 40
+  speed: 250,
+  strength: 50
 }
 
 export function usePhysicsAnimation() {
-  const cellStates = new Map()
+  const cellStates = reactive({})
+  const animationTick = ref(0)
   const animationFrameId = ref(null)
   const isAnimating = ref(false)
   const rippleEffects = ref([])
-  const pageTransitionState = ref(null)
 
   function getOrCreateCellState(cellKey) {
-    if (!cellStates.has(cellKey)) {
-      cellStates.set(cellKey, {
+    if (!cellStates[cellKey]) {
+      cellStates[cellKey] = reactive({
         position: { x: 0, y: 0 },
         velocity: { x: 0, y: 0 },
         rotation: 0,
@@ -32,14 +32,20 @@ export function usePhysicsAnimation() {
         lastActivationTime: 0
       })
     }
-    return cellStates.get(cellKey)
+    return cellStates[cellKey]
   }
 
   function springUpdate(deltaTime) {
     const dt = deltaTime / 1000
     const { stiffness, damping, mass } = SPRING_CONFIG
+    let hasActive = false
 
-    cellStates.forEach((state) => {
+    Object.keys(cellStates).forEach((cellKey) => {
+      const state = cellStates[cellKey]
+      if (!state.isActive) return
+
+      hasActive = true
+
       const dx = state.targetPosition.x - state.position.x
       const dy = state.targetPosition.y - state.position.y
 
@@ -55,8 +61,8 @@ export function usePhysicsAnimation() {
       state.position.x += state.velocity.x * dt
       state.position.y += state.velocity.y * dt
 
-      const rotationSpring = stiffness * 0.01
-      const rotationDamping = damping * 0.5
+      const rotationSpring = stiffness * 0.04
+      const rotationDamping = damping * 0.4
       const rotForce = -rotationSpring * state.rotation - rotationDamping * state.rotationVelocity
       state.rotationVelocity += (rotForce / mass) * dt
       state.rotation += state.rotationVelocity * dt
@@ -73,6 +79,10 @@ export function usePhysicsAnimation() {
         state.isActive = false
       }
     })
+
+    animationTick.value++
+
+    return hasActive
   }
 
   function rippleUpdate(deltaTime) {
@@ -90,14 +100,10 @@ export function usePhysicsAnimation() {
     const deltaTime = Math.min(timestamp - lastTime, 32)
     animate.lastTime = timestamp
 
-    springUpdate(deltaTime)
+    const hasActiveCells = springUpdate(deltaTime)
     rippleUpdate(deltaTime)
 
-    const hasActiveCells = Array.from(cellStates.values()).some(s => s.isActive)
-    const hasRipples = rippleEffects.value.length > 0
-    const hasPageTransition = pageTransitionState.value && pageTransitionState.value.isActive
-
-    if (hasActiveCells || hasRipples || hasPageTransition) {
+    if (hasActiveCells || rippleEffects.value.length > 0) {
       animationFrameId.value = requestAnimationFrame(animate)
     } else {
       isAnimating.value = false
@@ -117,53 +123,22 @@ export function usePhysicsAnimation() {
     const state = getOrCreateCellState(cellKey)
     const now = performance.now()
 
-    if (now - state.lastActivationTime < 100) return
+    if (now - state.lastActivationTime < 80) return
 
     state.lastActivationTime = now
     state.isActive = true
 
-    const baseForce = 30 * intensity
-    const randomY = (Math.random() - 0.5) * 20
+    const baseForce = 55 * intensity
+    const randomY = (Math.random() - 0.5) * 35
 
     state.velocity.x = direction === 'right' ? baseForce : -baseForce
     state.velocity.y = randomY
-    state.rotationVelocity = (direction === 'right' ? 0.8 : -0.8) * intensity
+    state.rotationVelocity = (direction === 'right' ? 1.5 : -1.5) * intensity
 
     startAnimation()
   }
 
   function triggerRipple(centerIndex, totalCells, cols = 7) {
-    const centerRow = Math.floor(centerIndex / cols)
-    const centerCol = centerIndex % cols
-
-    for (let i = 0; i < totalCells; i++) {
-      const row = Math.floor(i / cols)
-      const col = i % cols
-
-      const distance = Math.sqrt(
-        Math.pow(row - centerRow, 2) + Math.pow(col - centerCol, 2)
-      )
-
-      const maxDistance = Math.sqrt(Math.pow(cols, 2) + Math.pow(Math.ceil(totalCells / cols), 2))
-      const normalizedDistance = distance / maxDistance
-
-      const delay = normalizedDistance * 150
-
-      setTimeout(() => {
-        const state = getOrCreateCellState(i)
-        state.isActive = true
-
-        const angle = Math.atan2(row - centerRow, col - centerCol)
-        const force = RIPPLE_CONFIG.strength * (1 - normalizedDistance * 0.7)
-
-        state.velocity.x = Math.cos(angle) * force
-        state.velocity.y = Math.sin(angle) * force
-        state.rotationVelocity = (Math.random() - 0.5) * 0.5
-
-        startAnimation()
-      }, delay)
-    }
-
     rippleEffects.value.push({
       centerIndex,
       radius: 0,
@@ -174,46 +149,8 @@ export function usePhysicsAnimation() {
     startAnimation()
   }
 
-  function startPageTransition(direction, totalCells) {
-    pageTransitionState.value = {
-      direction,
-      totalCells,
-      startTime: performance.now(),
-      isActive: true,
-      phase: 'out'
-    }
-
-    for (let i = 0; i < totalCells; i++) {
-      const row = Math.floor(i / 7)
-      const col = i % 7
-      const delay = (row * 50 + col * 30) * (direction === 'next' ? 1 : -1)
-
-      setTimeout(() => {
-        const state = getOrCreateCellState(i)
-        state.isActive = true
-
-        if (direction === 'next') {
-          state.velocity.y = 80
-          state.velocity.x = (Math.random() - 0.5) * 40
-          state.rotationVelocity = (Math.random() - 0.5) * 2
-        } else {
-          state.velocity.y = -60
-          state.velocity.x = (Math.random() - 0.5) * 30
-          state.rotationVelocity = (Math.random() - 0.5) * 1.5
-        }
-
-        startAnimation()
-      }, Math.abs(delay))
-    }
-
-    startAnimation()
-  }
-
-  function endPageTransition() {
-    pageTransitionState.value = null
-  }
-
   function getCellTransform(cellKey) {
+    const tick = animationTick.value
     const state = getOrCreateCellState(cellKey)
     return {
       x: state.position.x,
@@ -223,8 +160,25 @@ export function usePhysicsAnimation() {
     }
   }
 
+  function isCellActive(cellKey) {
+    const state = cellStates[cellKey]
+    return state ? state.isActive : false
+  }
+
   function resetAllCells() {
-    cellStates.clear()
+    Object.keys(cellStates).forEach(key => {
+      const state = cellStates[key]
+      if (state) {
+        state.position.x = 0
+        state.position.y = 0
+        state.velocity.x = 0
+        state.velocity.y = 0
+        state.rotation = 0
+        state.rotationVelocity = 0
+        state.isActive = false
+      }
+    })
+    animationTick.value++
   }
 
   onUnmounted(() => {
@@ -236,13 +190,12 @@ export function usePhysicsAnimation() {
   return {
     cellStates,
     rippleEffects,
-    pageTransitionState,
+    animationTick,
     isAnimating,
     triggerWindChime,
     triggerRipple,
-    startPageTransition,
-    endPageTransition,
     getCellTransform,
+    isCellActive,
     resetAllCells,
     startAnimation
   }

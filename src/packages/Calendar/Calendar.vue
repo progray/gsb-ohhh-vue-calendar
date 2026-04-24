@@ -61,10 +61,12 @@
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current,
-            'wind-chime-active': isCellActive(getCellKey(pageIndex, cellIndex))
+            'other-month': !dateObj.current
           }"
-          :style="getCellStyle(getCellKey(pageIndex, cellIndex))"
+          :style="[
+            getCellStyle(pageIndex, cellIndex),
+            { '--animation-tick': animationTick }
+          ]"
           :data-index="cellIndex"
           :data-page="pageIndex"
           @mouseenter="onCellMouseEnter(pageIndex, cellIndex)"
@@ -165,6 +167,7 @@ const {
 const {
   cellStates,
   rippleEffects,
+  animationTick,
   triggerWindChime,
   triggerRipple,
   getCellTransform,
@@ -210,16 +213,13 @@ function getCellKey(pageIndex, cellIndex) {
   return `${pageIndex}-${cellIndex}`
 }
 
-function getCellStyle(cellKey) {
+function getCellStyle(pageIndex, cellIndex) {
+  const tick = animationTick.value
+  const cellKey = getCellKey(pageIndex, cellIndex)
   const transform = getCellTransform(cellKey)
   return {
     transform: `translate(${transform.x}px, ${transform.y}px) rotate(${transform.rotation}rad)`
   }
-}
-
-function isCellActive(cellKey) {
-  const state = cellStates.get(cellKey)
-  return state ? state.isActive : false
 }
 
 function isPageExiting(pageIndex) {
@@ -253,7 +253,7 @@ function onMouseMove(event) {
       const direction = cellIndex > lastMouseCellIndex.value ? 'right' : 'left'
       const cellKey = getCellKey(pageIndex, cellIndex)
 
-      triggerWindChime(cellKey, direction, 1.5)
+      triggerWindChime(cellKey, direction, 1.8)
 
       lastMouseCellIndex.value = cellIndex
       lastMousePageIndex.value = pageIndex
@@ -274,7 +274,7 @@ function onCellMouseEnter(pageIndex, cellIndex) {
 
   if (lastMouseCellIndex.value !== -1 && lastMousePageIndex.value === pageIndex) {
     const direction = cellIndex > lastMouseCellIndex.value ? 'right' : 'left'
-    triggerWindChime(cellKey, direction, 1.5)
+    triggerWindChime(cellKey, direction, 1.8)
   }
 
   lastMouseCellIndex.value = cellIndex
@@ -300,19 +300,33 @@ function onCellClick(pageIndex, cellIndex, date) {
     const maxDistance = Math.sqrt(49 + 25)
     const normalizedDistance = distance / maxDistance
 
-    const delay = normalizedDistance * 200
+    const delay = normalizedDistance * 150
 
     setTimeout(() => {
       const key = getCellKey(pageIndex, i)
       const angle = Math.atan2(row - centerRow, col - centerCol)
-      const force = 50 * (1 - normalizedDistance * 0.6)
+      const force = 65 * (1 - normalizedDistance * 0.5)
 
-      const state = cellStates.get(key)
+      const state = cellStates[key]
       if (state) {
         state.isActive = true
         state.velocity.x = Math.cos(angle) * force
-        state.velocity.y = Math.sin(angle) * force * 0.5
-        state.rotationVelocity = (Math.random() - 0.5) * 1.5
+        state.velocity.y = Math.sin(angle) * force * 0.6
+        state.rotationVelocity = (Math.random() - 0.5) * 2.0
+      } else {
+        cellStates[key] = {
+          position: { x: 0, y: 0 },
+          velocity: {
+            x: Math.cos(angle) * force,
+            y: Math.sin(angle) * force * 0.6
+          },
+          rotation: 0,
+          rotationVelocity: (Math.random() - 0.5) * 2.0,
+          scale: 1,
+          targetPosition: { x: 0, y: 0 },
+          isActive: true,
+          lastActivationTime: 0
+        }
       }
       startAnimation()
     }, delay)
@@ -389,17 +403,32 @@ function changePageTo(param) {
 
     setTimeout(() => {
       const cellKey = getCellKey(1, i)
-      const state = cellStates.get(cellKey)
+      const state = cellStates[cellKey]
       if (state) {
         state.isActive = true
         if (pageTransitionDirection.value === 'next') {
-          state.velocity.y = 100
-          state.velocity.x = (Math.random() - 0.5) * 60
-          state.rotationVelocity = (Math.random() - 0.5) * 3
+          state.velocity.y = 120
+          state.velocity.x = (Math.random() - 0.5) * 70
+          state.rotationVelocity = (Math.random() - 0.5) * 3.5
         } else {
-          state.velocity.y = -80
-          state.velocity.x = (Math.random() - 0.5) * 50
-          state.rotationVelocity = (Math.random() - 0.5) * 2
+          state.velocity.y = -100
+          state.velocity.x = (Math.random() - 0.5) * 60
+          state.rotationVelocity = (Math.random() - 0.5) * 2.5
+        }
+      } else {
+        const isNext = pageTransitionDirection.value === 'next'
+        cellStates[cellKey] = {
+          position: { x: 0, y: 0 },
+          velocity: {
+            x: (Math.random() - 0.5) * (isNext ? 70 : 60),
+            y: isNext ? 120 : -100
+          },
+          rotation: 0,
+          rotationVelocity: (Math.random() - 0.5) * (isNext ? 3.5 : 2.5),
+          scale: 1,
+          targetPosition: { x: 0, y: 0 },
+          isActive: true,
+          lastActivationTime: 0
         }
       }
       startAnimation()
