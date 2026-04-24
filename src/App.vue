@@ -1,6 +1,11 @@
 <template>
   <div class="app-container">
-    <ohhh-vue-calendar ref="calendarRef" :week-start="1" :markerDates @select-change="onSelectChange" />
+    <ohhh-vue-calendar 
+      ref="calendarRef" 
+      :week-start="1" 
+      :markerDates 
+      @select-change="onSelectChange" 
+    />
   </div>
 </template>
 
@@ -26,3 +31,15 @@ function onSelectChange(date) {
   console.log(date)
 }
 </script>
+
+<style lang="scss" scoped>
+.app-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+</style>

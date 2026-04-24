@@ -1,15 +1,17 @@
 <template>
   <div
     class="ohhh-calendar-container"
-    :style="{
-      '--calendar-rows': renderRows,
-      '--calendar-transition-duration': duration,
-      '--translate-distance': transformDistance,
-      '--transition-duration': transitionDuration
-    }"
+    :style="containerStyle"
   >
+    <!-- 背景光晕层 -->
+    <div 
+      class="ohhh-calendar-background-glow" 
+      v-if="showMusicVisualizer"
+      :style="backgroundGlowStyle"
+    />
+
     <!-- 顶部工具栏 -->
-    <div v-if="showToolbar" class="ohhh-calendar-toolbar">
+    <div v-if="showToolbar" class="ohhh-calendar-toolbar glass-effect">
       <slot name="toolbar" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
         <div v-html="icons.arrowDoubleLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-year')" />
         <div v-html="icons.arrowLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-page')" />
@@ -19,15 +21,24 @@
       </slot>
     </div>
 
+    <!-- 音乐频谱可视化区 -->
+    <div v-if="showMusicVisualizer" class="ohhh-calendar-visualizer">
+      <MusicVisualizer 
+        ref="visualizerRef"
+        :themeColor="themeColor"
+        :height="visualizerHeight"
+      />
+    </div>
+
     <!-- 星期栏 -->
-    <div v-if="showWeekdays" class="ohhh-calendar-weekdays">
+    <div v-if="showWeekdays" class="ohhh-calendar-weekdays glass-effect">
       <div v-for="(day, index) in weekdays" :key="day" class="ohhh-calendar-weekdays--weekday">
         <slot name="weekday" :weekday="day" :index="(index + weekStart) % 7">{{ day }}</slot>
       </div>
     </div>
 
     <!-- 日历主体 -->
-    <div ref="swp" class="ohhh-calendar-wrapper">
+    <div ref="swp" class="ohhh-calendar-wrapper glass-effect">
       <div
         v-for="(item, index) in allRenderDates"
         :key="index"
@@ -58,7 +69,7 @@
     </div>
 
     <!-- 底部工具栏 -->
-    <div v-if="showFooter" class="ohhh-calendar-footer">
+    <div v-if="showFooter" class="ohhh-calendar-footer glass-effect">
       <slot name="footer" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
         <div
           v-html="viewMode === 'week' ? icons.arrowDown : icons.arrowUp"
@@ -71,13 +82,15 @@
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
 import { isSameDay, createWeekdays } from './utils'
 import { icons } from './utils/icons.js'
+import MusicVisualizer from './components/MusicVisualizer.vue'
 
 const swipeRef = useTemplateRef('swp')
+const visualizerRef = useTemplateRef('visualizerRef')
 
 const emit = defineEmits(['select-change', 'view-change'])
 
@@ -121,6 +134,21 @@ const props = defineProps({
   duration: {
     type: String,
     default: '0.3s'
+  },
+  // 主题颜色
+  themeColor: {
+    type: String,
+    default: '#409eff'
+  },
+  // 是否显示音乐频谱可视化
+  showMusicVisualizer: {
+    type: Boolean,
+    default: true
+  },
+  // 频谱可视化高度
+  visualizerHeight: {
+    type: Number,
+    default: 90
   }
 })
 
@@ -154,6 +182,43 @@ const markerDateList = computed(() =>
     color: typeof item === 'object' && item.color ? item.color : 'var(--calendar-theme-color)'
   }))
 )
+
+// 背景光晕强度（从可视化组件获取）
+const backgroundGlow = computed(() => {
+  return visualizerRef.value?.backgroundGlow?.value || 0
+})
+
+// 解析hex颜色为RGB
+function hexToRgb(hex) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : { r: 64, g: 158, b: 255 }
+}
+
+// 主题颜色RGB值
+const themeColorRgb = computed(() => hexToRgb(props.themeColor))
+
+// 容器样式
+const containerStyle = computed(() => ({
+  '--calendar-rows': renderRows,
+  '--calendar-transition-duration': duration,
+  '--translate-distance': transformDistance,
+  '--transition-duration': transitionDuration,
+  '--visualizer-glow': backgroundGlow.value,
+  '--calendar-theme-color-r': themeColorRgb.value.r,
+  '--calendar-theme-color-g': themeColorRgb.value.g,
+  '--calendar-theme-color-b': themeColorRgb.value.b,
+  '--calendar-theme-color': props.themeColor,
+  '--calendar-theme-color-light': `rgba(${themeColorRgb.value.r}, ${themeColorRgb.value.g}, ${themeColorRgb.value.b}, 0.2)`
+}))
+
+// 背景光晕样式
+const backgroundGlowStyle = computed(() => ({
+  opacity: 0.3 + backgroundGlow.value * 0.4
+}))
 
 // 监听滑动事件
 const { lengthX } = useSwipe(swipeRef, {
