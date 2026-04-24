@@ -4,6 +4,9 @@
   -webkit-tap-highlight-color: transparent;
   background: var(--calendar-background);
   font-family:
+    'Courier New',
+    Consolas,
+    monospace,
     Open Sans,
     -apple-system,
     BlinkMacSystemFont,
@@ -17,52 +20,156 @@
     Hiragino Sans GB,
     Microsoft Yahei,
     sans-serif;
+  border: 3px solid;
+  border-color: var(--minesweeper-border-light) var(--minesweeper-border-dark) var(--minesweeper-border-dark) var(--minesweeper-border-light);
+  padding: 4px;
 }
 
-.ohhh-calendar-toolbar {
+// ========== 顶栏工具栏 - 扫雷风格 ==========
+.minesweeper-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  column-gap: var(--calendar-toolbar-column-gap);
-  padding: var(--calendar-toolbar-padding);
-}
-.ohhh-calendar-toolbar--icon,
-.ohhh-calendar-footer--icon {
-  display: flex;
-  cursor: pointer;
-}
-.ohhh-calendar-toolbar--icon {
-  fill: var(--calendar-toolbar-icon-color);
-}
-.ohhh-calendar-toolbar--icon svg {
-  width: var(--calendar-toolbar-icon-size);
-  height: var(--calendar-toolbar-icon-size);
-}
-.ohhh-calendar-toolbar--text {
-  margin: 0 auto;
-  font-size: var(--calendar-toolbar-font-size);
-  font-weight: 500;
+  padding: var(--minesweeper-toolbar-padding);
+  background: var(--minesweeper-toolbar-bg);
+  border: 2px solid;
+  border-color: var(--minesweeper-border-dark) var(--minesweeper-border-light) var(--minesweeper-border-light) var(--minesweeper-border-dark);
+  margin-bottom: 4px;
 }
 
+// 液晶数字显示
+.lcd-display {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: var(--lcd-width);
+  height: var(--lcd-height);
+  background: var(--lcd-background);
+  border: 2px solid;
+  border-color: var(--minesweeper-border-dark) var(--minesweeper-border-light) var(--minesweeper-border-light) var(--minesweeper-border-dark);
+  padding: 2px 4px;
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.lcd-digit {
+  font-family: 'Courier New', Consolas, monospace;
+  font-size: 28px;
+  font-weight: bold;
+  color: var(--lcd-digit-color);
+  text-shadow: 0 0 5px var(--lcd-digit-color);
+  line-height: 1;
+  width: var(--lcd-digit-width);
+  text-align: center;
+  letter-spacing: 2px;
+}
+
+// 笑脸按钮
+.smiley-button {
+  width: var(--smiley-size);
+  height: var(--smiley-size);
+  font-size: 24px;
+  cursor: pointer;
+  background: var(--minesweeper-bg);
+  border: 3px solid;
+  border-color: var(--minesweeper-border-light) var(--minesweeper-border-dark) var(--minesweeper-border-dark) var(--minesweeper-border-light);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  line-height: 1;
+  user-select: none;
+  transition: none;
+
+  &:hover {
+    background: #d0d0d0;
+  }
+
+  &:active,
+  &.smiley-pressed {
+    border-color: var(--minesweeper-border-dark) var(--minesweeper-border-light) var(--minesweeper-border-light) var(--minesweeper-border-dark);
+    padding-top: 2px;
+    padding-left: 2px;
+  }
+}
+
+// ========== 导航栏 - 3D按钮风格 ==========
+.minesweeper-nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: var(--minesweeper-nav-padding);
+  background: var(--minesweeper-bg);
+  margin-bottom: 4px;
+}
+
+.nav-button {
+  width: var(--nav-button-size);
+  height: var(--nav-button-size);
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  background: var(--minesweeper-bg);
+  border: 2px solid;
+  border-color: var(--minesweeper-border-light) var(--minesweeper-border-dark) var(--minesweeper-border-dark) var(--minesweeper-border-light);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  line-height: 1;
+  user-select: none;
+
+  &:hover {
+    background: #d0d0d0;
+  }
+
+  &:active,
+  &.button-pressed {
+    border-color: var(--minesweeper-border-dark) var(--minesweeper-border-light) var(--minesweeper-border-light) var(--minesweeper-border-dark);
+    padding-top: 1px;
+    padding-left: 1px;
+  }
+}
+
+.month-label {
+  font-size: 14px;
+  font-weight: bold;
+  padding: 0 12px;
+  color: #000000;
+}
+
+// ========== 星期栏 ==========
 .ohhh-calendar-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   justify-items: center;
   align-items: center;
   height: var(--calendar-weekdays-height);
+  background: var(--calendar-weekdays-bg);
+  border: 1px solid var(--minesweeper-border-dark);
+  margin-bottom: 2px;
 }
+
 .ohhh-calendar-weekdays--weekday {
   font-size: var(--calendar-weekdays-font-size);
-  font-weight: 500;
+  font-weight: bold;
   color: var(--calendar-weekdays-color);
 }
 
+// ========== 日历主体 ==========
 .ohhh-calendar-wrapper {
   position: relative;
   overflow: hidden;
   height: calc(var(--calendar-rows) * var(--calendar-row-height));
   transition: height var(--calendar-transition-duration) ease;
 }
+
+.minesweeper-grid {
+  border: 3px solid;
+  border-color: var(--minesweeper-border-dark) var(--minesweeper-border-light) var(--minesweeper-border-light) var(--minesweeper-border-dark);
+  background: var(--minesweeper-border-dark);
+}
+
 .ohhh-calendar-days {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -71,7 +178,161 @@
   width: 100%;
   transform: translate3d(var(--translate-distance), 0, 0);
   transition: transform var(--transition-duration) ease;
+  gap: 1px;
+  padding: 1px;
+  background: var(--minesweeper-border-dark);
 }
+
+// ========== 扫雷格子样式 ==========
+.minesweeper-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: var(--calendar-row-height);
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  box-sizing: border-box;
+}
+
+// 未翻开状态 - 使用内阴影模拟3D凸起效果，外框尺寸始终一致
+.cell-unrevealed {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--cell-unrevealed-bg);
+  box-sizing: border-box;
+  position: relative;
+  // 使用内阴影模拟3D效果，不影响外框尺寸
+  box-shadow: 
+    inset 2px 2px 0 0 var(--cell-border-light),
+    inset -2px -2px 0 0 var(--cell-border-dark),
+    inset 3px 3px 0 0 var(--minesweeper-bg),
+    inset -3px -3px 0 0 var(--minesweeper-border-darker);
+}
+
+// 按下状态 - 内阴影反转模拟凹陷效果
+.minesweeper-cell.cell-pressed .cell-unrevealed {
+  box-shadow: 
+    inset 2px 2px 0 0 var(--cell-border-dark),
+    inset -2px -2px 0 0 var(--cell-border-light),
+    inset 3px 3px 0 0 var(--minesweeper-border-darker),
+    inset -3px -3px 0 0 var(--minesweeper-bg);
+  background: #b0b0b0;
+}
+
+// 小红旗图标
+.flag-icon {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  font-size: var(--cell-flag-size);
+  line-height: 1;
+}
+
+// 已翻开状态 - 平坦，没有内阴影，外框尺寸与未翻开完全一致
+.cell-revealed {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--cell-revealed-bg);
+  box-sizing: border-box;
+  position: relative;
+  // 没有内阴影，保持平坦
+  // 外框尺寸由父容器和gap控制，始终一致
+}
+
+// 周末已翻开 - 白色底
+.minesweeper-cell.is-weekend.is-revealed .cell-revealed {
+  background: var(--cell-weekend-revealed-bg);
+}
+
+// 其他月份已翻开 - 深灰色底
+.minesweeper-cell.other-month.is-revealed .cell-revealed {
+  background: var(--cell-othermonth-revealed-bg);
+}
+
+// 日期数字样式 - 像素等宽字体
+.cell-number {
+  font-family: 'Courier New', Consolas, monospace;
+  font-size: var(--cell-number-font-size);
+  font-weight: bold;
+  line-height: 1;
+  text-align: center;
+}
+
+// 扫雷数字颜色
+.minesweeper-cell.is-revealed .number-1 { color: var(--number-1); }
+.minesweeper-cell.is-revealed .number-2 { color: var(--number-2); }
+.minesweeper-cell.is-revealed .number-3 { color: var(--number-3); }
+.minesweeper-cell.is-revealed .number-4 { color: var(--number-4); }
+.minesweeper-cell.is-revealed .number-5 { color: var(--number-5); }
+.minesweeper-cell.is-revealed .number-6 { color: var(--number-6); }
+.minesweeper-cell.is-revealed .number-7 { color: var(--number-7); }
+.minesweeper-cell.is-revealed .number-8 { color: var(--number-8); }
+.minesweeper-cell.is-revealed .number-9 { color: var(--number-1); }
+.minesweeper-cell.is-revealed .number-10,
+.minesweeper-cell.is-revealed .number-20,
+.minesweeper-cell.is-revealed .number-30 { color: var(--number-2); }
+.minesweeper-cell.is-revealed .number-11,
+.minesweeper-cell.is-revealed .number-21,
+.minesweeper-cell.is-revealed .number-31 { color: var(--number-3); }
+.minesweeper-cell.is-revealed .number-12,
+.minesweeper-cell.is-revealed .number-22 { color: var(--number-4); }
+.minesweeper-cell.is-revealed .number-13,
+.minesweeper-cell.is-revealed .number-23 { color: var(--number-5); }
+.minesweeper-cell.is-revealed .number-14,
+.minesweeper-cell.is-revealed .number-24 { color: var(--number-6); }
+.minesweeper-cell.is-revealed .number-15,
+.minesweeper-cell.is-revealed .number-25 { color: var(--number-7); }
+.minesweeper-cell.is-revealed .number-16,
+.minesweeper-cell.is-revealed .number-26 { color: var(--number-8); }
+.minesweeper-cell.is-revealed .number-17,
+.minesweeper-cell.is-revealed .number-27 { color: var(--number-1); }
+.minesweeper-cell.is-revealed .number-18,
+.minesweeper-cell.is-revealed .number-28 { color: var(--number-2); }
+.minesweeper-cell.is-revealed .number-19,
+.minesweeper-cell.is-revealed .number-29 { color: var(--number-3); }
+
+// 其他月份日期颜色
+.minesweeper-cell.other-month.is-revealed .cell-number {
+  color: #404040;
+}
+
+// ========== 旧样式兼容 ==========
+.ohhh-calendar-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  column-gap: var(--calendar-toolbar-column-gap);
+  padding: var(--calendar-toolbar-padding);
+}
+
+.ohhh-calendar-toolbar--icon,
+.ohhh-calendar-footer--icon {
+  display: flex;
+  cursor: pointer;
+}
+
+.ohhh-calendar-toolbar--icon {
+  fill: var(--calendar-toolbar-icon-color);
+}
+
+.ohhh-calendar-toolbar--icon svg {
+  width: var(--calendar-toolbar-icon-size);
+  height: var(--calendar-toolbar-icon-size);
+}
+
+.ohhh-calendar-toolbar--text {
+  margin: 0 auto;
+  font-size: var(--calendar-toolbar-font-size);
+  font-weight: 500;
+}
+
 .ohhh-calendar-day {
   display: flex;
   flex-direction: column;
@@ -80,20 +341,25 @@
   height: var(--calendar-row-height);
   cursor: pointer;
 }
+
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-label {
   color: var(--calendar-days-other-month-color);
 }
+
 .ohhh-calendar-day.is-today .ohhh-calendar-day--inner {
   background: var(--calendar-days-today-background);
 }
+
 .ohhh-calendar-day.is-today .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.is-today .ohhh-calendar-day--inner-label {
   color: var(--calendar-days-today-color);
 }
+
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner {
   background: var(--calendar-days-selected-background);
 }
+
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-label {
   color: var(--calendar-days-selected-color);
@@ -110,14 +376,17 @@
   border-radius: var(--calendar-days-inner-radius);
   background: var(--calendar-days-inner-background);
 }
+
 .ohhh-calendar-day--inner-value {
   font-size: var(--calendar-days-value-font-size);
   color: var(--calendar-days-value-color);
 }
+
 .ohhh-calendar-day--inner-label {
   font-size: var(--calendar-days-label-font-size);
   color: var(--calendar-days-label-color);
 }
+
 .ohhh-calendar-day--marker {
   flex: none;
   margin-top: var(--calendar-days-marker-top-gap);
@@ -131,9 +400,11 @@
   justify-content: center;
   padding: var(--calendar-footer-padding);
 }
+
 .ohhh-calendar-footer--icon {
   fill: var(--calendar-footer-icon-color);
 }
+
 .ohhh-calendar-footer--icon svg {
   width: var(--calendar-footer-icon-size);
   height: var(--calendar-footer-icon-size);
