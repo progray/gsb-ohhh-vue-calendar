@@ -1,8 +1,8 @@
 .ohhh-calendar-container {
-  --annotation-symbol-size: 34px;
-  --annotation-symbol-stroke-width: 2.5px;
-  --annotation-toolbar-height: 40px;
-  --annotation-toolbar-gap: 8px;
+  --annotation-symbol-size: 60px;
+  --annotation-symbol-stroke-width: 4px;
+  --annotation-toolbar-height: 44px;
+  --annotation-toolbar-gap: 10px;
   --tag-index-height: 32px;
   --tag-padding: 6px 12px;
   --tag-radius: 16px;
@@ -213,12 +213,26 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 48px;
-  height: 48px;
+  width: var(--calendar-row-height);
+  height: var(--calendar-row-height);
+  min-width: 56px;
+  min-height: 56px;
   display: flex;
   justify-content: center;
   align-items: center;
   pointer-events: none;
+  z-index: 0;
+  padding: 4px;
+  box-sizing: border-box;
+}
+
+.ohhh-calendar-day--inner {
+  position: relative;
+  z-index: 1;
+}
+
+.ohhh-calendar-day--marker {
+  position: relative;
   z-index: 1;
 }
 
