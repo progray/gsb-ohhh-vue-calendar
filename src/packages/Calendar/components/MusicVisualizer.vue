@@ -687,72 +687,88 @@ defineExpose({
     align-items: center;
     justify-content: center;
     color: var(--calendar-text-color-level-4);
-    font-size: 14px;
+    font-size: 12px;
     pointer-events: none;
-    opacity: 0.8;
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
     
     svg {
-      width: 32px;
-      height: 32px;
-      margin-bottom: 8px;
-      opacity: 0.6;
+      width: 24px;
+      height: 24px;
+      margin-bottom: 4px;
+      opacity: 0.5;
     }
+  }
+  
+  &:hover .visualizer-hint {
+    opacity: 0.8;
   }
   
   .visualizer-controls {
     position: absolute;
-    bottom: 8px;
-    right: 12px;
+    bottom: 4px;
+    right: 8px;
     display: flex;
     align-items: center;
-    gap: 12px;
-    background: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    padding: 6px 12px;
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    gap: 6px;
+    opacity: 0.25;
+    transition: all 0.3s ease;
+  }
+  
+  &:hover .visualizer-controls,
+  .visualizer-controls:hover {
+    opacity: 0.9;
   }
   
   .control-btn {
     background: transparent;
     border: none;
     cursor: pointer;
-    padding: 4px;
+    padding: 2px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.6);
     transition: all 0.2s ease;
+    border-radius: 4px;
     
     &:hover {
       color: rgba(255, 255, 255, 1);
-      transform: scale(1.1);
+      background: rgba(255, 255, 255, 0.1);
+      transform: scale(1.15);
     }
     
     svg {
-      width: 18px;
-      height: 18px;
+      width: 14px;
+      height: 14px;
     }
   }
   
   .volume-control {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    
+    .visualizer-controls:hover & {
+      opacity: 1;
+      pointer-events: auto;
+    }
     
     .volume-icon {
-      width: 16px;
-      height: 16px;
-      color: rgba(255, 255, 255, 0.8);
+      width: 12px;
+      height: 12px;
+      color: rgba(255, 255, 255, 0.6);
     }
     
     .volume-slider {
-      width: 60px;
-      height: 4px;
+      width: 50px;
+      height: 3px;
       -webkit-appearance: none;
       appearance: none;
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.15);
       border-radius: 2px;
       outline: none;
       cursor: pointer;
@@ -760,9 +776,9 @@ defineExpose({
       &::-webkit-slider-thumb {
         -webkit-appearance: none;
         appearance: none;
-        width: 12px;
-        height: 12px;
-        background: rgba(255, 255, 255, 0.9);
+        width: 10px;
+        height: 10px;
+        background: rgba(255, 255, 255, 0.7);
         border-radius: 50%;
         cursor: pointer;
         transition: all 0.2s ease;
@@ -774,9 +790,9 @@ defineExpose({
       }
       
       &::-moz-range-thumb {
-        width: 12px;
-        height: 12px;
-        background: rgba(255, 255, 255, 0.9);
+        width: 10px;
+        height: 10px;
+        background: rgba(255, 255, 255, 0.7);
         border-radius: 50%;
         cursor: pointer;
         border: none;
@@ -787,36 +803,45 @@ defineExpose({
   .mode-selector {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding-left: 12px;
-    border-left: 1px solid rgba(255, 255, 255, 0.2);
+    gap: 2px;
+    padding-left: 6px;
+    margin-left: 4px;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    
+    .visualizer-controls:hover & {
+      opacity: 1;
+      pointer-events: auto;
+    }
   }
   
   .mode-btn {
     background: transparent;
     border: none;
     cursor: pointer;
-    padding: 4px;
+    padding: 2px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.35);
     transition: all 0.2s ease;
-    border-radius: 4px;
+    border-radius: 3px;
     
     &:hover {
       color: rgba(255, 255, 255, 0.8);
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.08);
     }
     
     &.active {
-      color: rgba(255, 255, 255, 1);
-      background: rgba(255, 255, 255, 0.15);
+      color: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.12);
     }
     
     svg {
-      width: 16px;
-      height: 16px;
+      width: 12px;
+      height: 12px;
     }
   }
 }
