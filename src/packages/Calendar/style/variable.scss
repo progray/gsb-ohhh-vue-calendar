@@ -1,19 +1,69 @@
 .ohhh-calendar-container {
-  --calendar-theme-color: #409eff;
-  --calendar-theme-color-light: #{rgba(#409eff, 0.2)};
+  --calendar-theme-color: #0000ff;
+  --calendar-theme-color-light: #{rgba(#0000ff, 0.2)};
 
-  --calendar-text-color-level-1: #303133;
-  --calendar-text-color-level-2: #606266;
-  --calendar-text-color-level-3: #909399;
-  --calendar-text-color-level-4: #a8abb2;
-  --calendar-text-color-level-5: #c0c4cc;
+  // 扫雷经典颜色
+  --minesweeper-bg: #c0c0c0;
+  --minesweeper-border-light: #ffffff;
+  --minesweeper-border-dark: #808080;
+  --minesweeper-border-darker: #404040;
 
-  --calendar-background: transparent;
-  --calendar-row-height: 60px;
+  // 扫雷液晶显示
+  --lcd-background: #000000;
+  --lcd-border-inset: #808080;
+  --lcd-digit-color: #ff0000;
+  --lcd-digit-off: #400000;
+
+  // 格子边框3D效果
+  --cell-unrevealed-bg: #c0c0c0;
+  --cell-revealed-bg: #c0c0c0;
+  --cell-weekend-revealed-bg: #ffffff;
+  --cell-othermonth-revealed-bg: #808080;
+  --cell-border-light: #ffffff;
+  --cell-border-dark: #808080;
+
+  // 扫雷数字颜色 (经典配色)
+  --number-1: #0000ff;   // 蓝色
+  --number-2: #008000;   // 绿色
+  --number-3: #ff0000;   // 红色
+  --number-4: #000080;   // 深蓝
+  --number-5: #800000;   // 深红
+  --number-6: #008080;   // 青色
+  --number-7: #000000;   // 黑色
+  --number-8: #808080;   // 灰色
+
+  // 布局尺寸
+  --calendar-background: var(--minesweeper-bg);
+  --calendar-row-height: 50px;
 
   --calendar-icon-size: 20px;
-  --calendar-icon-color: var(--calendar-text-color-level-3);
+  --calendar-icon-color: #000000;
 
+  // 工具栏
+  --minesweeper-toolbar-padding: 8px;
+  --minesweeper-toolbar-bg: var(--minesweeper-bg);
+  --lcd-width: 80px;
+  --lcd-height: 36px;
+  --lcd-digit-width: 16px;
+  --smiley-size: 36px;
+
+  // 导航栏
+  --minesweeper-nav-padding: 4px 8px;
+  --nav-button-size: 28px;
+
+  // 星期栏
+  --calendar-weekdays-height: 28px;
+  --calendar-weekdays-font-size: 12px;
+  --calendar-weekdays-color: #000000;
+  --calendar-weekdays-bg: var(--minesweeper-bg);
+
+  // 格子样式
+  --cell-size: 100%;
+  --cell-border-width: 3px;
+  --cell-number-font-size: 20px;
+  --cell-flag-size: 14px;
+
+  // 旧变量兼容
   --calendar-toolbar-font-size: 16px;
   --calendar-toolbar-icon-size: var(--calendar-icon-size);
   --calendar-toolbar-icon-color: var(--calendar-icon-color);
@@ -24,26 +74,22 @@
   --calendar-footer-icon-color: var(--calendar-icon-color);
   --calendar-footer-padding: 12px;
 
-  --calendar-weekdays-height: 30px;
-  --calendar-weekdays-font-size: 14px;
-  --calendar-weekdays-color: var(--calendar-text-color-level-1);
-
   --calendar-days-value-font-size: 14px;
-  --calendar-days-value-color: var(--calendar-text-color-level-1);
+  --calendar-days-value-color: #000000;
   --calendar-days-label-font-size: 10px;
-  --calendar-days-label-color: var(--calendar-text-color-level-2);
+  --calendar-days-label-color: #000000;
 
-  --calendar-days-today-color: var(--calendar-theme-color);
-  --calendar-days-today-background: var(--calendar-theme-color-light);
-  --calendar-days-selected-color: #fff;
-  --calendar-days-selected-background: var(--calendar-theme-color);
-  --calendar-days-other-month-color: var(--calendar-text-color-level-5);
+  --calendar-days-today-color: #ff0000;
+  --calendar-days-today-background: transparent;
+  --calendar-days-selected-color: #000000;
+  --calendar-days-selected-background: transparent;
+  --calendar-days-other-month-color: #808080;
 
   --calendar-days-inner-size: 34px;
   --calendar-days-inner-width: var(--calendar-days-inner-size);
   --calendar-days-inner-height: var(--calendar-days-inner-size);
   --calendar-days-inner-padding: 2px;
-  --calendar-days-inner-radius: 50%;
+  --calendar-days-inner-radius: 0;
   --calendar-days-inner-background: transparent;
 
   --calendar-days-marker-top-gap: 4px;
