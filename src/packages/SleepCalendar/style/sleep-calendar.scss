@@ -1,0 +1,90 @@
+.sleep-calendar-container {
+  .ohhh-calendar-container {
+    --calendar-background: transparent;
+    --calendar-row-height: 80px;
+
+    --calendar-icon-size: 24px;
+    --calendar-icon-color: #8a8aa0;
+
+    --calendar-toolbar-font-size: 18px;
+    --calendar-toolbar-column-gap: 12px;
+    --calendar-toolbar-padding: 8px 0;
+
+    --calendar-weekdays-height: 40px;
+    --calendar-weekdays-font-size: 13px;
+    --calendar-weekdays-color: #6a6a80;
+
+    --calendar-days-value-font-size: 13px;
+    --calendar-days-label-font-size: 10px;
+    --calendar-days-value-color: #a0a0b0;
+
+    --calendar-days-today-color: #c0c0d0;
+    --calendar-days-today-background: rgba(100, 100, 140, 0.3);
+    --calendar-days-selected-color: #e0e0f0;
+    --calendar-days-selected-background: rgba(120, 120, 160, 0.4);
+    --calendar-days-other-month-color: #4a4a5a;
+
+    --calendar-days-inner-width: auto;
+    --calendar-days-inner-height: auto;
+    --calendar-days-inner-padding: 4px 6px;
+    --calendar-days-inner-radius: 10px;
+    --calendar-days-inner-background: #1e1e2e;
+
+    --calendar-days-marker-top-gap: 0;
+    --calendar-days-marker-size: 0;
+  }
+
+  .ohhh-calendar-weekdays {
+    margin-bottom: 4px;
+  }
+
+  .ohhh-calendar-day {
+    position: relative;
+    padding: 3px;
+  }
+
+  .ohhh-calendar-day.other-month {
+    opacity: 0.4;
+  }
+
+  .ohhh-calendar-day--inner {
+    width: 100%;
+    height: 100%;
+    justify-content: flex-start;
+    align-items: flex-start;
+    box-shadow: 
+      0 1px 4px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    transition: all 0.3s ease;
+  }
+
+  .ohhh-calendar-day:hover .ohhh-calendar-day--inner {
+    background: #252535;
+    transform: translateY(-1px);
+    box-shadow: 
+      0 2px 8px rgba(0, 0, 0, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .ohhh-calendar-day--inner-value {
+    font-weight: 500;
+    margin-bottom: auto;
+  }
+
+  .ohhh-calendar-day--inner-label {
+    position: absolute;
+    bottom: 6px;
+    left: 6px;
+    right: 6px;
+    height: 8px;
+    font-size: 0;
+  }
+
+  .ohhh-calendar-day--marker {
+    display: none;
+  }
+
+  .ohhh-calendar-wrapper {
+    transition: height 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
