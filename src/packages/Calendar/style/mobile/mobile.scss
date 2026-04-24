@@ -22,4 +22,45 @@
 
   --calendar-days-marker-top-gap: 8px;
   --calendar-days-marker-size: 8px;
+
+  --settings-presets-size: 48px;
+  --settings-item-gap: 16px;
+}
+
+.ohhh-calendar-settings {
+  padding: 16px 24px;
+  gap: var(--settings-item-gap);
+}
+
+.ohhh-calendar-settings--label {
+  font-size: 20px;
+}
+
+.ohhh-calendar-settings--select {
+  font-size: 24px;
+  padding: 12px 20px;
+  padding-right: 40px;
+  border-radius: 12px;
+}
+
+.ohhh-calendar-settings--slider {
+  width: 120px;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.ohhh-calendar-settings--slider::-webkit-slider-thumb {
+  width: 24px;
+  height: 24px;
+}
+
+.ohhh-calendar-settings--slider::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+}
+
+.ohhh-calendar-settings--screenshot-btn {
+  font-size: 24px;
+  padding: 12px 24px;
+  border-radius: 12px;
 }
