@@ -1,6 +1,7 @@
 @use './variable.scss';
 
 .ohhh-calendar-container {
+  position: relative;
   -webkit-tap-highlight-color: transparent;
   background: var(--calendar-background);
   font-family:
@@ -17,6 +18,50 @@
     Hiragino Sans GB,
     Microsoft Yahei,
     sans-serif;
+  overflow: hidden;
+}
+
+.ohhh-calendar-background-glow {
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(
+      var(--calendar-theme-color-r, 64),
+      var(--calendar-theme-color-g, 158),
+      var(--calendar-theme-color-b, 255),
+      0.15
+    ) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.glass-effect {
+  position: relative;
+  z-index: 1;
+  background: var(--glass-background);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.ohhh-calendar-visualizer {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  overflow: hidden;
 }
 
 .ohhh-calendar-toolbar {
