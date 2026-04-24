@@ -235,13 +235,14 @@
 .ohhh-calendar-panel-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
   display: flex;
   justify-content: center;
-  align-items: flex-end;
+  align-items: center;
   z-index: 1000;
   animation: fadeIn 0.2s ease;
+  padding: 20px;
 }
 
 @keyframes fadeIn {
@@ -255,21 +256,25 @@
 
 .ohhh-calendar-panel {
   width: 100%;
-  max-width: 480px;
+  max-width: 600px;
   background: var(--calendar-panel-bg);
-  border-radius: var(--calendar-panel-radius) var(--calendar-panel-radius) 0 0;
+  border-radius: var(--calendar-panel-radius);
   padding: var(--calendar-panel-padding);
-  padding-bottom: calc(var(--calendar-panel-padding) + 20px);
   box-shadow: var(--calendar-panel-shadow);
-  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
-@keyframes slideUp {
+@keyframes popIn {
   from {
-    transform: translateY(100%);
+    opacity: 0;
+    transform: scale(0.95);
   }
   to {
-    transform: translateY(0);
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
@@ -322,9 +327,30 @@
 }
 
 .ohhh-calendar-panel--apps {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  display: flex;
   gap: 12px;
+  overflow-x: auto;
+  padding: 8px 4px;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ohhh-calendar-panel--apps::-webkit-scrollbar {
+  height: 6px;
+}
+
+.ohhh-calendar-panel--apps::-webkit-scrollbar-track {
+  background: var(--calendar-surface);
+  border-radius: 3px;
+}
+
+.ohhh-calendar-panel--apps::-webkit-scrollbar-thumb {
+  background: var(--calendar-text-muted);
+  border-radius: 3px;
+}
+
+.ohhh-calendar-panel--apps::-webkit-scrollbar-thumb:hover {
+  background: var(--calendar-text-tertiary);
 }
 
 .ohhh-calendar-panel--app-item {
