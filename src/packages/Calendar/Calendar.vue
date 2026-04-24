@@ -19,6 +19,55 @@
       </slot>
     </div>
 
+    <!-- 符号工具栏 -->
+    <div v-if="showAnnotationToolbar" class="ohhh-calendar-symbol-toolbar">
+      <div
+        v-for="symbol in symbolKeys"
+        :key="symbol"
+        class="ohhh-calendar-symbol-toolbar--item"
+        :class="{ 'is-selected': selectedSymbol === symbol, 'is-active': isAddingAnnotation }"
+        :style="{ '--symbol-color': annotationSymbols[symbol].color }"
+        @click="selectSymbol(symbol)"
+        v-html="annotationSymbols[symbol].svg"
+        :title="annotationSymbols[symbol].name"
+      />
+    </div>
+
+    <!-- 标签索引栏 -->
+    <div v-if="showTagIndex && uniqueTags.length > 0" class="ohhh-calendar-tag-index">
+      <div
+        v-for="tag in uniqueTags"
+        :key="tag.label"
+        class="ohhh-calendar-tag-index--tag"
+        :class="{ 'is-active': selectedTag?.label === tag.label }"
+        :style="{ '--tag-color': annotationSymbols[tag.symbol]?.color || 'var(--calendar-theme-color)' }"
+        @click="onTagClick(tag)"
+      >
+        <span class="ohhh-calendar-tag-index--tag-label">{{ tag.label }}</span>
+        <span class="ohhh-calendar-tag-index--tag-count">{{ tag.count }}</span>
+      </div>
+    </div>
+
+    <!-- 标签下拉列表 -->
+    <transition name="slide-down">
+      <div v-if="showTagDropdown && tagDropdownDates.length > 0" class="ohhh-calendar-tag-dropdown">
+        <div class="ohhh-calendar-tag-dropdown--header">
+          <span class="ohhh-calendar-tag-dropdown--header-text">选择日期跳转</span>
+          <button class="ohhh-calendar-tag-dropdown--close" @click="closeTagDropdown">×</button>
+        </div>
+        <div class="ohhh-calendar-tag-dropdown--list">
+          <div
+            v-for="(date, index) in tagDropdownDates"
+            :key="index"
+            class="ohhh-calendar-tag-dropdown--item"
+            @click="onTagDateSelect(date)"
+          >
+            <span class="ohhh-calendar-tag-dropdown--item-date">{{ formatDateForDisplay(date) }}</span>
+          </div>
+        </div>
+      </div>
+    </transition>
+
     <!-- 星期栏 -->
     <div v-if="showWeekdays" class="ohhh-calendar-weekdays">
       <div v-for="(day, index) in weekdays" :key="day" class="ohhh-calendar-weekdays--weekday">
@@ -42,10 +91,24 @@
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'has-annotation': getAnnotationForDate(dateObj.date),
+            'is-deleting': deletingAnnotation === getAnnotationForDate(dateObj.date)?.id,
+            'annotation-mode': isAddingAnnotation
           }"
-          @click="changeSelectedDate(dateObj.date)"
+          @click="onDayClick(dateObj.date)"
+          @contextmenu.prevent="onDayRightClick(dateObj.date)"
+          @mouseenter="onDayMouseEnter(dateObj.date, $event)"
+          @mouseleave="onDayMouseLeave"
         >
+          <div class="ohhh-calendar-day--annotation-wrapper">
+            <div
+              v-if="getAnnotationForDate(dateObj.date)"
+              class="ohhh-calendar-day--annotation-symbol"
+              :style="{ '--annotation-color': getAnnotationSymbolColor(dateObj.date) }"
+              v-html="getAnnotationSvg(dateObj.date)"
+            />
+          </div>
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
             <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
@@ -67,57 +130,115 @@
         />
       </slot>
     </div>
+
+    <!-- 标签输入弹窗 -->
+    <transition name="fade">
+      <div v-if="showLabelInput" class="ohhh-calendar-label-input-overlay" @click.self="cancelAnnotation">
+        <div class="ohhh-calendar-label-input-modal">
+          <div class="ohhh-calendar-label-input--header">
+            <span class="ohhh-calendar-label-input--title">添加标注</span>
+            <span class="ohhh-calendar-label-input--date">{{ formatDateForDisplay(pendingAnnotationDate) }}</span>
+          </div>
+          <div class="ohhh-calendar-label-input--preview">
+            <div
+              class="ohhh-calendar-label-input--preview-symbol"
+              :style="{ '--annotation-color': annotationSymbols[selectedSymbol]?.color }"
+              v-html="annotationSymbols[selectedSymbol]?.svg"
+            />
+          </div>
+          <input
+            ref="labelInputRef"
+            v-model="pendingLabel"
+            type="text"
+            class="ohhh-calendar-label-input--input"
+            placeholder="输入标签文字（可选）..."
+            @keyup.enter="confirmAnnotation"
+            @keyup.esc="cancelAnnotation"
+          />
+          <div class="ohhh-calendar-label-input--actions">
+            <button class="ohhh-calendar-label-input--btn ohhh-calendar-label-input--btn-cancel" @click="cancelAnnotation">
+              取消
+            </button>
+            <button class="ohhh-calendar-label-input--btn ohhh-calendar-label-input--btn-confirm" @click="confirmAnnotation">
+              确认
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- Tooltip -->
+    <transition name="fade">
+      <div
+        v-if="showTooltip && tooltipData"
+        class="ohhh-calendar-tooltip"
+        :class="[`placement-${tooltipPlacement}`]"
+        :style="{
+          left: tooltipPosition.x + 'px',
+          top: tooltipPosition.y + 'px'
+        }"
+      >
+        <div class="ohhh-calendar-tooltip--content">
+          <span class="ohhh-calendar-tooltip--label">{{ tooltipData.label }}</span>
+          <span class="ohhh-calendar-tooltip--date">{{ formatDateForDisplay(tooltipData.date) }}</span>
+        </div>
+        <div class="ohhh-calendar-tooltip--arrow"></div>
+      </div>
+    </transition>
   </div>
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, watch, nextTick } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
-import { isSameDay, createWeekdays } from './utils'
+import { useAnnotation } from './hooks/useAnnotation.js'
+import { isSameDay, createWeekdays, formatDate } from './utils/index.js'
 import { icons } from './utils/icons.js'
+import { annotationSymbols, symbolKeys } from './utils/annotationSymbols.js'
 
 const swipeRef = useTemplateRef('swp')
+const labelInputRef = useTemplateRef('labelInputRef')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'annotation-add', 'annotation-delete'])
 
 const props = defineProps({
-  // 初始选中的日期
   initialSelectedDate: {
     type: Date,
     default: () => new Date()
   },
-  // 初始视图模式
   initialViewMode: {
     type: String,
-    default: 'month' // month or week
+    default: 'month'
   },
-  // 以周几作为每周的起始
   weekStart: {
     type: Number,
-    default: 0 // 0: Sunday, 1: Monday, etc.
+    default: 0
   },
-  // 标记的日期
   markerDates: {
     type: Array,
     default: () => []
   },
-  // 是否显示顶部工具栏
   showToolbar: {
     type: Boolean,
     default: true
   },
-  // 是否显示底部工具栏
   showFooter: {
     type: Boolean,
     default: true
   },
-  // 是否显示weekdays栏
   showWeekdays: {
     type: Boolean,
     default: true
   },
-  // 过渡动画时长
+  showAnnotationToolbar: {
+    type: Boolean,
+    default: true
+  },
+  showTagIndex: {
+    type: Boolean,
+    default: true
+  },
   duration: {
     type: String,
     default: '0.3s'
@@ -143,11 +264,36 @@ const {
   toggleViewMode
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
 
-// 顶部工具栏标题
+const {
+  selectedSymbol,
+  isAddingAnnotation,
+  pendingAnnotationDate,
+  pendingLabel,
+  showLabelInput,
+  tooltipData,
+  tooltipPosition,
+  tooltipPlacement,
+  showTooltip,
+  deletingAnnotation,
+  showTagDropdown,
+  selectedTag,
+  tagDropdownDates,
+  uniqueTags,
+  getAnnotationForDate,
+  selectSymbol,
+  startAnnotation,
+  confirmAnnotation: _confirmAnnotation,
+  cancelAnnotation: _cancelAnnotation,
+  deleteAnnotation: _deleteAnnotation,
+  showAnnotationTooltip,
+  hideAnnotationTooltip,
+  handleTagClick,
+  closeTagDropdown
+} = useAnnotation()
+
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
-// 星期栏
 const weekdays = createWeekdays(weekStart.value)
-// 标记日期
+
 const markerDateList = computed(() =>
   markerDates.value.map(item => ({
     date: new Date(typeof item === 'object' && item.date ? item.date : item),
@@ -155,16 +301,12 @@ const markerDateList = computed(() =>
   }))
 )
 
-// 监听滑动事件
 const { lengthX } = useSwipe(swipeRef, {
-  // 滑动阈值
   threshold: 0,
-  // 手指滑动过程中
   onSwipe: () => {
     if (isInTransition.value) return
     transformDistance.value = -lengthX.value + 'px'
   },
-  // 手指抬起滑动结束，开始滑动动画
   onSwipeEnd: (_, direction) => {
     if (isInTransition.value) return
     if (direction === 'left') {
@@ -172,14 +314,19 @@ const { lengthX } = useSwipe(swipeRef, {
     } else if (direction === 'right') {
       changePageTo('prev-page')
     } else {
-      // 如果方向不是左右，则将页面复位
       startTransitionAnimation(direction)
     }
   }
 })
 
-// 归一化参数
-// 支持 'prev-page', 'next-page', 'prev-year', 'next-year', 以及合法的日期
+watch(showLabelInput, (val) => {
+  if (val && labelInputRef.value) {
+    nextTick(() => {
+      labelInputRef.value.focus()
+    })
+  }
+})
+
 function _normalize(param) {
   if (!param) {
     throw new Error('参数不能为空')
@@ -215,13 +362,11 @@ function _normalize(param) {
   throw new Error('日期不合法')
 }
 
-// 切换日历页面
 function changePageTo(param) {
   const targetDate = _normalize(param)
   switchPageToTargetDate(targetDate)
 }
 
-// 切换选中的日期
 function changeSelectedDate(date) {
   changePageTo(date)
   if (!isSameDay(new Date(date), selected.value)) {
@@ -230,17 +375,93 @@ function changeSelectedDate(date) {
   }
 }
 
-// 获取 marker 颜色
 function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
+function getAnnotationSvg(date) {
+  const annotation = getAnnotationForDate(date)
+  if (annotation && annotationSymbols[annotation.symbol]) {
+    return annotationSymbols[annotation.symbol].svg
+  }
+  return ''
+}
+
+function getAnnotationSymbolColor(date) {
+  const annotation = getAnnotationForDate(date)
+  if (annotation && annotationSymbols[annotation.symbol]) {
+    return annotationSymbols[annotation.symbol].color
+  }
+  return 'var(--calendar-theme-color)'
+}
+
+function formatDateForDisplay(date) {
+  if (!date) return ''
+  const d = new Date(date)
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
+}
+
+function onDayClick(date) {
+  if (isAddingAnnotation.value && selectedSymbol.value) {
+    const existing = getAnnotationForDate(date)
+    if (!existing) {
+      startAnnotation(date)
+    }
+  } else {
+    changeSelectedDate(date)
+  }
+}
+
+function onDayRightClick(date) {
+  const annotation = getAnnotationForDate(date)
+  if (annotation) {
+    _deleteAnnotation(annotation)
+    emit('annotation-delete', annotation)
+  }
+}
+
+function onDayMouseEnter(date, event) {
+  const annotation = getAnnotationForDate(date)
+  if (annotation && annotation.label) {
+    showAnnotationTooltip(annotation, event)
+  }
+}
+
+function onDayMouseLeave() {
+  hideAnnotationTooltip()
+}
+
+function confirmAnnotation() {
+  _confirmAnnotation()
+  emit('annotation-add', {
+    date: pendingAnnotationDate.value,
+    symbol: selectedSymbol.value,
+    label: pendingLabel.value
+  })
+}
+
+function cancelAnnotation() {
+  _cancelAnnotation()
+}
+
+function onTagClick(tag) {
+  const result = handleTagClick(tag)
+  if (result.action === 'jump') {
+    changeSelectedDate(result.date)
+  }
+}
+
+function onTagDateSelect(date) {
+  changeSelectedDate(date)
+  closeTagDropdown()
+}
+
 defineExpose({
-  // 切换周/月视图
   toggleViewMode,
-  // 切换日历页
   changePageTo,
-  // 切换选中日期
-  changeSelectedDate
+  changeSelectedDate,
+  getAnnotationForDate,
+  selectSymbol,
+  deleteAnnotation: _deleteAnnotation
 })
 </script>
