@@ -71,7 +71,12 @@
                 zIndex: bar.isMultiDay ? 10 + barIndex : 1 + barIndex
               }"
               :title="bar.eventTitle"
-            />
+            >
+              <span
+                v-if="bar.isStart || !bar.isMultiDay"
+                class="ohhh-calendar-day--event-bar-title"
+              >{{ truncateText(bar.eventTitle, 6) }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -425,12 +430,13 @@ defineExpose({
 }
 
 .ohhh-calendar-day--event-bar {
-  height: 3px;
-  min-height: 3px;
-  border-radius: 2px;
+  height: 14px;
+  min-height: 14px;
+  border-radius: 3px;
   opacity: 0.9;
   flex-shrink: 0;
   position: relative;
+  overflow: hidden;
 }
 
 .ohhh-calendar-day--event-bar.is-multi-day {
@@ -457,6 +463,23 @@ defineExpose({
 
 .ohhh-calendar-day--event-bar.is-start.is-end {
   border-radius: 2px;
+}
+
+.ohhh-calendar-day--event-bar-title {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 8px;
+  font-weight: 500;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  line-height: 1;
+  pointer-events: none;
 }
 
 .ohhh-calendar-popup {
