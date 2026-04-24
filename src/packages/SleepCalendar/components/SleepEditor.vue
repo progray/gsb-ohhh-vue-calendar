@@ -1,5 +1,5 @@
 <template>
-  <Transition name="slide-up">
+  <Transition name="fade-scale">
     <div 
       v-if="visible" 
       class="sleep-editor-overlay"
@@ -211,7 +211,7 @@ function handleKeyDown(e) {
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   z-index: 1000;
   backdrop-filter: blur(2px);
@@ -221,21 +221,21 @@ function handleKeyDown(e) {
   width: 100%;
   max-width: 360px;
   background: #1e1e2e;
-  border-radius: 20px 20px 0 0;
+  border-radius: 20px;
   padding: 8px 20px 20px;
   box-shadow: 
-    0 -4px 24px rgba(0, 0, 0, 0.35),
+    0 8px 32px rgba(0, 0, 0, 0.4),
     0 0 0 1px rgba(255, 255, 255, 0.06);
   animation: panel-appear 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes panel-appear {
   from {
-    transform: translateY(100%);
+    transform: scale(0.95);
     opacity: 0;
   }
   to {
-    transform: translateY(0);
+    transform: scale(1);
     opacity: 1;
   }
 }
@@ -359,17 +359,18 @@ function handleKeyDown(e) {
   font-variant-numeric: tabular-nums;
 }
 
-.slide-up-enter-active,
-.slide-up-leave-active {
+.fade-scale-enter-active,
+.fade-scale-leave-active {
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.slide-up-enter-from,
-.slide-up-leave-to {
+.fade-scale-enter-from,
+.fade-scale-leave-to {
   opacity: 0;
   
   .sleep-editor-panel {
-    transform: translateY(100%);
+    transform: scale(0.95);
+    opacity: 0;
   }
 }
 </style>

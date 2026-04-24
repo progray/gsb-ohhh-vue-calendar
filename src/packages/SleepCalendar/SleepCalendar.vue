@@ -59,9 +59,9 @@
       <template #day-label="{ date }">
         <div class="sleep-calendar-day-label">
           <div 
-            v-if="getSleepRating(date) !== null" 
+            v-if="getDayRating(date) !== null" 
             class="sleep-calendar-color-bar"
-            :style="{ background: getSleepColor(getSleepRating(date)) }"
+            :style="{ background: getDayColor(date) }"
           ></div>
           <div 
             v-else 
@@ -151,8 +151,10 @@ const calendarRef = ref(null)
 const editorVisible = ref(false)
 const selectedDate = ref(new Date())
 const currentViewMode = ref('month')
+const sleepDataTrigger = ref(0)
 
 const selectedRating = computed(() => {
+  sleepDataTrigger.value
   return getSleepRating(selectedDate.value)
 })
 
@@ -160,6 +162,7 @@ const currentYear = computed(() => selectedDate.value.getFullYear())
 const currentMonth = computed(() => selectedDate.value.getMonth())
 
 const monthAverage = computed(() => {
+  sleepDataTrigger.value
   return calculateMonthAverage(currentYear.value, currentMonth.value)
 })
 
@@ -174,6 +177,7 @@ const roundedAverage = computed(() => {
 })
 
 const sortedRatings = computed(() => {
+  sleepDataTrigger.value
   return getSortedMonthRatings(currentYear.value, currentMonth.value)
 })
 
@@ -186,8 +190,20 @@ function handleViewChange(viewMode) {
   currentViewMode.value = viewMode
 }
 
+function getDayRating(date) {
+  sleepDataTrigger.value
+  return getSleepRating(date)
+}
+
+function getDayColor(date) {
+  sleepDataTrigger.value
+  const rating = getSleepRating(date)
+  return getSleepColor(rating)
+}
+
 function handleSaveRating({ date, rating }) {
   setSleepRating(date, rating)
+  sleepDataTrigger.value++
 }
 
 function handlePrevPage() {

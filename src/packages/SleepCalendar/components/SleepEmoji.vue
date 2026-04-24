@@ -18,7 +18,7 @@
         :stroke-linejoin="strokeLinejoin"
       />
       
-      <g v-if="rating === 1">
+      <g v-if="roundedRating === 1">
         <ellipse cx="-16" cy="-8" rx="10" ry="4" :fill="strokeColor" transform="rotate(-10 -16 -8)" />
         <ellipse cx="16" cy="-8" rx="10" ry="4" :fill="strokeColor" transform="rotate(10 16 -8)" />
         <path 
@@ -30,7 +30,7 @@
         />
       </g>
       
-      <g v-else-if="rating === 2">
+      <g v-else-if="roundedRating === 2">
         <ellipse cx="-16" cy="-6" rx="9" ry="3" :fill="strokeColor" transform="rotate(-5 -16 -6)" />
         <ellipse cx="16" cy="-6" rx="9" ry="3" :fill="strokeColor" transform="rotate(5 16 -6)" />
         <path 
@@ -42,7 +42,7 @@
         />
       </g>
       
-      <g v-else-if="rating === 3">
+      <g v-else-if="roundedRating === 3">
         <circle cx="-16" cy="-6" r="6" :fill="strokeColor" />
         <circle cx="16" cy="-6" r="6" :fill="strokeColor" />
         <line 
@@ -56,7 +56,7 @@
         />
       </g>
       
-      <g v-else-if="rating === 4">
+      <g v-else-if="roundedRating === 4">
         <circle cx="-16" cy="-8" r="7" :fill="strokeColor" />
         <circle cx="16" cy="-8" r="7" :fill="strokeColor" />
         <path 
@@ -68,7 +68,7 @@
         />
       </g>
       
-      <g v-else-if="rating === 5">
+      <g v-else-if="roundedRating === 5">
         <circle cx="-16" cy="-10" r="8" :fill="strokeColor" />
         <circle cx="16" cy="-10" r="8" :fill="strokeColor" />
         <path 
@@ -101,6 +101,10 @@ const props = defineProps({
     default: 'outline',
     validator: (v) => ['outline', 'filled'].includes(v)
   }
+})
+
+const roundedRating = computed(() => {
+  return Math.max(1, Math.min(5, Math.round(props.rating)))
 })
 
 const fillColor = computed(() => props.variant === 'filled' ? '#2a2a3a' : 'transparent')
