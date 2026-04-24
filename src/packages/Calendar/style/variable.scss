@@ -49,4 +49,23 @@
   --calendar-days-marker-top-gap: 4px;
   --calendar-days-marker-size: 4px;
   --calendar-days-marker-color: var(--calendar-theme-color);
+
+  --glass-blur-light: 5px;
+  --glass-blur-medium: 10px;
+  --glass-blur-heavy: 20px;
+  --glass-overlay-light: rgba(255, 255, 255, 0.4);
+  --glass-overlay-medium: rgba(255, 255, 255, 0.5);
+  --glass-overlay-heavy: rgba(255, 255, 255, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  --glow-color: rgba(255, 255, 255, 0.3);
+
+  --settings-bar-background: rgba(255, 255, 255, 0.95);
+  --settings-bar-border: rgba(0, 0, 0, 0.1);
+  --settings-item-gap: 12px;
+  --settings-presets-size: 28px;
+  --settings-slider-track: #e4e7ed;
+  --settings-slider-fill: var(--calendar-theme-color);
+  --settings-btn-background: var(--calendar-theme-color);
+  --settings-btn-color: #fff;
 }
