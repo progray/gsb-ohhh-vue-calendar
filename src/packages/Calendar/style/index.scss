@@ -82,7 +82,7 @@
 .ohhh-calendar-wrapper {
   position: relative;
   overflow: hidden;
-  height: calc(var(--calendar-rows) * var(--calendar-row-height));
+  height: calc(var(--calendar-rows) * var(--calendar-row-height) + (var(--calendar-rows) - 1) * var(--calendar-day-gap) + var(--calendar-day-gap) * 2 + 8px);
   transition: height var(--calendar-transition-duration) ease;
   padding: 4px;
 }
@@ -235,7 +235,7 @@
 .ohhh-calendar-panel-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(2px);
   display: flex;
   justify-content: center;
@@ -357,12 +357,14 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   cursor: pointer;
-  padding: 12px 8px;
-  border-radius: 12px;
+  padding: 8px 8px;
+  border-radius: 10px;
   transition: all 0.2s ease;
   border: 2px solid transparent;
+  flex-shrink: 0;
+  min-width: 60px;
 }
 
 .ohhh-calendar-panel--app-item:hover {
@@ -375,21 +377,21 @@
 }
 
 .ohhh-calendar-panel--app-icon {
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .ohhh-calendar-panel--app-icon svg {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   fill: var(--calendar-text-primary);
 }
 
 .ohhh-calendar-panel--app-name {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--calendar-text-secondary);
   text-align: center;
 }

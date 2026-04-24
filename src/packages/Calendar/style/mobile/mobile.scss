@@ -1,32 +1,32 @@
 @use '../index.scss';
 
 .ohhh-calendar-container {
-  --calendar-row-height: 110px;
+  --calendar-row-height: 52px;
 
-  --calendar-icon-size: 48px;
+  --calendar-icon-size: 18px;
 
-  --calendar-toolbar-font-size: 36px;
-  --calendar-toolbar-column-gap: 36px;
-  --calendar-toolbar-padding: 24px 32px;
+  --calendar-toolbar-font-size: 15px;
+  --calendar-toolbar-column-gap: 10px;
+  --calendar-toolbar-padding: 6px 10px;
 
-  --calendar-footer-padding: 24px;
+  --calendar-footer-padding: 6px;
 
-  --calendar-weekdays-height: 70px;
-  --calendar-weekdays-font-size: 24px;
-  --calendar-weekday-pill-radius: 30px;
-  --calendar-weekday-pill-padding: 10px 24px;
+  --calendar-weekdays-height: 30px;
+  --calendar-weekdays-font-size: 10px;
+  --calendar-weekday-pill-radius: 12px;
+  --calendar-weekday-pill-padding: 2px 8px;
 
-  --calendar-days-value-font-size: 24px;
-  --calendar-days-label-font-size: 18px;
+  --calendar-days-value-font-size: 9px;
+  --calendar-days-label-font-size: 7px;
 
-  --calendar-day-gap: 12px;
-  --calendar-day-radius: 20px;
+  --calendar-day-gap: 4px;
+  --calendar-day-radius: 8px;
 
-  --calendar-days-marker-size: 16px;
-  --calendar-app-icon-size: 40px;
+  --calendar-days-marker-size: 7px;
+  --calendar-app-icon-size: 20px;
 
-  --calendar-panel-padding: 32px;
-  --calendar-input-padding: 20px 24px;
+  --calendar-panel-padding: 16px;
+  --calendar-input-padding: 12px 16px;
 }
 
 .ohhh-calendar-weekdays {
@@ -39,7 +39,7 @@
 
 .ohhh-calendar-panel {
   max-width: 100%;
-  border-radius: 24px;
+  border-radius: 16px;
 }
 
 .ohhh-calendar-panel-overlay {
@@ -47,72 +47,72 @@
 }
 
 .ohhh-calendar-panel--title {
-  font-size: 32px;
+  font-size: 16px;
 }
 
 .ohhh-calendar-panel--label {
-  font-size: 22px;
-  margin-bottom: 20px;
+  font-size: 12px;
+  margin-bottom: 12px;
 }
 
 .ohhh-calendar-panel--apps {
   display: flex;
-  gap: 16px;
+  gap: 8px;
   overflow-x: auto;
-  padding: 12px 8px;
+  padding: 8px 4px;
 }
 
 .ohhh-calendar-panel--apps::-webkit-scrollbar {
-  height: 8px;
+  height: 6px;
 }
 
 .ohhh-calendar-panel--app-item {
-  padding: 16px 12px;
-  border-radius: 16px;
+  padding: 8px 8px;
+  border-radius: 10px;
   flex-shrink: 0;
-  min-width: 80px;
+  min-width: 60px;
 }
 
 .ohhh-calendar-panel--app-icon {
-  width: 56px;
-  height: 56px;
+  width: 28px;
+  height: 28px;
 }
 
 .ohhh-calendar-panel--app-icon svg {
-  width: 48px;
-  height: 48px;
-}
-
-.ohhh-calendar-panel--app-name {
-  font-size: 18px;
-}
-
-.ohhh-calendar-panel--currency {
-  font-size: 36px;
-}
-
-.ohhh-calendar-panel--price-input {
-  font-size: 32px;
-  border-radius: 16px;
-}
-
-.ohhh-calendar-panel--btn {
-  padding: 24px 32px;
-  border-radius: 16px;
-  font-size: 26px;
-}
-
-.ohhh-calendar-panel--close {
-  width: 48px;
-  height: 48px;
-}
-
-.ohhh-calendar-panel--close svg {
   width: 24px;
   height: 24px;
 }
 
+.ohhh-calendar-panel--app-name {
+  font-size: 10px;
+}
+
+.ohhh-calendar-panel--currency {
+  font-size: 20px;
+}
+
+.ohhh-calendar-panel--price-input {
+  font-size: 16px;
+  border-radius: 10px;
+}
+
+.ohhh-calendar-panel--btn {
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.ohhh-calendar-panel--close {
+  width: 28px;
+  height: 28px;
+}
+
+.ohhh-calendar-panel--close svg {
+  width: 14px;
+  height: 14px;
+}
+
 .ohhh-calendar-panel--delete-btn {
-  font-size: 24px;
-  padding: 16px 24px;
+  font-size: 13px;
+  padding: 8px 16px;
 }
