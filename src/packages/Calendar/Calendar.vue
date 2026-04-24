@@ -133,7 +133,8 @@
       :class="tooltipClass"
       :style="{
         left: tooltipPosition.x + 'px',
-        top: tooltipPosition.y + 'px'
+        top: tooltipPosition.y + 'px',
+        '--tooltip-arrow-offset': tooltipArrowOffset + 'px'
       }"
     >
       <div class="calendar-tooltip--header">
@@ -264,6 +265,7 @@ const selectedRecord = ref(null)
 const tooltipVisible = ref(false)
 const tooltipPosition = ref({ x: 0, y: 0 })
 const tooltipClass = ref('')
+const tooltipArrowOffset = ref(0)
 const tooltipDate = ref('')
 const tooltipRecord = ref({ income: 0, expense: 0, balance: 0, remark: '' })
 
@@ -392,28 +394,37 @@ function handleDateHover(date, event) {
   const estimatedTooltipWidth = 200
   const estimatedTooltipHeight = 150
   const gap = 10
-  const arrowSize = 6
 
-  let x = rect.left + rect.width / 2
+  const cellCenterX = rect.left + rect.width / 2
+  
+  let x = cellCenterX
   let y = rect.top - gap
   
   let tooltipClasses = []
+  let arrowOffset = 0
   
-  if (x - estimatedTooltipWidth / 2 < 0) {
-    x = arrowSize + 12
-    tooltipClasses.push('align-left')
-  } else if (x + estimatedTooltipWidth / 2 > viewportWidth) {
-    x = viewportWidth - estimatedTooltipWidth + arrowSize
-    tooltipClasses.push('align-right')
+  const tooltipLeft = x - estimatedTooltipWidth / 2
+  const tooltipRight = x + estimatedTooltipWidth / 2
+  
+  if (tooltipLeft < 0) {
+    const neededOffset = -tooltipLeft
+    x += neededOffset
+    arrowOffset = -neededOffset
+  } else if (tooltipRight > viewportWidth) {
+    const neededOffset = tooltipRight - viewportWidth
+    x -= neededOffset
+    arrowOffset = neededOffset
   }
   
-  if (y - estimatedTooltipHeight < 0) {
+  const tooltipTop = y - estimatedTooltipHeight
+  if (tooltipTop < 0) {
     y = rect.bottom + gap
     tooltipClasses.push('position-bottom')
   }
   
   tooltipPosition.value = { x, y }
   tooltipClass.value = tooltipClasses.join(' ')
+  tooltipArrowOffset.value = arrowOffset
   tooltipVisible.value = true
 }
 
@@ -551,24 +562,8 @@ defineExpose({
   pointer-events: none;
 }
 
-.calendar-tooltip.align-left {
-  transform: translateY(-100%);
-}
-
-.calendar-tooltip.align-right {
-  transform: translateX(-100%) translateY(-100%);
-}
-
 .calendar-tooltip.position-bottom {
   transform: translateX(-50%);
-}
-
-.calendar-tooltip.position-bottom.align-left {
-  transform: none;
-}
-
-.calendar-tooltip.position-bottom.align-right {
-  transform: translateX(-100%);
 }
 
 .calendar-tooltip::before {
@@ -576,21 +571,10 @@ defineExpose({
   position: absolute;
   bottom: -6px;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(calc(-50% + var(--tooltip-arrow-offset, 0px)));
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
   border-top: 6px solid #fff;
-}
-
-.calendar-tooltip.align-left::before {
-  left: 12px;
-  transform: none;
-}
-
-.calendar-tooltip.align-right::before {
-  left: auto;
-  right: 12px;
-  transform: none;
 }
 
 .calendar-tooltip.position-bottom::before {
