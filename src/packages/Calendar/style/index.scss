@@ -17,9 +17,6 @@
     Hiragino Sans GB,
     Microsoft Yahei,
     sans-serif;
-  border-radius: 20px;
-  padding: 8px;
-  box-shadow: 0 4px 20px rgba(93, 78, 78, 0.06);
 }
 
 .ohhh-calendar-toolbar {
@@ -50,9 +47,8 @@
 .ohhh-calendar-toolbar--text {
   margin: 0 auto;
   font-size: var(--calendar-toolbar-font-size);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--calendar-text-color-level-1);
-  letter-spacing: 0.5px;
 }
 
 .ohhh-calendar-weekdays {
@@ -61,7 +57,6 @@
   justify-items: center;
   align-items: center;
   height: var(--calendar-weekdays-height);
-  margin-bottom: 4px;
 }
 .ohhh-calendar-weekdays--weekday {
   font-size: var(--calendar-weekdays-font-size);
@@ -96,7 +91,6 @@
 }
 .ohhh-calendar-day:hover:not(.is-selected):not(.other-month) {
   background: var(--calendar-theme-color-hover);
-  border-radius: 8px;
 }
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-label {
@@ -155,62 +149,52 @@
   border-radius: 50%;
 }
 
-.ohhh-calendar-day--phase-period {
-  .ohhh-calendar-day--inner {
-    background: var(--cycle-period-light);
-  }
-  &.is-predicted .ohhh-calendar-day--inner {
-    background: var(--cycle-period-light-predicted);
-    opacity: var(--cycle-predicted-opacity);
-  }
+.ohhh-calendar-day--phase-period .ohhh-calendar-day--inner {
+  background: var(--cycle-period-light);
+}
+.ohhh-calendar-day--phase-period.is-predicted .ohhh-calendar-day--inner {
+  background: var(--cycle-period-light-predicted);
+  opacity: var(--cycle-predicted-opacity);
 }
 
-.ohhh-calendar-day--phase-ovulation {
-  .ohhh-calendar-day--inner {
-    background: var(--cycle-ovulation-light);
-  }
-  &.is-predicted .ohhh-calendar-day--inner {
-    background: var(--cycle-ovulation-light-predicted);
-    opacity: var(--cycle-predicted-opacity);
-  }
+.ohhh-calendar-day--phase-ovulation .ohhh-calendar-day--inner {
+  background: var(--cycle-ovulation-light);
+}
+.ohhh-calendar-day--phase-ovulation.is-predicted .ohhh-calendar-day--inner {
+  background: var(--cycle-ovulation-light-predicted);
+  opacity: var(--cycle-predicted-opacity);
 }
 
-.ohhh-calendar-day--phase-fertile {
-  .ohhh-calendar-day--inner {
-    background: var(--cycle-fertile-light);
-  }
-  &.is-predicted .ohhh-calendar-day--inner {
-    background: var(--cycle-fertile-light-predicted);
-    opacity: var(--cycle-predicted-opacity);
-  }
+.ohhh-calendar-day--phase-fertile .ohhh-calendar-day--inner {
+  background: var(--cycle-fertile-light);
+}
+.ohhh-calendar-day--phase-fertile.is-predicted .ohhh-calendar-day--inner {
+  background: var(--cycle-fertile-light-predicted);
+  opacity: var(--cycle-predicted-opacity);
 }
 
-.ohhh-calendar-day--phase-luteal {
-  .ohhh-calendar-day--inner {
-    background: var(--cycle-luteal-light);
-  }
-  &.is-predicted .ohhh-calendar-day--inner {
-    background: var(--cycle-luteal-light-predicted);
-    opacity: var(--cycle-predicted-opacity);
-  }
+.ohhh-calendar-day--phase-luteal .ohhh-calendar-day--inner {
+  background: var(--cycle-luteal-light);
+}
+.ohhh-calendar-day--phase-luteal.is-predicted .ohhh-calendar-day--inner {
+  background: var(--cycle-luteal-light-predicted);
+  opacity: var(--cycle-predicted-opacity);
 }
 
 .ohhh-calendar-day--icon-start,
 .ohhh-calendar-day--icon-end,
 .ohhh-calendar-day--icon-ovulation {
   position: absolute;
-  width: 14px;
-  height: 14px;
   cursor: grab;
-  z-index: 10;
+  z-index: 20;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   user-select: none;
   touch-action: none;
 }
 
 .ohhh-calendar-day--icon-start {
-  top: 4px;
-  right: 4px;
+  top: 8px;
+  right: 8px;
   width: 10px;
   height: 10px;
   border-radius: 50%;
@@ -219,8 +203,8 @@
 }
 
 .ohhh-calendar-day--icon-end {
-  top: 4px;
-  right: 4px;
+  top: 8px;
+  right: 8px;
   width: 10px;
   height: 10px;
   border-radius: 2px;
@@ -229,16 +213,17 @@
 }
 
 .ohhh-calendar-day--icon-ovulation {
-  top: 4px;
-  left: 4px;
-  width: 14px;
-  height: 14px;
+  top: 6px;
+  left: 6px;
+  width: 16px;
+  height: 16px;
 }
 
 .ohhh-calendar-day--icon-start:hover,
 .ohhh-calendar-day--icon-end:hover,
 .ohhh-calendar-day--icon-ovulation:hover {
   transform: scale(1.2);
+  z-index: 25;
 }
 
 .ohhh-calendar-day--icon-start.is-dragging,
@@ -248,12 +233,6 @@
   transform: scale(1.4);
   z-index: 100;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.ohhh-calendar-day--drag-indicator {
-  position: absolute;
-  pointer-events: none;
-  z-index: 1000;
 }
 
 .ohhh-calendar-footer {
