@@ -65,3 +65,30 @@ export function createWeekDates(date, index) {
   }
   return dates
 }
+
+export function formatDate(date, format = 'YYYY-MM-DD') {
+  const d = new Date(date)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  
+  return format
+    .replace('YYYY', year)
+    .replace('MM', month)
+    .replace('DD', day)
+}
+
+export function parseDate(dateStr) {
+  if (dateStr instanceof Date) return dateStr
+  const parts = dateStr.split('-')
+  return new Date(+parts[0], +parts[1] - 1, +parts[2])
+}
+
+export function getMonthRange(date) {
+  const d = new Date(date)
+  const year = d.getFullYear()
+  const month = d.getMonth()
+  const start = new Date(year, month, 1)
+  const end = new Date(year, month + 1, 0)
+  return { start, end }
+}
