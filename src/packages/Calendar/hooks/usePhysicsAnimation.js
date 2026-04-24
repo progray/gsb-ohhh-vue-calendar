@@ -1,15 +1,15 @@
 import { ref, reactive, onUnmounted, computed } from 'vue'
 
 const SPRING_CONFIG = {
-  stiffness: 45,
-  damping: 5,
+  stiffness: 38,
+  damping: 4.2,
   mass: 1
 }
 
 const RIPPLE_CONFIG = {
-  maxRadius: 300,
-  speed: 250,
-  strength: 50
+  maxRadius: 500,
+  speed: 380,
+  strength: 75
 }
 
 export function usePhysicsAnimation() {
@@ -61,15 +61,27 @@ export function usePhysicsAnimation() {
       state.position.x += state.velocity.x * dt
       state.position.y += state.velocity.y * dt
 
-      const rotationSpring = stiffness * 0.04
-      const rotationDamping = damping * 0.4
+      const rotationSpring = stiffness * 0.035
+      const rotationDamping = damping * 0.35
       const rotForce = -rotationSpring * state.rotation - rotationDamping * state.rotationVelocity
       state.rotationVelocity += (rotForce / mass) * dt
       state.rotation += state.rotationVelocity * dt
 
-      if (Math.abs(state.position.x) < 0.1 && Math.abs(state.position.y) < 0.1 &&
-          Math.abs(state.velocity.x) < 0.5 && Math.abs(state.velocity.y) < 0.5 &&
-          Math.abs(state.rotation) < 0.01 && Math.abs(state.rotationVelocity) < 0.1) {
+      const kineticEnergy = 0.5 * mass * (
+        state.velocity.x * state.velocity.x + state.velocity.y * state.velocity.y
+      ) + 0.5 * mass * (state.rotationVelocity * state.rotationVelocity)
+
+      const potentialEnergy = 0.5 * stiffness * (
+        state.position.x * state.position.x + state.position.y * state.position.y
+      ) + 0.5 * rotationSpring * state.rotation * state.rotation
+
+      const totalEnergy = kineticEnergy + potentialEnergy
+
+      const energyThreshold = 0.25
+      if (totalEnergy < energyThreshold &&
+          Math.abs(state.velocity.x) < 0.15 &&
+          Math.abs(state.velocity.y) < 0.15 &&
+          Math.abs(state.rotationVelocity) < 0.03) {
         state.position.x = 0
         state.position.y = 0
         state.velocity.x = 0
@@ -123,24 +135,26 @@ export function usePhysicsAnimation() {
     const state = getOrCreateCellState(cellKey)
     const now = performance.now()
 
-    if (now - state.lastActivationTime < 80) return
+    if (now - state.lastActivationTime < 60) return
 
     state.lastActivationTime = now
     state.isActive = true
 
-    const baseForce = 55 * intensity
-    const randomY = (Math.random() - 0.5) * 35
+    const baseForce = 65 * intensity
+    const randomY = (Math.random() - 0.5) * 45
+    const randomRotation = (Math.random() - 0.5) * 0.8
 
     state.velocity.x = direction === 'right' ? baseForce : -baseForce
     state.velocity.y = randomY
-    state.rotationVelocity = (direction === 'right' ? 1.5 : -1.5) * intensity
+    state.rotationVelocity = (direction === 'right' ? 1.8 : -1.8) * intensity + randomRotation
 
     startAnimation()
   }
 
-  function triggerRipple(centerIndex, totalCells, cols = 7) {
+  function triggerRippleWithCenter(centerX, centerY, totalCells, cols = 7) {
     rippleEffects.value.push({
-      centerIndex,
+      centerX,
+      centerY,
       radius: 0,
       alpha: 1,
       startTime: performance.now()
@@ -193,10 +207,11 @@ export function usePhysicsAnimation() {
     animationTick,
     isAnimating,
     triggerWindChime,
-    triggerRipple,
+    triggerRipple: triggerRippleWithCenter,
     getCellTransform,
     isCellActive,
     resetAllCells,
-    startAnimation
+    startAnimation,
+    RIPPLE_CONFIG
   }
 }

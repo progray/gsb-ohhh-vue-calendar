@@ -69,8 +69,10 @@
           ]"
           :data-index="cellIndex"
           :data-page="pageIndex"
-          @mouseenter="onCellMouseEnter(pageIndex, cellIndex)"
-          @click="onCellClick(pageIndex, cellIndex, dateObj.date)"
+          :data-row="Math.floor(cellIndex / 7)"
+          :data-col="cellIndex % 7"
+          @mouseenter="onCellMouseEnter(pageIndex, cellIndex, $event)"
+          @click="onCellClick(pageIndex, cellIndex, dateObj.date, $event)"
         >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
@@ -172,7 +174,8 @@ const {
   triggerRipple,
   getCellTransform,
   resetAllCells,
-  startAnimation
+  startAnimation,
+  RIPPLE_CONFIG
 } = usePhysicsAnimation()
 
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
@@ -190,6 +193,8 @@ const isMouseDown = ref(false)
 const lastMouseCellIndex = ref(-1)
 const lastMousePageIndex = ref(-1)
 const pageTransitionDirection = ref(null)
+const clickQueue = ref([])
+const isProcessingClick = ref(false)
 
 const { lengthX } = useSwipe(swipeRef, {
   threshold: 0,
@@ -267,7 +272,7 @@ function onMouseUp() {
   lastMousePageIndex.value = -1
 }
 
-function onCellMouseEnter(pageIndex, cellIndex) {
+function onCellMouseEnter(pageIndex, cellIndex, event) {
   if (!isMouseDown.value || isInTransition.value) return
 
   const cellKey = getCellKey(pageIndex, cellIndex)
@@ -281,47 +286,69 @@ function onCellMouseEnter(pageIndex, cellIndex) {
   lastMousePageIndex.value = pageIndex
 }
 
-function onCellClick(pageIndex, cellIndex, date) {
-  if (isInTransition.value) return
+function getCellCenterPosition(cellElement) {
+  if (!cellElement || !swipeRef.value) return null
+  const cellRect = cellElement.getBoundingClientRect()
+  const wrapperRect = swipeRef.value.getBoundingClientRect()
+  return {
+    x: cellRect.left + cellRect.width / 2 - wrapperRect.left,
+    y: cellRect.top + cellRect.height / 2 - wrapperRect.top
+  }
+}
 
+function triggerRippleFromClick(clickData) {
+  const { pageIndex, cellIndex, clientX, clientY, date } = clickData
   const cellKey = getCellKey(pageIndex, cellIndex)
   const currentPageDates = allRenderDates.value[pageIndex]
+
+  const cellElement = document.querySelector(`[data-page="${pageIndex}"][data-index="${cellIndex}"]`)
+  const clickPosition = getCellCenterPosition(cellElement)
+
+  const centerRow = Math.floor(cellIndex / 7)
+  const centerCol = cellIndex % 7
+
+  const rippleSpeed = RIPPLE_CONFIG.speed
+  const baseDelay = 8
 
   for (let i = 0; i < currentPageDates.length; i++) {
     const row = Math.floor(i / 7)
     const col = i % 7
-    const centerRow = Math.floor(cellIndex / 7)
-    const centerCol = cellIndex % 7
 
-    const distance = Math.sqrt(
+    const gridDistance = Math.sqrt(
       Math.pow(row - centerRow, 2) + Math.pow(col - centerCol, 2)
     )
 
-    const maxDistance = Math.sqrt(49 + 25)
-    const normalizedDistance = distance / maxDistance
-
-    const delay = normalizedDistance * 150
+    const delay = gridDistance * baseDelay + (Math.random() - 0.5) * 8
 
     setTimeout(() => {
       const key = getCellKey(pageIndex, i)
+
       const angle = Math.atan2(row - centerRow, col - centerCol)
-      const force = 65 * (1 - normalizedDistance * 0.5)
+      const maxDistance = Math.sqrt(49 + 25)
+      const normalizedDistance = gridDistance / maxDistance
+
+      const baseForce = 85 * (1 - normalizedDistance * 0.4)
+      const randomForceOffset = (Math.random() - 0.5) * 25
+      const force = Math.max(15, baseForce + randomForceOffset)
+
+      const randomAngleOffset = (Math.random() - 0.5) * 0.6
+      const finalAngle = angle + randomAngleOffset
 
       const state = cellStates[key]
       if (state) {
         state.isActive = true
-        state.velocity.x = Math.cos(angle) * force
-        state.velocity.y = Math.sin(angle) * force * 0.6
-        state.rotationVelocity = (Math.random() - 0.5) * 2.0
+        state.velocity.x = Math.cos(finalAngle) * force
+        state.velocity.y = Math.sin(finalAngle) * force * 0.75 + (Math.random() - 0.5) * 25
+        state.rotationVelocity = (Math.random() - 0.5) * 2.8
       } else {
         cellStates[key] = {
           position: { x: 0, y: 0 },
           velocity: {
-            x: Math.cos(angle) * force,
-            y: Math.sin(angle) * force * 0.6
+            x: Math.cos(finalAngle) * force,
+            y: Math.sin(finalAngle) * force * 0.75 + (Math.random() - 0.5) * 25
           },
           rotation: 0,
-          rotationVelocity: (Math.random() - 0.5) * 2.0,
+          rotationVelocity: (Math.random() - 0.5) * 2.8,
           scale: 1,
           targetPosition: { x: 0, y: 0 },
           isActive: true,
@@ -329,16 +356,56 @@ function onCellClick(pageIndex, cellIndex, date) {
         }
       }
       startAnimation()
-    }, delay)
+    }, Math.abs(delay))
   }
 
-  triggerRipple(cellKey, currentPageDates.length, 7)
+  if (clickPosition) {
+    triggerRipple(clickPosition.x, clickPosition.y, currentPageDates.length, 7)
+  }
 
-  changePageTo(date)
   if (!isSameDay(new Date(date), selected.value)) {
     selected.value = new Date(date)
     emit('select-change', selected.value)
   }
+}
+
+async function processClickQueue() {
+  if (isProcessingClick.value || clickQueue.value.length === 0) return
+
+  isProcessingClick.value = true
+  const clickData = clickQueue.value.shift()
+
+  const isSelectingNewDate = clickData && clickData.date &&
+    !isSameDay(new Date(clickData.date), selected.value)
+
+  if (isSelectingNewDate) {
+    triggerRippleFromClick(clickData)
+    await new Promise(resolve => setTimeout(resolve, 400))
+    switchPageToTargetDate(clickData.date)
+  } else if (clickData) {
+    triggerRippleFromClick(clickData)
+  }
+
+  isProcessingClick.value = false
+
+  if (clickQueue.value.length > 0) {
+    processClickQueue()
+  }
+}
+
+function onCellClick(pageIndex, cellIndex, date, event) {
+  if (isInTransition.value || isProcessingClick.value) return
+
+  clickQueue.value.push({
+    pageIndex,
+    cellIndex,
+    date,
+    clientX: event.clientX,
+    clientY: event.clientY,
+    timestamp: performance.now()
+  })
+
+  processClickQueue()
 }
 
 function _normalize(param) {
@@ -377,6 +444,8 @@ function _normalize(param) {
 }
 
 function changePageTo(param) {
+  if (isInTransition.value) return
+
   const targetDate = _normalize(param)
 
   const isPrev = (
@@ -396,35 +465,44 @@ function changePageTo(param) {
   }
 
   const currentPageDates = allRenderDates.value[1]
+  const centerCol = 3
+
   for (let i = 0; i < currentPageDates.length; i++) {
     const row = Math.floor(i / 7)
     const col = i % 7
-    const delay = (row * 80 + col * 40)
+
+    const isNext = pageTransitionDirection.value === 'next'
+
+    const colDistance = Math.abs(col - centerCol)
+    const rowDelay = row * 55
+    const colDelay = colDistance * 12
+    const randomDelay = Math.random() * 30
+
+    const delay = rowDelay + colDelay + randomDelay
 
     setTimeout(() => {
       const cellKey = getCellKey(1, i)
       const state = cellStates[cellKey]
+
+      const baseYForce = isNext ? 140 : -115
+      const randomYOffset = (Math.random() - 0.5) * 35
+      const randomXOffset = (Math.random() - 0.5) * (isNext ? 75 : 65)
+      const randomRotationOffset = (Math.random() - 0.5) * (isNext ? 3.0 : 2.2)
+
       if (state) {
         state.isActive = true
-        if (pageTransitionDirection.value === 'next') {
-          state.velocity.y = 120
-          state.velocity.x = (Math.random() - 0.5) * 70
-          state.rotationVelocity = (Math.random() - 0.5) * 3.5
-        } else {
-          state.velocity.y = -100
-          state.velocity.x = (Math.random() - 0.5) * 60
-          state.rotationVelocity = (Math.random() - 0.5) * 2.5
-        }
+        state.velocity.y = baseYForce + randomYOffset
+        state.velocity.x = randomXOffset
+        state.rotationVelocity = (isNext ? 2.0 : -1.5) + randomRotationOffset
       } else {
-        const isNext = pageTransitionDirection.value === 'next'
         cellStates[cellKey] = {
           position: { x: 0, y: 0 },
           velocity: {
-            x: (Math.random() - 0.5) * (isNext ? 70 : 60),
-            y: isNext ? 120 : -100
+            x: randomXOffset,
+            y: baseYForce + randomYOffset
           },
           rotation: 0,
-          rotationVelocity: (Math.random() - 0.5) * (isNext ? 3.5 : 2.5),
+          rotationVelocity: (isNext ? 2.0 : -1.5) + randomRotationOffset,
           scale: 1,
           targetPosition: { x: 0, y: 0 },
           isActive: true,
@@ -440,8 +518,7 @@ function changePageTo(param) {
   nextTick(() => {
     setTimeout(() => {
       pageTransitionDirection.value = null
-      resetAllCells()
-    }, 800)
+    }, 300)
   })
 }
 
@@ -460,21 +537,32 @@ function drawRipples() {
 
   if (rippleEffects.value.length > 0) {
     rippleEffects.value.forEach(ripple => {
+      const centerX = ripple.centerX ?? (canvas.width / 2)
+      const centerY = ripple.centerY ?? (canvas.height / 2)
+
       const gradient = ctx.createRadialGradient(
-        canvas.width / 2, canvas.height / 2,
-        ripple.radius - 40,
-        canvas.width / 2, canvas.height / 2,
+        centerX, centerY,
+        Math.max(0, ripple.radius - 50),
+        centerX, centerY,
         ripple.radius
       )
       gradient.addColorStop(0, `rgba(64, 158, 255, 0)`)
-      gradient.addColorStop(0.5, `rgba(64, 158, 255, ${0.4 * ripple.alpha})`)
+      gradient.addColorStop(0.5, `rgba(64, 158, 255, ${0.5 * ripple.alpha})`)
       gradient.addColorStop(1, `rgba(64, 158, 255, 0)`)
 
       ctx.beginPath()
-      ctx.arc(canvas.width / 2, canvas.height / 2, ripple.radius, 0, Math.PI * 2)
-      ctx.strokeStyle = `rgba(64, 158, 255, ${0.6 * ripple.alpha})`
-      ctx.lineWidth = 4
+      ctx.arc(centerX, centerY, ripple.radius, 0, Math.PI * 2)
+      ctx.strokeStyle = `rgba(64, 158, 255, ${0.7 * ripple.alpha})`
+      ctx.lineWidth = 3
       ctx.stroke()
+
+      if (ripple.radius > 30) {
+        ctx.beginPath()
+        ctx.arc(centerX, centerY, ripple.radius - 30, 0, Math.PI * 2)
+        ctx.strokeStyle = `rgba(64, 158, 255, ${0.4 * ripple.alpha})`
+        ctx.lineWidth = 2
+        ctx.stroke()
+      }
     })
   }
 
