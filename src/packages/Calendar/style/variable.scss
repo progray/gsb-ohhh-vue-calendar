@@ -8,11 +8,22 @@
   --calendar-text-color-level-4: #a8abb2;
   --calendar-text-color-level-5: #c0c4cc;
 
-  --calendar-background: transparent;
+  --theme-background: #fafafa;
+  --theme-accent-background: #f0f0f0;
+  --theme-text-primary: #333333;
+  --theme-text-secondary: #666666;
+  --theme-selected-text: #ffffff;
+  --theme-base-hue: 0;
+  --theme-saturation: 5%;
+  --theme-lightness: 85%;
+  --theme-accent-lightness: 75%;
+  --theme-font-family: inherit;
+
+  --calendar-background: var(--theme-background);
   --calendar-row-height: 60px;
 
   --calendar-icon-size: 20px;
-  --calendar-icon-color: var(--calendar-text-color-level-3);
+  --calendar-icon-color: var(--theme-text-secondary);
 
   --calendar-toolbar-font-size: 16px;
   --calendar-toolbar-icon-size: var(--calendar-icon-size);
@@ -26,24 +37,24 @@
 
   --calendar-weekdays-height: 30px;
   --calendar-weekdays-font-size: 14px;
-  --calendar-weekdays-color: var(--calendar-text-color-level-1);
+  --calendar-weekdays-color: var(--theme-text-primary);
 
   --calendar-days-value-font-size: 14px;
-  --calendar-days-value-color: var(--calendar-text-color-level-1);
+  --calendar-days-value-color: var(--theme-text-primary);
   --calendar-days-label-font-size: 10px;
-  --calendar-days-label-color: var(--calendar-text-color-level-2);
+  --calendar-days-label-color: var(--theme-text-secondary);
 
-  --calendar-days-today-color: var(--calendar-theme-color);
-  --calendar-days-today-background: var(--calendar-theme-color-light);
-  --calendar-days-selected-color: #fff;
-  --calendar-days-selected-background: var(--calendar-theme-color);
-  --calendar-days-other-month-color: var(--calendar-text-color-level-5);
+  --calendar-days-today-color: var(--theme-text-primary);
+  --calendar-days-today-background: transparent;
+  --calendar-days-selected-color: var(--theme-selected-text);
+  --calendar-days-selected-background: var(--theme-row-accent);
+  --calendar-days-other-month-color: var(--theme-text-secondary);
 
-  --calendar-days-inner-size: 34px;
+  --calendar-days-inner-size: 100%;
   --calendar-days-inner-width: var(--calendar-days-inner-size);
   --calendar-days-inner-height: var(--calendar-days-inner-size);
-  --calendar-days-inner-padding: 2px;
-  --calendar-days-inner-radius: 50%;
+  --calendar-days-inner-padding: 0;
+  --calendar-days-inner-radius: 0;
   --calendar-days-inner-background: transparent;
 
   --calendar-days-marker-top-gap: 4px;
