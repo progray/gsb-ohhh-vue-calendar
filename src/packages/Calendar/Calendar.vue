@@ -149,6 +149,8 @@ const {
   transitionDuration,
   isInTransition,
   renderRows,
+  weekIndex,
+  currentMonthDates,
   switchPageToTargetDate,
   startTransitionAnimation,
   onTransitionEnd,
@@ -209,17 +211,26 @@ const containerStyle = computed(() => {
   }
 })
 
+function getEffectiveRowIndex(dateIndex) {
+  if (viewMode.value === 'week') {
+    return weekIndex.value
+  }
+  return Math.floor(dateIndex / 7)
+}
+
 function getRowBackgroundStyle(rowIndex) {
   const theme = currentTheme.value
+  const effectiveRowIndex = viewMode.value === 'week' ? weekIndex.value : rowIndex
   return {
-    backgroundColor: getThemeRibbonColor(theme, rowIndex)
+    backgroundColor: getThemeRibbonColor(theme, effectiveRowIndex),
+    top: `calc(var(--calendar-row-height) * ${rowIndex})`
   }
 }
 
 function getDayStyle(dateIndex) {
   const theme = currentTheme.value
-  const rowIndex = Math.floor(dateIndex / 7)
-  const accentColor = getThemeAccentColor(theme, rowIndex)
+  const effectiveRowIndex = getEffectiveRowIndex(dateIndex)
+  const accentColor = getThemeAccentColor(theme, effectiveRowIndex)
   return {
     '--theme-row-accent': accentColor
   }

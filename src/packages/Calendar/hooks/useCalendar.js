@@ -232,6 +232,8 @@ export function useCalendar({ initialSelectedDate, initialViewMode, weekStart, d
     transitionDuration,
     isInTransition,
     renderRows,
+    weekIndex,
+    currentMonthDates,
     switchPageToTargetDate,
     startTransitionAnimation,
     onTransitionEnd,

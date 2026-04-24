@@ -7,6 +7,10 @@ function generateRibbonColors(baseHue, count = 6) {
   return colors
 }
 
+function generateGentleGrayRibbonColors() {
+  return [0, 200, 60, 160, 30, 240]
+}
+
 function hslToCss(hue, saturation, lightness) {
   return `hsl(${hue}, ${saturation}%, ${lightness}%)`
 }
@@ -18,9 +22,9 @@ const THEMES = [
     isDark: false,
     fontFamily: null,
     baseHue: 0,
-    saturation: 5,
-    lightness: 85,
-    accentLightness: 75,
+    saturation: 30,
+    lightness: 90,
+    accentLightness: 70,
     textLightness: 30,
     textSecondaryLightness: 50,
     background: '#fafafa',
@@ -28,7 +32,7 @@ const THEMES = [
     primaryText: '#333333',
     secondaryText: '#666666',
     selectedText: '#ffffff',
-    ribbonHues: generateRibbonColors(0, 6)
+    ribbonHues: generateGentleGrayRibbonColors()
   },
   {
     id: 'sport-bold',
@@ -36,8 +40,8 @@ const THEMES = [
     isDark: false,
     fontFamily: null,
     baseHue: 0,
-    saturation: 75,
-    lightness: 65,
+    saturation: 80,
+    lightness: 72,
     accentLightness: 55,
     textLightness: 20,
     textSecondaryLightness: 40,
@@ -54,9 +58,9 @@ const THEMES = [
     isDark: false,
     fontFamily: null,
     baseHue: 180,
-    saturation: 20,
-    lightness: 80,
-    accentLightness: 70,
+    saturation: 30,
+    lightness: 85,
+    accentLightness: 65,
     textLightness: 25,
     textSecondaryLightness: 45,
     background: '#f5f8f8',
@@ -72,8 +76,8 @@ const THEMES = [
     isDark: true,
     fontFamily: null,
     baseHue: 200,
-    saturation: 80,
-    lightness: 50,
+    saturation: 85,
+    lightness: 45,
     accentLightness: 60,
     textLightness: 90,
     textSecondaryLightness: 70,
@@ -90,9 +94,9 @@ const THEMES = [
     isDark: false,
     fontFamily: null,
     baseHue: 150,
-    saturation: 40,
+    saturation: 50,
     lightness: 85,
-    accentLightness: 75,
+    accentLightness: 65,
     textLightness: 20,
     textSecondaryLightness: 40,
     background: '#f7fbf9',
@@ -108,9 +112,9 @@ const THEMES = [
     isDark: false,
     fontFamily: null,
     baseHue: 330,
-    saturation: 60,
-    lightness: 75,
-    accentLightness: 65,
+    saturation: 70,
+    lightness: 80,
+    accentLightness: 55,
     textLightness: 15,
     textSecondaryLightness: 35,
     background: '#fffafd',
@@ -125,10 +129,10 @@ const THEMES = [
     name: '中国古风',
     isDark: false,
     fontFamily: '"Times New Roman", "SimSun", "Songti SC", serif',
-    baseHue: 15,
-    saturation: 50,
-    lightness: 75,
-    accentLightness: 65,
+    baseHue: 25,
+    saturation: 55,
+    lightness: 78,
+    accentLightness: 50,
     textLightness: 15,
     textSecondaryLightness: 35,
     background: '#faf6f2',
@@ -136,7 +140,7 @@ const THEMES = [
     primaryText: '#1a1510',
     secondaryText: '#4a3a2a',
     selectedText: '#ffffff',
-    ribbonHues: generateRibbonColors(15, 6)
+    ribbonHues: generateRibbonColors(25, 6)
   },
   {
     id: 'morandi',
@@ -144,9 +148,9 @@ const THEMES = [
     isDark: false,
     fontFamily: null,
     baseHue: 30,
-    saturation: 25,
-    lightness: 70,
-    accentLightness: 60,
+    saturation: 35,
+    lightness: 75,
+    accentLightness: 50,
     textLightness: 25,
     textSecondaryLightness: 45,
     background: '#f5f2ef',
@@ -162,9 +166,9 @@ const THEMES = [
     isDark: true,
     fontFamily: null,
     baseHue: 280,
-    saturation: 90,
-    lightness: 55,
-    accentLightness: 65,
+    saturation: 95,
+    lightness: 50,
+    accentLightness: 70,
     textLightness: 95,
     textSecondaryLightness: 75,
     background: '#0d001a',
@@ -180,9 +184,9 @@ const THEMES = [
     isDark: false,
     fontFamily: null,
     baseHue: 30,
-    saturation: 45,
-    lightness: 75,
-    accentLightness: 65,
+    saturation: 55,
+    lightness: 78,
+    accentLightness: 52,
     textLightness: 20,
     textSecondaryLightness: 40,
     background: '#faf5f0',
@@ -214,7 +218,16 @@ function getThemeRibbonColor(theme, rowIndex) {
 
 function getThemeAccentColor(theme, rowIndex) {
   const hue = theme.ribbonHues[rowIndex % theme.ribbonHues.length]
-  return hslToCss(hue, theme.saturation, theme.accentLightness)
+  let accentLightness
+  let accentSaturation = theme.saturation
+  if (theme.isDark) {
+    accentLightness = Math.min(theme.lightness + 30, 95)
+    accentSaturation = Math.min(theme.saturation + 10, 100)
+  } else {
+    accentLightness = Math.max(theme.lightness - 35, 15)
+    accentSaturation = Math.min(theme.saturation + 15, 100)
+  }
+  return hslToCss(hue, accentSaturation, accentLightness)
 }
 
 export {

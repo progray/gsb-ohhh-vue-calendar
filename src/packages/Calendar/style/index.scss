@@ -121,7 +121,7 @@
 }
 
 .ohhh-calendar-day.is-selected {
-  background: var(--calendar-days-selected-background) !important;
+  background: var(--theme-row-accent, var(--calendar-days-selected-background)) !important;
 }
 
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-value,
