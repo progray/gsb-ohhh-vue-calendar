@@ -42,9 +42,16 @@
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'ohhh-calendar-day--phase-period': getDatePhaseClass(dateObj.date) === 'period',
+            'ohhh-calendar-day--phase-fertile': getDatePhaseClass(dateObj.date) === 'fertile',
+            'ohhh-calendar-day--phase-ovulation': getDatePhaseClass(dateObj.date) === 'ovulation',
+            'ohhh-calendar-day--phase-luteal': getDatePhaseClass(dateObj.date) === 'luteal',
+            'is-predicted': isDatePredicted(dateObj.date)
           }"
           @click="changeSelectedDate(dateObj.date)"
+          @mousemove="onDayMouseMove(dateObj.date, $event)"
+          @mouseleave="onDayMouseLeave"
         >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
@@ -53,6 +60,37 @@
             </div>
           </div>
           <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+
+          <!-- 经期开始图标 -->
+          <div
+            v-if="isPeriodStart(dateObj.date) && dateObj.current"
+            class="ohhh-calendar-day--icon-start"
+            :class="{ 'is-dragging': isDraggingType('start') && isDraggingDate(dateObj.date) }"
+            @mousedown.prevent="onStartDrag('start', dateObj.date)"
+            @touchstart.prevent="onStartDrag('start', dateObj.date)"
+            title="拖动调整经期开始日期"
+          />
+
+          <!-- 经期结束图标 -->
+          <div
+            v-if="isPeriodEnd(dateObj.date) && dateObj.current"
+            class="ohhh-calendar-day--icon-end"
+            :class="{ 'is-dragging': isDraggingType('end') && isDraggingDate(dateObj.date) }"
+            @mousedown.prevent="onStartDrag('end', dateObj.date)"
+            @touchstart.prevent="onStartDrag('end', dateObj.date)"
+            title="拖动调整经期结束日期"
+          />
+
+          <!-- 排卵日花朵图标 -->
+          <div
+            v-if="isOvulationDate(dateObj.date) && dateObj.current"
+            class="ohhh-calendar-day--icon-ovulation"
+            :class="{ 'is-dragging': isDraggingType('ovulation') && isDraggingDate(dateObj.date) }"
+            v-html="icons.flower"
+            @mousedown.prevent="onStartDrag('ovulation', dateObj.date)"
+            @touchstart.prevent="onStartDrag('ovulation', dateObj.date)"
+            title="拖动调整排卵日期"
+          />
         </div>
       </div>
     </div>
@@ -67,57 +105,74 @@
         />
       </slot>
     </div>
+
+    <!-- 图例说明 -->
+    <div v-if="showCycleLegend" class="cycle-legend">
+      <div class="cycle-legend--item">
+        <span class="cycle-legend--dot period"></span>
+        <span>经期</span>
+      </div>
+      <div class="cycle-legend--item">
+        <span class="cycle-legend--dot ovulation"></span>
+        <span>排卵日</span>
+      </div>
+      <div class="cycle-legend--item">
+        <span class="cycle-legend--dot fertile"></span>
+        <span>易孕期</span>
+      </div>
+      <div class="cycle-legend--item">
+        <span class="cycle-legend--dot luteal"></span>
+        <span>黄体期</span>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref, onMounted, onUnmounted } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
-import { isSameDay, createWeekdays } from './utils'
+import { useCycle } from './hooks/useCycle.js'
+import { isSameDay, addDays, getDaysBetween } from './utils'
 import { icons } from './utils/icons.js'
 
 const swipeRef = useTemplateRef('swp')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'cycle-change'])
 
 const props = defineProps({
-  // 初始选中的日期
   initialSelectedDate: {
     type: Date,
     default: () => new Date()
   },
-  // 初始视图模式
   initialViewMode: {
     type: String,
-    default: 'month' // month or week
+    default: 'month'
   },
-  // 以周几作为每周的起始
   weekStart: {
     type: Number,
-    default: 0 // 0: Sunday, 1: Monday, etc.
+    default: 0
   },
-  // 标记的日期
   markerDates: {
     type: Array,
     default: () => []
   },
-  // 是否显示顶部工具栏
   showToolbar: {
     type: Boolean,
     default: true
   },
-  // 是否显示底部工具栏
   showFooter: {
     type: Boolean,
     default: true
   },
-  // 是否显示weekdays栏
   showWeekdays: {
     type: Boolean,
     default: true
   },
-  // 过渡动画时长
+  showCycleLegend: {
+    type: Boolean,
+    default: true
+  },
   duration: {
     type: String,
     default: '0.3s'
@@ -143,11 +198,34 @@ const {
   toggleViewMode
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
 
-// 顶部工具栏标题
+const {
+  cycles,
+  draggingState,
+  averageCycleLength,
+  averagePeriodLength,
+  CYCLE_PHASE,
+  getDatePhase,
+  isPeriodStart,
+  isPeriodEnd,
+  isOvulationDate,
+  getCycleByPeriodStart,
+  getCycleByPeriodEnd,
+  getCycleByOvulationDate,
+  startDrag,
+  updateDragPosition,
+  endDrag
+} = useCycle()
+
+const longPressTimer = ref(null)
+const isLongPress = ref(false)
+const dragStartDate = ref(null)
+
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
-// 星期栏
-const weekdays = createWeekdays(weekStart.value)
-// 标记日期
+const weekdays = computed(() => {
+  const WEEK_DAYS = ['日', '一', '二', '三', '四', '五', '六']
+  return WEEK_DAYS.slice(weekStart.value).concat(WEEK_DAYS.slice(0, weekStart.value))
+})
+
 const markerDateList = computed(() =>
   markerDates.value.map(item => ({
     date: new Date(typeof item === 'object' && item.date ? item.date : item),
@@ -155,16 +233,12 @@ const markerDateList = computed(() =>
   }))
 )
 
-// 监听滑动事件
 const { lengthX } = useSwipe(swipeRef, {
-  // 滑动阈值
   threshold: 0,
-  // 手指滑动过程中
   onSwipe: () => {
     if (isInTransition.value) return
     transformDistance.value = -lengthX.value + 'px'
   },
-  // 手指抬起滑动结束，开始滑动动画
   onSwipeEnd: (_, direction) => {
     if (isInTransition.value) return
     if (direction === 'left') {
@@ -172,14 +246,11 @@ const { lengthX } = useSwipe(swipeRef, {
     } else if (direction === 'right') {
       changePageTo('prev-page')
     } else {
-      // 如果方向不是左右，则将页面复位
       startTransitionAnimation(direction)
     }
   }
 })
 
-// 归一化参数
-// 支持 'prev-page', 'next-page', 'prev-year', 'next-year', 以及合法的日期
 function _normalize(param) {
   if (!param) {
     throw new Error('参数不能为空')
@@ -215,14 +286,13 @@ function _normalize(param) {
   throw new Error('日期不合法')
 }
 
-// 切换日历页面
 function changePageTo(param) {
   const targetDate = _normalize(param)
   switchPageToTargetDate(targetDate)
 }
 
-// 切换选中的日期
 function changeSelectedDate(date) {
+  if (draggingState.isDragging) return
   changePageTo(date)
   if (!isSameDay(new Date(date), selected.value)) {
     selected.value = new Date(date)
@@ -230,17 +300,102 @@ function changeSelectedDate(date) {
   }
 }
 
-// 获取 marker 颜色
 function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
+function getDatePhaseClass(date) {
+  const phaseInfo = getDatePhase(date)
+  if (!phaseInfo) return null
+  return phaseInfo.phase
+}
+
+function isDatePredicted(date) {
+  const phaseInfo = getDatePhase(date)
+  return phaseInfo?.isPredicted || false
+}
+
+function isDraggingType(type) {
+  return draggingState.type === type
+}
+
+function isDraggingDate(date) {
+  return draggingState.currentDate && isSameDay(draggingState.currentDate, date)
+}
+
+function getTouchEvent(e) {
+  return e.touches ? e.touches[0] : e
+}
+
+function onStartDrag(type, date, event) {
+  let cycle = null
+  if (type === 'start') {
+    cycle = getCycleByPeriodStart(date)
+  } else if (type === 'end') {
+    cycle = getCycleByPeriodEnd(date)
+  } else if (type === 'ovulation') {
+    cycle = getCycleByOvulationDate(date)
+  }
+
+  if (!cycle || cycle.isPredicted) return
+
+  const touch = getTouchEvent(event)
+  dragStartDate.value = new Date(date)
+  isLongPress.value = false
+
+  longPressTimer.value = setTimeout(() => {
+    isLongPress.value = true
+    startDrag(type, date, cycle.id)
+  }, 500)
+
+  function onMove(e) {
+    if (!isLongPress.value) {
+      const touch2 = getTouchEvent(e)
+      const dx = touch.clientX - touch2.clientX
+      const dy = touch.clientY - touch2.clientY
+      if (Math.sqrt(dx * dx + dy * dy) > 5) {
+        clearTimeout(longPressTimer.value)
+        cleanup()
+      }
+    }
+  }
+
+  function onUp() {
+    clearTimeout(longPressTimer.value)
+    if (draggingState.isDragging) {
+      endDrag()
+      emit('cycle-change', cycles.value)
+    }
+    cleanup()
+  }
+
+  function cleanup() {
+    document.removeEventListener('mousemove', onMove)
+    document.removeEventListener('mouseup', onUp)
+    document.removeEventListener('touchmove', onMove, { passive: false })
+    document.removeEventListener('touchend', onUp)
+  }
+
+  document.addEventListener('mousemove', onMove)
+  document.addEventListener('mouseup', onUp)
+  document.addEventListener('touchmove', onMove, { passive: false })
+  document.addEventListener('touchend', onUp)
+}
+
+function onDayMouseMove(date, event) {
+  if (!draggingState.isDragging) return
+  updateDragPosition(date)
+}
+
+function onDayMouseLeave() {
+}
+
 defineExpose({
-  // 切换周/月视图
   toggleViewMode,
-  // 切换日历页
   changePageTo,
-  // 切换选中日期
-  changeSelectedDate
+  changeSelectedDate,
+  cycles,
+  averageCycleLength,
+  averagePeriodLength
 })
 </script>
