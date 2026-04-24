@@ -49,4 +49,19 @@
   --calendar-days-marker-top-gap: 4px;
   --calendar-days-marker-size: 4px;
   --calendar-days-marker-color: var(--calendar-theme-color);
+
+  --calendar-event-bar-height: 3px;
+  --calendar-event-bar-radius: 2px;
+  --calendar-event-bar-gap: 2px;
+  --calendar-event-bar-opacity: 0.9;
+
+  --calendar-popup-background: rgba(255, 255, 255, 0.95);
+  --calendar-popup-blur: 12px;
+  --calendar-popup-radius: 12px;
+  --calendar-popup-min-width: 240px;
+  --calendar-popup-max-width: 320px;
+
+  --calendar-subscription-item-padding: 12px;
+  --calendar-subscription-item-radius: 8px;
+  --calendar-subscription-item-hover-bg: rgba(0, 0, 0, 0.04);
 }
