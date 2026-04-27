@@ -23,3 +23,116 @@
   --calendar-days-marker-top-gap: 8px;
   --calendar-days-marker-size: 8px;
 }
+
+// 移动端图标容器位置
+.ohhh-calendar-day--diary-wrapper {
+  bottom: 10px;
+  right: 10px;
+}
+
+// 移动端堆叠状态图标
+.ohhh-calendar-day--diary-icon-stacked {
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  min-height: 14px;
+  border-radius: 3px;
+  
+  &:not(:first-child) {
+    margin-left: -6px;
+  }
+}
+
+.ohhh-calendar-day--diary-icon-stacked svg {
+  width: 10px;
+  height: 10px;
+}
+
+// 移动端展开状态图标
+.ohhh-calendar-day--diary-icons-expanded {
+  max-width: 240px;
+  padding: 10px 12px;
+  gap: 6px;
+  border-radius: 8px;
+}
+
+.ohhh-calendar-day--diary-icon-expanded {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  border-radius: 4px;
+}
+
+.ohhh-calendar-day--diary-icon-expanded svg {
+  width: 12px;
+  height: 12px;
+}
+
+.ohhh-calendar-day--diary-icons-expanded::-webkit-scrollbar {
+  height: 6px;
+}
+
+.ohhh-calendar-day--dragging-text {
+  font-size: 18px;
+}
+
+// 移动端边缘检测区域
+.ohhh-calendar-edge-zone {
+  width: 60px;
+}
+
+// 移动端弹窗调整
+.ohhh-calendar-diary-modal--content {
+  width: 95%;
+  padding: 32px;
+}
+
+.ohhh-calendar-diary-modal--title {
+  font-size: 28px;
+}
+
+.ohhh-calendar-diary-modal--textarea {
+  min-height: 160px;
+  font-size: 24px;
+  padding: 16px;
+}
+
+.ohhh-calendar-diary-modal--char-count {
+  font-size: 20px;
+}
+
+.ohhh-calendar-diary-modal--btn {
+  padding: 16px 32px;
+  font-size: 22px;
+}
+
+.ohhh-calendar-merge-modal--option {
+  padding: 24px;
+}
+
+.ohhh-calendar-merge-modal--option-title {
+  font-size: 24px;
+}
+
+.ohhh-calendar-merge-modal--option-desc {
+  font-size: 18px;
+}
+
+.ohhh-calendar-merge-modal--cancel {
+  font-size: 20px;
+}
+
+// 移动端拖拽影子
+.ohhh-calendar-drag-ghost {
+  padding: 16px 20px;
+}
+
+.ohhh-calendar-drag-ghost--icon {
+  width: 32px;
+  height: 32px;
+}
+
+.ohhh-calendar-drag-ghost--text {
+  font-size: 20px;
+}
