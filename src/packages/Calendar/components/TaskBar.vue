@@ -1,0 +1,341 @@
+<template>
+  <div
+    class="task-bar"
+    :class="{
+      'is-active': task.isActive,
+      'is-weekend': isWeekend(currentDate),
+      'starts-today': isStartDate,
+      'ends-today': isEndDate,
+      'is-dragging': isDragging && draggingTaskId === task.id,
+      'is-resizing-start': isResizingStart && resizingStartTaskId === task.id,
+      'is-resizing-end': isResizingEnd && resizingEndTaskId === task.id
+    }"
+    :style="taskBarStyle"
+    @mousedown="handleMouseDown"
+    @touchstart="handleTouchStart"
+    @click="handleClick"
+  >
+    <!-- 左侧调整大小的手柄（开始日期） -->
+    <div 
+      class="task-bar--resize-handle task-bar--resize-handle-left" 
+      v-if="isStartDate"
+      @mousedown.stop="handleResizeStartLeft"
+      @touchstart.stop="handleResizeStartLeft"
+    />
+    
+    <!-- 左侧图标 -->
+    <div class="task-bar--icon" v-if="isStartDate">
+      <svg v-if="!isWeekend(currentDate)" viewBox="0 0 24 24" width="16" height="16">
+        <path
+          d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"
+          fill="currentColor"
+        />
+      </svg>
+      <svg v-else viewBox="0 0 24 24" width="16" height="16">
+        <path
+          d="M18 15.5c0 1.38-1.12 2.5-2.5 2.5h-11c-1.38 0-2.5-1.12-2.5-2.5v-11c0-1.38 1.12-2.5 2.5-2.5h11c1.38 0 2.5 1.12 2.5 2.5v11zm-11.5-9.5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm7.5 8c0 1.1-.9 2-2 2h-7c-1.1 0-2-.9-2-2v-.5c0-1.38 1.12-2.5 2.5-2.5h4c1.38 0 2.5 1.12 2.5 2.5v.5zm2.5-7c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2zm1.5 9.5c0 1.38-1.12 2.5-2.5 2.5h-1c0 1.66-1.34 3-3 3h-11c-1.66 0-3-1.34-3-3v-1h19v1z"
+          fill="currentColor"
+        />
+      </svg>
+    </div>
+    
+    <!-- 任务标题 -->
+    <div class="task-bar--title" v-if="isStartDate || !isEndDate">
+      {{ task.title }}
+    </div>
+    
+    <!-- 右侧调整大小的手柄（结束日期） -->
+    <div 
+      class="task-bar--resize-handle task-bar--resize-handle-right" 
+      v-if="isEndDate"
+      @mousedown.stop="handleResizeStartRight"
+      @touchstart.stop="handleResizeStartRight"
+    />
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+import { isSameDay, isWeekend } from '../utils/index.js'
+import { useTaskStore } from '../hooks/useTaskStore.js'
+
+const props = defineProps({
+  task: {
+    type: Object,
+    required: true
+  },
+  currentDate: {
+    type: Date,
+    required: true
+  },
+  weekStart: {
+    type: Number,
+    default: 0
+  }
+})
+
+const {
+  TASK_COLORS,
+  activateTask,
+  isDragging,
+  draggingTaskId,
+  startDrag,
+  endDrag,
+  isResizingEnd,
+  resizingEndTaskId,
+  startResizeEnd,
+  endResizeEnd,
+  isResizingStart,
+  resizingStartTaskId,
+  startResizeStart,
+  endResizeStart
+} = useTaskStore()
+
+// 计算任务条的颜色配置
+const colorConfig = computed(() => {
+  return TASK_COLORS[props.task.color] || TASK_COLORS.kleinianBlue
+})
+
+// 检查当前日期是否是任务的开始日期
+const isStartDate = computed(() => {
+  return isSameDay(props.task.startDate, props.currentDate)
+})
+
+// 检查当前日期是否是任务的结束日期
+const isEndDate = computed(() => {
+  return isSameDay(props.task.endDate, props.currentDate)
+})
+
+// 检查当前日期是否是周末
+const isWeekendComputed = computed(() => {
+  return isWeekend(props.currentDate)
+})
+
+// 计算任务条的样式
+const taskBarStyle = computed(() => {
+  const color = colorConfig.value
+  
+  // 基础样式
+  const style = {
+    '--task-primary-color': color.primary,
+    '--task-semi-transparent': color.semiTransparent,
+    '--task-shadow': color.shadow,
+    '--task-accent': color.accent,
+    top: `${props.task.rowIndex * 28 + 4}px`
+  }
+  
+  return style
+})
+
+// 处理鼠标按下（开始拖拽）
+function handleMouseDown(event) {
+  // 如果不是左键点击，或者正在调整大小，则不处理
+  if (event.button !== 0 || isResizingEnd.value || isResizingStart.value) return
+  
+  event.preventDefault()
+  startDrag(props.task.id, props.currentDate)
+  
+  // 绑定鼠标抬起事件
+  const handleMouseUp = () => {
+    endDrag()
+    document.removeEventListener('mouseup', handleMouseUp)
+    document.removeEventListener('mouseleave', handleMouseUp)
+  }
+  
+  document.addEventListener('mouseup', handleMouseUp)
+  document.addEventListener('mouseleave', handleMouseUp)
+}
+
+// 处理触摸开始（开始拖拽）
+function handleTouchStart(event) {
+  if (isResizingEnd.value || isResizingStart.value) return
+  
+  event.preventDefault()
+  startDrag(props.task.id, props.currentDate)
+  
+  const handleTouchEnd = () => {
+    endDrag()
+    document.removeEventListener('touchend', handleTouchEnd)
+  }
+  
+  document.addEventListener('touchend', handleTouchEnd)
+}
+
+// 处理左侧调整大小开始（调整开始日期）
+function handleResizeStartLeft(event) {
+  event.preventDefault()
+  event.stopPropagation()
+  startResizeStart(props.task.id, props.currentDate)
+  
+  const handleResizeEnd = () => {
+    endResizeStart()
+    document.removeEventListener('mouseup', handleResizeEnd)
+    document.removeEventListener('mouseleave', handleResizeEnd)
+    document.removeEventListener('touchend', handleResizeEnd)
+  }
+  
+  if (event.type === 'mousedown') {
+    document.addEventListener('mouseup', handleResizeEnd)
+    document.addEventListener('mouseleave', handleResizeEnd)
+  } else {
+    document.addEventListener('touchend', handleResizeEnd)
+  }
+}
+
+// 处理右侧调整大小开始（调整结束日期）
+function handleResizeStartRight(event) {
+  event.preventDefault()
+  event.stopPropagation()
+  startResizeEnd(props.task.id, props.currentDate)
+  
+  const handleResizeEnd = () => {
+    endResizeEnd()
+    document.removeEventListener('mouseup', handleResizeEnd)
+    document.removeEventListener('mouseleave', handleResizeEnd)
+    document.removeEventListener('touchend', handleResizeEnd)
+  }
+  
+  if (event.type === 'mousedown') {
+    document.addEventListener('mouseup', handleResizeEnd)
+    document.addEventListener('mouseleave', handleResizeEnd)
+  } else {
+    document.addEventListener('touchend', handleResizeEnd)
+  }
+}
+
+// 点击任务条时激活任务（显示呼吸闪烁效果）
+function handleClick() {
+  activateTask(props.task.id)
+}
+</script>
+
+<style scoped lang="scss">
+.task-bar {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  height: 24px;
+  background: var(--task-semi-transparent);
+  border-left: 4px solid var(--task-accent);
+  border-radius: 2px;
+  box-shadow: 
+    inset 0 1px 2px var(--task-shadow),
+    0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  overflow: hidden;
+  user-select: none;
+  
+  &:hover {
+    background: var(--task-primary-color);
+    opacity: 0.9;
+  }
+  
+  // 开始日期的样式
+  &.starts-today {
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+  }
+  
+  // 结束日期的样式
+  &.ends-today {
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+    margin-right: 4px;
+  }
+  
+  // 周末的样式
+  &.is-weekend {
+    opacity: 0.8;
+  }
+  
+  // 激活状态（呼吸闪烁）
+  &.is-active {
+    animation: breathe 1s ease-in-out infinite;
+  }
+  
+  // 拖拽状态
+  &.is-dragging {
+    opacity: 0.7;
+    cursor: grabbing;
+  }
+  
+  // 调整开始日期状态
+  &.is-resizing-start {
+    opacity: 0.7;
+  }
+  
+  // 调整结束日期状态
+  &.is-resizing-end {
+    opacity: 0.7;
+  }
+}
+
+.task-bar--icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6px;
+  color: rgba(255, 255, 255, 0.9);
+  flex-shrink: 0;
+}
+
+.task-bar--title {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.95);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.task-bar--resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  background: transparent;
+  z-index: 10;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+.task-bar--resize-handle-left {
+  left: 0;
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+
+.task-bar--resize-handle-right {
+  right: 0;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+// 呼吸闪烁动画
+@keyframes breathe {
+  0%, 100% {
+    opacity: 0.8;
+    transform: scale(1);
+    box-shadow: 
+      inset 0 1px 2px var(--task-shadow),
+      0 2px 4px rgba(0, 0, 0, 0.1),
+      0 0 0 0 var(--task-shadow);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+    box-shadow: 
+      inset 0 1px 2px var(--task-shadow),
+      0 2px 4px rgba(0, 0, 0, 0.1),
+      0 0 10px 2px var(--task-shadow);
+  }
+}
+</style>

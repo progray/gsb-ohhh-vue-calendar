@@ -1,5 +1,6 @@
 <template>
   <div
+    ref="calendarContainer"
     class="ohhh-calendar-container"
     :style="{
       '--calendar-rows': renderRows,
@@ -42,17 +43,36 @@
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'is-drag-preview': isDragPreviewDate(dateObj.date)
           }"
+          :style="getDayStyle(dateObj)"
           @click="changeSelectedDate(dateObj.date)"
+          @mouseenter="handleDayMouseEnter(dateObj.date)"
+          @mousemove="handleDayMouseMove(dateObj.date)"
+          @mouseleave="handleDayMouseLeave"
         >
-          <div class="ohhh-calendar-day--inner">
-            <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
-            <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
-              <slot name="day-label" :date="dateObj.date" />
+          <!-- 日期信息 -->
+          <div class="ohhh-calendar-day--header">
+            <div class="ohhh-calendar-day--inner">
+              <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
+              <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
+                <slot name="day-label" :date="dateObj.date" />
+              </div>
             </div>
+            <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
           </div>
-          <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+          
+          <!-- 任务条容器 -->
+          <div class="ohhh-calendar-day--tasks">
+            <TaskBar
+              v-for="task in getTasksForDate(dateObj.date)"
+              :key="task.id"
+              :task="task"
+              :current-date="dateObj.date"
+              :week-start="weekStart"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -71,13 +91,33 @@
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, provide } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
-import { isSameDay, createWeekdays } from './utils'
+import { useTaskStore } from './hooks/useTaskStore.js'
+import { isSameDay, createWeekdays, formatDate } from './utils'
 import { icons } from './utils/icons.js'
+import TaskBar from './components/TaskBar.vue'
 
 const swipeRef = useTemplateRef('swp')
+const calendarContainer = useTemplateRef('calendarContainer')
+
+// 提供日历容器引用给子组件
+provide('calendarContainer', calendarContainer)
+
+// 使用任务状态管理
+const {
+  getTasksForDate,
+  maxTasksPerRow,
+  isDraggingAny,
+  dragPreviewDate,
+  isDragging,
+  isResizingEnd,
+  isResizingStart,
+  updateDrag,
+  updateResizeEnd,
+  updateResizeStart
+} = useTaskStore()
 
 const emit = defineEmits(['select-change', 'view-change'])
 
@@ -233,6 +273,57 @@ function changeSelectedDate(date) {
 // 获取 marker 颜色
 function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
+}
+
+// 获取日期格子的样式（根据任务数量调整高度）
+function getDayStyle(dateObj) {
+  const dateKey = formatDate(dateObj.date)
+  const taskCount = maxTasksPerRow.value.get(dateKey) || 0
+  
+  // 基础高度 + 任务数量 * 每个任务条的高度
+  // 基础高度包含日期头部的高度
+  const baseHeight = 48 // 日期头部高度
+  const taskHeight = 28 // 每个任务条的高度（24px高度 + 4px间距）
+  const totalHeight = baseHeight + Math.max(0, taskCount * taskHeight)
+  
+  return {
+    '--day-total-height': `${totalHeight}px`,
+    '--task-count': taskCount
+  }
+}
+
+// 检查日期是否是拖拽预览日期
+function isDragPreviewDate(date) {
+  if (!isDraggingAny.value || !dragPreviewDate.value) return false
+  return isSameDay(date, dragPreviewDate.value)
+}
+
+// 处理鼠标进入日期格子
+function handleDayMouseEnter(date) {
+  if (!isDraggingAny.value) return
+  updateDragPreviewDate(date)
+}
+
+// 处理鼠标在日期格子上移动
+function handleDayMouseMove(date) {
+  if (!isDraggingAny.value) return
+  updateDragPreviewDate(date)
+}
+
+// 处理鼠标离开日期格子
+function handleDayMouseLeave() {
+  // 不做任何操作，保持当前的预览日期
+}
+
+// 更新拖拽预览日期
+function updateDragPreviewDate(date) {
+  if (isDragging.value) {
+    updateDrag(date)
+  } else if (isResizingEnd.value) {
+    updateResizeEnd(date)
+  } else if (isResizingStart.value) {
+    updateResizeStart(date)
+  }
 }
 
 defineExpose({
