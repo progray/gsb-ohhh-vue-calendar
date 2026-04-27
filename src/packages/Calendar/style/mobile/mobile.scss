@@ -23,3 +23,29 @@
   --calendar-days-marker-top-gap: 8px;
   --calendar-days-marker-size: 8px;
 }
+
+.ohhh-calendar-container .wooden-fish-wrapper {
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.ohhh-calendar-container .ohhh-calendar-day:hover .wooden-fish-wrapper {
+  opacity: 1;
+}
+
+.ohhh-calendar-container .merit-plus-text {
+  font-size: 20px;
+}
+
+.ohhh-calendar-container .merit-progress-container {
+  width: 180px;
+  height: 12px;
+}
+
+.ohhh-calendar-container .merit-progress-text {
+  font-size: 14px;
+}
