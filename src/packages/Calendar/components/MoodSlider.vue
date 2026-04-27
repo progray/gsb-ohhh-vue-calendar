@@ -2,9 +2,14 @@
   <div
     v-if="visible"
     class="mood-slider-popup"
+    :class="{
+      'position-left': popupPosition === 'left',
+      'position-right': popupPosition === 'right',
+      'position-bottom': popupPosition === 'bottom'
+    }"
     :style="{
-      left: position.x + 'px',
-      top: position.y + 'px'
+      left: adjustedPosition.x + 'px',
+      top: adjustedPosition.y + 'px'
     }"
     @click.stop
   >
@@ -18,7 +23,8 @@
             'is-selected': selectedIndex === index
           }"
           :style="{
-            '--mood-color': color
+            '--mood-color': color,
+            left: getDotPosition(index) + '%'
           }"
           @click="selectColor(index)"
         ></div>
@@ -41,7 +47,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { MOOD_COLORS } from '../hooks/useMood.js'
 
 const props = defineProps({
@@ -56,6 +62,10 @@ const props = defineProps({
   initialColorIndex: {
     type: Number,
     default: null
+  },
+  containerBounds: {
+    type: Object,
+    default: null
   }
 })
 
@@ -63,6 +73,11 @@ const emit = defineEmits(['select', 'cancel', 'confirm'])
 
 const selectedIndex = ref(props.initialColorIndex ?? 2)
 const isDragging = ref(false)
+const popupRef = ref(null)
+const popupPosition = ref('default')
+
+const SLIDER_WIDTH = 232
+const SLIDER_HEIGHT = 100
 
 const selectedColor = computed(() => {
   return MOOD_COLORS[selectedIndex.value]
@@ -70,6 +85,60 @@ const selectedColor = computed(() => {
 
 const thumbPosition = computed(() => {
   return (selectedIndex.value / (MOOD_COLORS.length - 1)) * 100
+})
+
+function getDotPosition(index) {
+  return (index / (MOOD_COLORS.length - 1)) * 100
+}
+
+const adjustedPosition = computed(() => {
+  popupPosition.value = 'default'
+  
+  if (props.containerBounds) {
+    const { left, top, right, bottom, width: containerWidth, height: containerHeight } = props.containerBounds
+    
+    const clickX = props.position.x
+    const clickY = props.position.y
+    
+    const sliderWidth = 232
+    const sliderHeight = 100
+    
+    const defaultLeft = clickX - sliderWidth / 2
+    const defaultRight = clickX + sliderWidth / 2
+    const defaultTop = clickY - sliderHeight * 1.2
+    const defaultBottom = clickY
+    
+    let needsLeftAdjust = defaultLeft < 0
+    let needsRightAdjust = defaultRight > containerWidth
+    let needsBottomAdjust = defaultTop < 0
+    
+    if (needsLeftAdjust && needsRightAdjust) {
+      if (Math.abs(defaultLeft) < Math.abs(defaultRight - containerWidth)) {
+        needsRightAdjust = false
+      } else {
+        needsLeftAdjust = false
+      }
+    }
+    
+    if (needsLeftAdjust) {
+      popupPosition.value = 'left'
+    } else if (needsRightAdjust) {
+      popupPosition.value = 'right'
+    }
+    
+    if (needsBottomAdjust) {
+      if (popupPosition.value === 'default') {
+        popupPosition.value = 'bottom'
+      } else {
+        popupPosition.value = popupPosition.value + '-bottom'
+      }
+    }
+  }
+  
+  return {
+    x: props.position.x,
+    y: props.position.y
+  }
 })
 
 function selectColor(index) {
@@ -137,7 +206,7 @@ onUnmounted(() => {
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   padding: 16px;
-  min-width: 200px;
+  width: 200px;
   transform: translateX(-50%) translateY(-120%);
 }
 
@@ -150,6 +219,63 @@ onUnmounted(() => {
   border-left: 8px solid transparent;
   border-right: 8px solid transparent;
   border-top: 8px solid #ffffff;
+}
+
+.mood-slider-popup.position-left {
+  transform: translateX(0) translateY(-120%);
+}
+
+.mood-slider-popup.position-left::after {
+  left: 24px;
+  transform: translateX(0);
+}
+
+.mood-slider-popup.position-right {
+  transform: translateX(-100%) translateY(-120%);
+}
+
+.mood-slider-popup.position-right::after {
+  left: auto;
+  right: 24px;
+  transform: translateX(0);
+}
+
+.mood-slider-popup.position-bottom {
+  transform: translateX(-50%) translateY(20px);
+}
+
+.mood-slider-popup.position-bottom::after {
+  bottom: auto;
+  top: -8px;
+  border-top: none;
+  border-bottom: 8px solid #ffffff;
+}
+
+.mood-slider-popup.position-left-bottom {
+  transform: translateX(0) translateY(20px);
+}
+
+.mood-slider-popup.position-left-bottom::after {
+  left: 24px;
+  bottom: auto;
+  top: -8px;
+  transform: translateX(0);
+  border-top: none;
+  border-bottom: 8px solid #ffffff;
+}
+
+.mood-slider-popup.position-right-bottom {
+  transform: translateX(-100%) translateY(20px);
+}
+
+.mood-slider-popup.position-right-bottom::after {
+  left: auto;
+  right: 24px;
+  bottom: auto;
+  top: -8px;
+  transform: translateX(0);
+  border-top: none;
+  border-bottom: 8px solid #ffffff;
 }
 
 .mood-slider-container {
@@ -172,31 +298,36 @@ onUnmounted(() => {
   );
   border-radius: 2px;
   position: relative;
+  height: 24px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 0 8px;
 }
 
 .mood-slider-dot {
+  position: absolute;
   width: 16px;
   height: 16px;
   border-radius: 50%;
   background: var(--mood-color);
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, z-index 0.2s ease;
   border: 2px solid #ffffff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: translate(-50%, -50%);
+  top: 50%;
+  z-index: 1;
 }
 
 .mood-slider-dot:hover {
-  transform: scale(1.2);
+  transform: translate(-50%, -50%) scale(1.2);
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+  z-index: 2;
 }
 
 .mood-slider-dot.is-selected {
-  transform: scale(1.3);
+  transform: translate(-50%, -50%) scale(1.3);
   box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+  z-index: 3;
 }
 
 .mood-slider-thumb {
@@ -210,7 +341,9 @@ onUnmounted(() => {
   transform: translate(-50%, -50%);
   cursor: grab;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  z-index: 10;
+  pointer-events: auto;
 }
 
 .mood-slider-thumb:active {

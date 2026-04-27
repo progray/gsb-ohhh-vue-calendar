@@ -147,6 +147,7 @@
       v-if="moodSliderVisible"
       :visible="moodSliderVisible"
       :position="moodSliderPosition"
+      :containerBounds="containerBounds"
       :initialColorIndex="selectedMoodDate ? getMood(selectedMoodDate.date)?.colorIndex : null"
       @cancel="closeMoodSlider"
       @confirm="onMoodConfirmed"
@@ -313,6 +314,19 @@ const connectionLines = computed(() => {
   })
   
   return lines
+})
+
+const containerBounds = computed(() => {
+  if (!swipeRef.value) return null
+  const rect = swipeRef.value.getBoundingClientRect()
+  return {
+    left: rect.left,
+    top: rect.top,
+    right: rect.right,
+    bottom: rect.bottom,
+    width: rect.width,
+    height: rect.height
+  }
 })
 
 watch([currentYear, currentMonth], () => {
