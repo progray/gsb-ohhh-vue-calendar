@@ -29,6 +29,12 @@
   right: 8px;
   width: 32px;
   height: 32px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.ohhh-calendar-container .ohhh-calendar-day:hover .wooden-fish-wrapper {
+  opacity: 1;
 }
 
 .ohhh-calendar-container .merit-plus-text {

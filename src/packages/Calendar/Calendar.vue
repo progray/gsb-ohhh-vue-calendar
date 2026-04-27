@@ -363,4 +363,13 @@ defineExpose({
   transform: scale(1.1);
   transition: transform 0.15s ease;
 }
+
+.ohhh-calendar-day .wooden-fish-wrapper {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.ohhh-calendar-day:hover .wooden-fish-wrapper {
+  opacity: 1;
+}
 </style>

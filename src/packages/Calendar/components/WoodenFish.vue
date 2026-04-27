@@ -5,16 +5,13 @@
       :class="{ 'is-animating': isAnimating }"
       @click="handleClick"
     >
-      <svg viewBox="0 0 24 24" width="100%" height="100%">
-        <ellipse cx="12" cy="14" rx="9" ry="7" fill="#8B4513" stroke="#5D3A1A" stroke-width="1" />
-        <ellipse cx="12" cy="14" rx="6" ry="4.5" fill="#A0522D" />
-        <ellipse cx="12" cy="14" rx="3" ry="2" fill="#D2691E" opacity="0.6" />
-        <circle cx="8" cy="12" r="1.5" fill="#3D2314" />
-        <circle cx="16" cy="12" r="1.5" fill="#3D2314" />
-        <path d="M9 16 Q12 18 15 16" stroke="#3D2314" stroke-width="1" fill="none" />
-        <ellipse cx="12" cy="5" rx="2.5" ry="1.8" fill="#8B4513" stroke="#5D3A1A" stroke-width="0.5" />
-        <rect x="11" y="3" width="2" height="3" fill="#8B4513" rx="0.5" />
-      </svg>
+      <div class="wooden-fish-body">
+        <div class="wooden-fish-eyes">
+          <div class="wooden-fish-eye"></div>
+          <div class="wooden-fish-eye"></div>
+        </div>
+        <div class="wooden-fish-mouth"></div>
+      </div>
     </div>
     <transition name="merit-pop">
       <div
@@ -29,7 +26,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 
 const props = defineProps({
   isAnimating: {
@@ -72,17 +69,49 @@ function handleClick(e) {
 .wooden-fish-icon {
   width: 100%;
   height: 100%;
-  opacity: 0.4;
-  transition: opacity 0.3s ease, transform 0.15s ease;
+  transition: transform 0.15s ease;
   cursor: pointer;
-}
-
-.wooden-fish-icon:hover {
-  opacity: 0.8;
 }
 
 .wooden-fish-icon.is-animating {
   transform: scale(1.4);
+}
+
+.wooden-fish-body {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #8B4513;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  clip-path: ellipse(50% 45% at 50% 45%);
+}
+
+.wooden-fish-eyes {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+}
+
+.wooden-fish-eye {
+  width: 3px;
+  height: 3px;
+  background: #3D2314;
+  border-radius: 50%;
+}
+
+.wooden-fish-mouth {
+  position: absolute;
+  top: 58%;
+  left: 55%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 4px;
+  border: none;
+  border-bottom: 2px solid #3D2314;
+  border-radius: 0 0 10px 10px;
 }
 
 .merit-plus-text {
