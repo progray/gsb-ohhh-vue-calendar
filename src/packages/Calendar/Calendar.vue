@@ -37,9 +37,14 @@
           :icons="icons"
           :weekdays="weekdays"
           :week-start="weekStart"
+          :transform-distance="transformDistance"
+          :transition-duration="transitionDuration"
+          :render-rows="renderRows"
+          :duration="duration"
           @change-page-to="changePageTo"
           @change-selected-date="handleMinimalModeDateClick"
           @toggle-view-mode="toggleViewMode"
+          @transition-end="onTransitionEnd"
         />
       </div>
 
@@ -59,9 +64,14 @@
           :icons="icons"
           :weekdays="weekdays"
           :week-start="weekStart"
+          :transform-distance="transformDistance"
+          :transition-duration="transitionDuration"
+          :render-rows="renderRows"
+          :duration="duration"
           @change-page-to="changePageTo"
           @change-selected-date="changeSelectedDate"
           @toggle-view-mode="toggleViewMode"
+          @transition-end="onTransitionEnd"
         />
       </div>
     </div>

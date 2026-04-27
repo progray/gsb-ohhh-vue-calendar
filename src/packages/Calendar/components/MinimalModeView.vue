@@ -1,6 +1,13 @@
 <template>
-  <div class="minimal-mode-view">
-    <StarField />
+  <div class="minimal-mode-view"
+    :style="{
+      '--calendar-rows': renderRows,
+      '--calendar-transition-duration': duration,
+      '--translate-distance': transformDistance,
+      '--transition-duration': transitionDuration
+    }"
+  >
+    <StarField class="star-field-bg" />
 
     <div v-if="showToolbar" class="ohhh-calendar-toolbar">
       <slot name="toolbar" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
@@ -19,9 +26,15 @@
     </div>
 
     <div class="ohhh-calendar-wrapper">
-      <div class="ohhh-calendar-days">
+      <div
+        v-for="(item, index) in allRenderDates"
+        :key="index"
+        :style="{ left: 100 * (index - 1) + '%' }"
+        class="ohhh-calendar-days"
+        @transitionend="onTransitionEnd"
+      >
         <div
-          v-for="dateObj in currentRenderDates"
+          v-for="dateObj in item"
           :key="dateObj.key"
           class="ohhh-calendar-day"
           :class="{
@@ -57,7 +70,6 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
 import StarField from './StarField.vue'
 import { isSameDay, formatDateKey, isToday } from '../utils'
 
@@ -117,10 +129,26 @@ const props = defineProps({
   weekStart: {
     type: Number,
     default: 0
+  },
+  transformDistance: {
+    type: String,
+    default: '0px'
+  },
+  transitionDuration: {
+    type: String,
+    default: '0s'
+  },
+  renderRows: {
+    type: Number,
+    default: 6
+  },
+  duration: {
+    type: String,
+    default: '0.3s'
   }
 })
 
-const emit = defineEmits(['change-page-to', 'change-selected-date', 'toggle-view-mode'])
+const emit = defineEmits(['change-page-to', 'change-selected-date', 'toggle-view-mode', 'transition-end'])
 
 function isDateClicked(date) {
   const key = formatDateKey(date)
@@ -129,6 +157,10 @@ function isDateClicked(date) {
 
 function handleDateClick(date) {
   emit('change-selected-date', date)
+}
+
+function onTransitionEnd() {
+  emit('transition-end')
 }
 </script>
 
@@ -139,6 +171,15 @@ function handleDateClick(date) {
   border-radius: 16px;
   overflow: hidden;
   padding: 0;
+
+  .star-field-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+  }
 
   .ohhh-calendar-toolbar {
     position: relative;
@@ -204,12 +245,20 @@ function handleDateClick(date) {
     z-index: 5;
     overflow: hidden;
     padding: 8px;
+    height: calc(var(--calendar-rows) * 60px);
+    transition: height var(--calendar-transition-duration) ease;
   }
 
   .ohhh-calendar-days {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 4px;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    padding: 8px;
+    transform: translate3d(var(--translate-distance), 0, 0);
+    transition: transform var(--transition-duration) ease;
   }
 
   .ohhh-calendar-day {

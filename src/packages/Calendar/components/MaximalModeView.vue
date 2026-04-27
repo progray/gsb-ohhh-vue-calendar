@@ -1,5 +1,12 @@
 <template>
-  <div class="maximal-mode-view">
+  <div class="maximal-mode-view"
+    :style="{
+      '--calendar-rows': renderRows,
+      '--calendar-transition-duration': duration,
+      '--translate-distance': transformDistance,
+      '--transition-duration': transitionDuration
+    }"
+  >
     <div class="scroll-container" ref="scrollContainerRef">
       <div class="maximal-content">
         <div v-if="showToolbar" class="ohhh-calendar-toolbar">
@@ -20,9 +27,15 @@
         </div>
 
         <div class="ohhh-calendar-wrapper">
-          <div class="ohhh-calendar-days">
+          <div
+            v-for="(item, index) in allRenderDates"
+            :key="index"
+            :style="{ left: 100 * (index - 1) + '%' }"
+            class="ohhh-calendar-days"
+            @transitionend="onTransitionEnd"
+          >
             <div
-              v-for="(dateObj, dayIndex) in currentRenderDates"
+              v-for="(dateObj, dayIndex) in item"
               :key="dateObj.key"
               class="ohhh-calendar-day"
               :class="{
@@ -111,7 +124,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { isSameDay, isToday, isPast, isFuture, getDayProgress, getRemainingLifePercent } from '../utils'
 
 const props = defineProps({
@@ -166,10 +179,26 @@ const props = defineProps({
   weekStart: {
     type: Number,
     default: 0
+  },
+  transformDistance: {
+    type: String,
+    default: '0px'
+  },
+  transitionDuration: {
+    type: String,
+    default: '0s'
+  },
+  renderRows: {
+    type: Number,
+    default: 6
+  },
+  duration: {
+    type: String,
+    default: '0.3s'
   }
 })
 
-const emit = defineEmits(['change-page-to', 'change-selected-date', 'toggle-view-mode'])
+const emit = defineEmits(['change-page-to', 'change-selected-date', 'toggle-view-mode', 'transition-end'])
 
 const scrollContainerRef = ref(null)
 const dayProgress = ref(getDayProgress())
@@ -202,6 +231,10 @@ function formatElapsedTime() {
   const hours = Math.floor(elapsed)
   const minutes = Math.floor((elapsed - hours) * 60)
   return `${hours}时${minutes}分`
+}
+
+function onTransitionEnd() {
+  emit('transition-end')
 }
 
 onMounted(() => {
@@ -354,12 +387,21 @@ onUnmounted(() => {
   position: relative;
   padding: 4px;
   background: rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  height: calc(var(--calendar-rows) * 160px);
+  transition: height var(--calendar-transition-duration) ease;
 }
 
 .ohhh-calendar-days {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 2px;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  padding: 4px;
+  transform: translate3d(var(--translate-distance), 0, 0);
+  transition: transform var(--transition-duration) ease;
 }
 
 .ohhh-calendar-day {
