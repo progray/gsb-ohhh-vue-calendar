@@ -117,6 +117,10 @@ const content = computed(() => {
 function initCanvas() {
   if (!canvasRef.value) return
   
+  console.log('TimeCapsuleScratch: initCanvas called')
+  console.log('  props.date =', props.date)
+  console.log('  props.capsule =', props.capsule)
+  
   const canvas = canvasRef.value
   const ctx = canvas.getContext('2d')
   
@@ -133,12 +137,13 @@ function initCanvas() {
   
   canvasContext.value = ctx
   
-  if (props.capsule?.scratchProgress > 0) {
-    const savedProgress = props.capsule.scratchProgress
-    if (savedProgress >= 100) {
-      scratchProgress.value = 100
+  scratchProgress.value = props.capsule?.scratchProgress || 0
+  
+  if (scratchProgress.value > 0) {
+    if (scratchProgress.value >= 100) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
     } else {
-      restoreScratchArea(savedProgress)
+      restoreScratchArea(scratchProgress.value)
     }
   }
 }
@@ -158,8 +163,6 @@ function restoreScratchArea(progress) {
     const y = Math.random() * canvasSize.height
     drawCircle(x, y)
   }
-  
-  scratchProgress.value = progress
 }
 
 function drawCircle(x, y) {
@@ -271,26 +274,37 @@ function handleOverlayClick() {
   handleClose()
 }
 
+onMounted(() => {
+  console.log('TimeCapsuleScratch: onMounted')
+  nextTick(() => {
+    initCanvas()
+  })
+})
+
+onUnmounted(() => {
+  console.log('TimeCapsuleScratch: onUnmounted')
+  scratchProgress.value = 0
+  canvasContext.value = null
+})
+
 watch(
   () => props.visible,
   (newVisible) => {
+    console.log('TimeCapsuleScratch: visible changed to', newVisible)
     if (newVisible) {
       nextTick(() => {
-        scratchProgress.value = props.capsule?.scratchProgress || 0
         initCanvas()
       })
-    } else {
-      scratchProgress.value = 0
     }
   }
 )
 
 watch(
   () => props.capsule,
-  () => {
+  (newCapsule) => {
+    console.log('TimeCapsuleScratch: capsule changed to', newCapsule)
     if (props.visible) {
       nextTick(() => {
-        scratchProgress.value = props.capsule?.scratchProgress || 0
         initCanvas()
       })
     }

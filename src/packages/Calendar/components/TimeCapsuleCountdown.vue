@@ -97,8 +97,13 @@ const formattedDate = computed(() => {
 })
 
 function updateTimeLeft() {
+  console.log('TimeCapsuleCountdown: updateTimeLeft called')
+  console.log('  props.date =', props.date)
+  
   if (props.date) {
     timeLeft.value = calculateTimeLeft(props.date)
+    console.log('  timeLeft =', timeLeft.value)
+    
     if (timeLeft.value.total <= 0) {
       clearTimer()
       emit('close')
@@ -121,9 +126,31 @@ function clearTimer() {
   }
 }
 
+function handleClose() {
+  emit('close')
+}
+
+function handleOverlayClick() {
+  handleClose()
+}
+
+onMounted(() => {
+  console.log('TimeCapsuleCountdown: onMounted')
+  if (props.visible) {
+    updateTimeLeft()
+    startTimer()
+  }
+})
+
+onUnmounted(() => {
+  console.log('TimeCapsuleCountdown: onUnmounted')
+  clearTimer()
+})
+
 watch(
   () => props.visible,
   (newVisible) => {
+    console.log('TimeCapsuleCountdown: visible changed to', newVisible)
     if (newVisible) {
       updateTimeLeft()
       startTimer()
@@ -135,27 +162,11 @@ watch(
 
 watch(
   () => props.date,
-  () => {
-    updateTimeLeft()
+  (newDate, oldDate) => {
+    console.log('TimeCapsuleCountdown: date changed', oldDate, '->', newDate)
+    if (props.visible) {
+      updateTimeLeft()
+    }
   }
 )
-
-function handleClose() {
-  emit('close')
-}
-
-function handleOverlayClick() {
-  handleClose()
-}
-
-onMounted(() => {
-  if (props.visible) {
-    updateTimeLeft()
-    startTimer()
-  }
-})
-
-onUnmounted(() => {
-  clearTimer()
-})
 </script>

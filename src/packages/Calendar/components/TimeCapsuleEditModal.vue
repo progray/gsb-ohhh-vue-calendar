@@ -71,7 +71,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 
 const props = defineProps({
   visible: {
@@ -104,19 +104,42 @@ const formattedDate = computed(() => {
   return `${props.date.getFullYear()}年${props.date.getMonth() + 1}月${props.date.getDate()}日`
 })
 
+function resetContent() {
+  console.log('TimeCapsuleEditModal: resetContent called')
+  console.log('  props.date =', props.date)
+  console.log('  props.capsule =', props.capsule)
+  console.log('  props.isPast =', props.isPast)
+  
+  if (props.capsule && props.capsule.content) {
+    localContent.value = props.capsule.content
+  } else {
+    localContent.value = ''
+  }
+  
+  isSaving.value = false
+}
+
+onMounted(() => {
+  console.log('TimeCapsuleEditModal: onMounted')
+  resetContent()
+})
+
 watch(
-  () => props.capsule,
-  (newCapsule) => {
-    localContent.value = newCapsule?.content || ''
-  },
-  { immediate: true }
+  () => props.date,
+  (newDate, oldDate) => {
+    console.log('TimeCapsuleEditModal: date changed', oldDate, '->', newDate)
+    if (props.visible) {
+      resetContent()
+    }
+  }
 )
 
 watch(
-  () => props.visible,
-  (newVisible) => {
-    if (!newVisible) {
-      isSaving.value = false
+  () => props.capsule,
+  (newCapsule, oldCapsule) => {
+    console.log('TimeCapsuleEditModal: capsule changed', oldCapsule, '->', newCapsule)
+    if (props.visible) {
+      resetContent()
     }
   }
 )
@@ -134,6 +157,10 @@ function handleSave() {
     return
   }
   
+  console.log('TimeCapsuleEditModal: handleSave called')
+  console.log('  date =', props.date)
+  console.log('  content =', localContent.value)
+  
   isSaving.value = true
   emit('save', {
     date: props.date,
@@ -145,6 +172,9 @@ function handleSave() {
 }
 
 function handleDelete() {
+  console.log('TimeCapsuleEditModal: handleDelete called')
+  console.log('  date =', props.date)
+  
   emit('delete', props.date)
 }
 </script>
