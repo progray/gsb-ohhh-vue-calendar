@@ -138,3 +138,148 @@
   width: var(--calendar-footer-icon-size);
   height: var(--calendar-footer-icon-size);
 }
+
+// 弹珠样式
+.ohhh-calendar-marble {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--marble-color);
+  cursor: grab;
+  transform: translate(
+    calc(-50% + var(--marble-x) * 100%),
+    calc(-50% + var(--marble-y) * 100%)
+  );
+  left: 0;
+  top: 0;
+  z-index: 10;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 2px rgba(255, 255, 255, 0.5),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.2);
+  background-image:
+    radial-gradient(
+      circle at 30% 30%,
+      rgba(255, 255, 255, 0.6) 0%,
+      rgba(255, 255, 255, 0.2) 30%,
+      transparent 60%
+    );
+  transition: transform 0.1s ease, box-shadow 0.2s ease, opacity 0.3s ease;
+  pointer-events: auto;
+}
+
+.ohhh-calendar-marble:hover {
+  transform: translate(
+    calc(-50% + var(--marble-x) * 100%),
+    calc(-50% + var(--marble-y) * 100%)
+  ) scale(1.15);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.4),
+    inset 0 1px 3px rgba(255, 255, 255, 0.6),
+    inset 0 -1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.ohhh-calendar-marble.is-dragging {
+  cursor: grabbing;
+  z-index: 100;
+  transform: translate(
+    calc(-50% + var(--marble-x) * 100%),
+    calc(-50% + var(--marble-y) * 100%)
+  ) scale(1.2);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    inset 0 1px 4px rgba(255, 255, 255, 0.7),
+    inset 0 -1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.ohhh-calendar-marble.is-connection-start {
+  animation: pulse-ring 1s ease-in-out infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.3),
+      inset 0 1px 2px rgba(255, 255, 255, 0.5),
+      inset 0 -1px 2px rgba(0, 0, 0, 0.2),
+      0 0 0 0px rgba(100, 100, 100, 0.4);
+  }
+  70% {
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.3),
+      inset 0 1px 2px rgba(255, 255, 255, 0.5),
+      inset 0 -1px 2px rgba(0, 0, 0, 0.2),
+      0 0 0 8px rgba(100, 100, 100, 0);
+  }
+  100% {
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.3),
+      inset 0 1px 2px rgba(255, 255, 255, 0.5),
+      inset 0 -1px 2px rgba(0, 0, 0, 0.2),
+      0 0 0 0px rgba(100, 100, 100, 0);
+  }
+}
+
+.ohhh-calendar-marble.is-removing {
+  animation: marble-fade-out 0.3s ease-out forwards;
+}
+
+@keyframes marble-fade-out {
+  0% {
+    transform: translate(
+      calc(-50% + var(--marble-x) * 100%),
+      calc(-50% + var(--marble-y) * 100%)
+    ) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(
+      calc(-50% + var(--marble-x) * 100%),
+      calc(-50% + var(--marble-y) * 100%)
+    ) scale(0.1);
+    opacity: 0;
+  }
+}
+
+// 连线样式
+.ohhh-calendar-connections {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.ohhh-calendar-connections--lines {
+  width: 100%;
+  height: 100%;
+}
+
+.ohhh-calendar-connection-line {
+  stroke: rgba(100, 100, 100, 0.3);
+  stroke-width: 2;
+  stroke-linecap: round;
+  fill: none;
+  pointer-events: none;
+}
+
+.ohhh-calendar-connection-line--temp {
+  stroke: rgba(100, 100, 100, 0.5);
+  stroke-dasharray: 6, 4;
+  animation: dash-animation 1s linear infinite;
+}
+
+@keyframes dash-animation {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+
+// 日期格子需要有定位上下文
+.ohhh-calendar-day {
+  position: relative;
+  overflow: visible;
+}
