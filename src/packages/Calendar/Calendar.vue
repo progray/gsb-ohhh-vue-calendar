@@ -48,7 +48,7 @@
         >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
-            <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
+            <div class="ohhh-calendar-day--inner-label">
               <slot name="day-label" :date="dateObj.date" />
             </div>
           </div>
