@@ -83,9 +83,19 @@
         @touchmove="onSvgTouchMove"
       >
         <defs>
-          <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <linearGradient id="defaultLineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" style="stop-color:rgba(100, 100, 100, 0.3)" />
             <stop offset="100%" style="stop-color:rgba(100, 100, 100, 0.3)" />
+          </linearGradient>
+          
+          <linearGradient
+            v-for="conn in connections"
+            :key="'grad-' + conn.id"
+            :id="'conn-gradient-' + conn.id"
+            x1="0%" y1="0%" x2="100%" y2="0%"
+          >
+            <stop offset="0%" :style="{ stopColor: conn.fromColor, stopOpacity: 0.8 }" />
+            <stop offset="100%" :style="{ stopColor: conn.toColor, stopOpacity: 0.8 }" />
           </linearGradient>
         </defs>
 
@@ -95,10 +105,12 @@
             v-for="conn in connections"
             :key="conn.id"
             class="ohhh-calendar-connection-line"
+            :class="{ 'ohhh-calendar-connection-line--gradient': conn.fromColor && conn.toColor }"
             :x1="getMarbleCenterX(conn.fromId)"
             :y1="getMarbleCenterY(conn.fromId)"
             :x2="getMarbleCenterX(conn.toId)"
             :y2="getMarbleCenterY(conn.toId)"
+            :stroke="conn.fromColor && conn.toColor ? 'url(#conn-gradient-' + conn.id + ')' : 'rgba(100, 100, 100, 0.3)'"
           />
         </g>
 
@@ -206,6 +218,7 @@ const {
   startConnection,
   cancelConnection,
   createConnection,
+  createConnectionBetween,
   getMarblesByDate,
   getMarbleById
 } = useMarble()
@@ -455,8 +468,27 @@ function handleMarbleEnd(clientX, clientY) {
         removeMarble(activeMarbleId.value)
         emit('marble-remove', marbleData)
       } else {
-        updateMarblePosition(activeMarbleId.value, 0.75, 0.45)
-        emit('marble-move', marble)
+        const targetDate = getDateFromDayElement(dayElement)
+        
+        if (targetDate) {
+          const existingMarble = marbles.value.find(m => 
+            m.id !== marble.id && isSameDay(m.date, targetDate)
+          )
+          
+          if (existingMarble) {
+            const conn = createConnectionBetween(marble.id, existingMarble.id)
+            if (conn) {
+              emit('connection-create', conn)
+            }
+            updateMarblePosition(activeMarbleId.value, 0.75, 0.45)
+          } else {
+            if (!isSameDay(marble.date, targetDate)) {
+              updateMarbleDate(activeMarbleId.value, targetDate)
+            }
+            updateMarblePosition(activeMarbleId.value, 0.75, 0.45)
+            emit('marble-move', marble)
+          }
+        }
       }
     }
   }

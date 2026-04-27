@@ -266,6 +266,12 @@
   pointer-events: none;
 }
 
+.ohhh-calendar-connection-line--gradient {
+  stroke-dasharray: 8, 4;
+  stroke-width: 3;
+  animation: flow-animation 2s linear infinite;
+}
+
 .ohhh-calendar-connection-line--temp {
   stroke: rgba(100, 100, 100, 0.5);
   stroke-dasharray: 6, 4;
@@ -275,6 +281,15 @@
 @keyframes dash-animation {
   to {
     stroke-dashoffset: -10;
+  }
+}
+
+@keyframes flow-animation {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -24;
   }
 }
 

@@ -80,30 +80,50 @@ export function useMarble() {
     connectionStart.value = null
   }
 
-  function createConnection(marbleId) {
+  function createConnectionByStartId(marbleId) {
     if (!connectionStart.value || connectionStart.value === marbleId) {
       connectionStart.value = null
       return null
     }
 
+    return createConnectionBetween(connectionStart.value, marbleId)
+  }
+
+  function createConnectionBetween(fromId, toId) {
+    if (!fromId || !toId || fromId === toId) {
+      return null
+    }
+
     const existingConnection = connections.value.find(
-      conn => (conn.fromId === connectionStart.value && conn.toId === marbleId) ||
-              (conn.fromId === marbleId && conn.toId === connectionStart.value)
+      conn => (conn.fromId === fromId && conn.toId === toId) ||
+              (conn.fromId === toId && conn.toId === fromId)
     )
 
     if (existingConnection) {
-      connectionStart.value = null
+      return null
+    }
+
+    const fromMarble = marbles.value.find(m => m.id === fromId)
+    const toMarble = marbles.value.find(m => m.id === toId)
+
+    if (!fromMarble || !toMarble) {
       return null
     }
 
     const connection = {
       id: generateId(),
-      fromId: connectionStart.value,
-      toId: marbleId
+      fromId: fromId,
+      toId: toId,
+      fromColor: fromMarble.color,
+      toColor: toMarble.color
     }
     connections.value.push(connection)
     connectionStart.value = null
     return connection
+  }
+
+  function createConnection(marbleId) {
+    return createConnectionByStartId(marbleId)
   }
 
   function removeConnection(fromId, toId) {
@@ -138,6 +158,7 @@ export function useMarble() {
     startConnection,
     cancelConnection,
     createConnection,
+    createConnectionBetween,
     removeConnection,
     getMarblesByDate,
     getMarbleById
