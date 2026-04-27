@@ -24,6 +24,43 @@ export function isSameDay(date1, date2) {
   )
 }
 
+export function formatDateKey(date) {
+  const d = new Date(date)
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
+}
+
+export function isToday(date) {
+  return isSameDay(date, new Date())
+}
+
+export function isPast(date) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const compareDate = new Date(date)
+  compareDate.setHours(0, 0, 0, 0)
+  return compareDate < today
+}
+
+export function isFuture(date) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const compareDate = new Date(date)
+  compareDate.setHours(0, 0, 0, 0)
+  return compareDate > today
+}
+
+export function getDayProgress() {
+  const now = new Date()
+  const totalSeconds = 24 * 60 * 60
+  const currentSeconds = now.getHours() * 60 * 60 + now.getMinutes() * 60 + now.getSeconds()
+  return currentSeconds / totalSeconds
+}
+
+export function getRemainingLifePercent() {
+  const progress = getDayProgress()
+  return ((1 - progress) * 100).toFixed(1)
+}
+
 export function createMonthDates(date, index) {
   const year = date.getFullYear()
   const month = date.getMonth()
