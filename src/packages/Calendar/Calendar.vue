@@ -43,10 +43,14 @@
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'is-drag-preview': isDragPreviewDate(dateObj.date)
           }"
           :style="getDayStyle(dateObj)"
           @click="changeSelectedDate(dateObj.date)"
+          @mouseenter="handleDayMouseEnter(dateObj.date)"
+          @mousemove="handleDayMouseMove(dateObj.date)"
+          @mouseleave="handleDayMouseLeave"
         >
           <!-- 日期信息 -->
           <div class="ohhh-calendar-day--header">
@@ -104,7 +108,15 @@ provide('calendarContainer', calendarContainer)
 // 使用任务状态管理
 const {
   getTasksForDate,
-  maxTasksPerRow
+  maxTasksPerRow,
+  isDraggingAny,
+  dragPreviewDate,
+  isDragging,
+  isResizingEnd,
+  isResizingStart,
+  updateDrag,
+  updateResizeEnd,
+  updateResizeStart
 } = useTaskStore()
 
 const emit = defineEmits(['select-change', 'view-change'])
@@ -277,6 +289,40 @@ function getDayStyle(dateObj) {
   return {
     '--day-total-height': `${totalHeight}px`,
     '--task-count': taskCount
+  }
+}
+
+// 检查日期是否是拖拽预览日期
+function isDragPreviewDate(date) {
+  if (!isDraggingAny.value || !dragPreviewDate.value) return false
+  return isSameDay(date, dragPreviewDate.value)
+}
+
+// 处理鼠标进入日期格子
+function handleDayMouseEnter(date) {
+  if (!isDraggingAny.value) return
+  updateDragPreviewDate(date)
+}
+
+// 处理鼠标在日期格子上移动
+function handleDayMouseMove(date) {
+  if (!isDraggingAny.value) return
+  updateDragPreviewDate(date)
+}
+
+// 处理鼠标离开日期格子
+function handleDayMouseLeave() {
+  // 不做任何操作，保持当前的预览日期
+}
+
+// 更新拖拽预览日期
+function updateDragPreviewDate(date) {
+  if (isDragging.value) {
+    updateDrag(date)
+  } else if (isResizingEnd.value) {
+    updateResizeEnd(date)
+  } else if (isResizingStart.value) {
+    updateResizeStart(date)
   }
 }
 

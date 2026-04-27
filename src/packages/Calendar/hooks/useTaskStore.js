@@ -35,6 +35,8 @@ let taskIdCounter = 0
 // 全局任务状态
 const tasks = ref([])
 const activeTaskId = ref(null)
+
+// 拖拽移动状态
 const isDragging = ref(false)
 const draggingTaskId = ref(null)
 const dragStartDate = ref(null)
@@ -51,6 +53,10 @@ const isResizingStart = ref(false)
 const resizingStartTaskId = ref(null)
 const resizeStartStartDate = ref(null)
 const resizeStartCurrentDate = ref(null)
+
+// 拖拽预览状态
+const dragPreviewDate = ref(null)
+const isDraggingAny = ref(false)
 
 // 初始化一些示例任务
 function initSampleTasks() {
@@ -184,18 +190,31 @@ function activateTask(taskId) {
   }
 }
 
+// 计算两个日期之间的天数差（忽略时间部分）
+function _calculateDayDiff(date1, date2) {
+  const d1 = new Date(date1)
+  const d2 = new Date(date2)
+  d1.setHours(0, 0, 0, 0)
+  d2.setHours(0, 0, 0, 0)
+  const diffTime = d2 - d1
+  return Math.round(diffTime / (1000 * 60 * 60 * 24))
+}
+
 // 开始拖拽任务
 function startDrag(taskId, startDate) {
   isDragging.value = true
+  isDraggingAny.value = true
   draggingTaskId.value = taskId
   dragStartDate.value = new Date(startDate)
   dragCurrentDate.value = new Date(startDate)
+  dragPreviewDate.value = new Date(startDate)
 }
 
 // 更新拖拽位置
 function updateDrag(currentDate) {
   if (!isDragging.value) return
   dragCurrentDate.value = new Date(currentDate)
+  dragPreviewDate.value = new Date(currentDate)
 }
 
 // 结束拖拽
@@ -205,7 +224,7 @@ function endDrag() {
   const task = tasks.value.find(t => t.id === draggingTaskId.value)
   if (task && dragStartDate.value && dragCurrentDate.value) {
     // 计算日期差值
-    const diffDays = Math.floor((dragCurrentDate.value - dragStartDate.value) / (1000 * 60 * 60 * 24))
+    const diffDays = _calculateDayDiff(dragStartDate.value, dragCurrentDate.value)
     
     if (diffDays !== 0) {
       // 更新任务的开始和结束日期
@@ -222,23 +241,28 @@ function endDrag() {
   }
   
   isDragging.value = false
+  isDraggingAny.value = false
   draggingTaskId.value = null
   dragStartDate.value = null
   dragCurrentDate.value = null
+  dragPreviewDate.value = null
 }
 
 // 开始调整结束日期
 function startResizeEnd(taskId, startDate) {
   isResizingEnd.value = true
+  isDraggingAny.value = true
   resizingEndTaskId.value = taskId
   resizeEndStartDate.value = new Date(startDate)
   resizeEndCurrentDate.value = new Date(startDate)
+  dragPreviewDate.value = new Date(startDate)
 }
 
 // 更新调整结束日期位置
 function updateResizeEnd(currentDate) {
   if (!isResizingEnd.value) return
   resizeEndCurrentDate.value = new Date(currentDate)
+  dragPreviewDate.value = new Date(currentDate)
 }
 
 // 结束调整结束日期
@@ -248,7 +272,7 @@ function endResizeEnd() {
   const task = tasks.value.find(t => t.id === resizingEndTaskId.value)
   if (task && resizeEndStartDate.value && resizeEndCurrentDate.value) {
     // 计算日期差值
-    const diffDays = Math.floor((resizeEndCurrentDate.value - resizeEndStartDate.value) / (1000 * 60 * 60 * 24))
+    const diffDays = _calculateDayDiff(resizeEndStartDate.value, resizeEndCurrentDate.value)
     
     if (diffDays !== 0) {
       // 更新任务的结束日期
@@ -256,7 +280,11 @@ function endResizeEnd() {
       newEndDate.setDate(newEndDate.getDate() + diffDays)
       
       // 确保结束日期不早于开始日期
-      if (newEndDate >= task.startDate) {
+      const taskStartDate = new Date(task.startDate)
+      taskStartDate.setHours(0, 0, 0, 0)
+      newEndDate.setHours(0, 0, 0, 0)
+      
+      if (newEndDate >= taskStartDate) {
         updateTask(resizingEndTaskId.value, {
           endDate: newEndDate
         })
@@ -265,23 +293,28 @@ function endResizeEnd() {
   }
   
   isResizingEnd.value = false
+  isDraggingAny.value = false
   resizingEndTaskId.value = null
   resizeEndStartDate.value = null
   resizeEndCurrentDate.value = null
+  dragPreviewDate.value = null
 }
 
 // 开始调整开始日期
 function startResizeStart(taskId, startDate) {
   isResizingStart.value = true
+  isDraggingAny.value = true
   resizingStartTaskId.value = taskId
   resizeStartStartDate.value = new Date(startDate)
   resizeStartCurrentDate.value = new Date(startDate)
+  dragPreviewDate.value = new Date(startDate)
 }
 
 // 更新调整开始日期位置
 function updateResizeStart(currentDate) {
   if (!isResizingStart.value) return
   resizeStartCurrentDate.value = new Date(currentDate)
+  dragPreviewDate.value = new Date(currentDate)
 }
 
 // 结束调整开始日期
@@ -291,7 +324,7 @@ function endResizeStart() {
   const task = tasks.value.find(t => t.id === resizingStartTaskId.value)
   if (task && resizeStartStartDate.value && resizeStartCurrentDate.value) {
     // 计算日期差值
-    const diffDays = Math.floor((resizeStartCurrentDate.value - resizeStartStartDate.value) / (1000 * 60 * 60 * 24))
+    const diffDays = _calculateDayDiff(resizeStartStartDate.value, resizeStartCurrentDate.value)
     
     if (diffDays !== 0) {
       // 更新任务的开始日期
@@ -299,7 +332,11 @@ function endResizeStart() {
       newStartDate.setDate(newStartDate.getDate() + diffDays)
       
       // 确保开始日期不晚于结束日期
-      if (newStartDate <= task.endDate) {
+      const taskEndDate = new Date(task.endDate)
+      taskEndDate.setHours(0, 0, 0, 0)
+      newStartDate.setHours(0, 0, 0, 0)
+      
+      if (newStartDate <= taskEndDate) {
         updateTask(resizingStartTaskId.value, {
           startDate: newStartDate
         })
@@ -308,9 +345,11 @@ function endResizeStart() {
   }
   
   isResizingStart.value = false
+  isDraggingAny.value = false
   resizingStartTaskId.value = null
   resizeStartStartDate.value = null
   resizeStartCurrentDate.value = null
+  dragPreviewDate.value = null
 }
 
 // 取消所有操作
@@ -333,6 +372,8 @@ function cancelAllOperations() {
     resizeStartStartDate.value = null
     resizeStartCurrentDate.value = null
   }
+  isDraggingAny.value = false
+  dragPreviewDate.value = null
 }
 
 // 计算任务的垂直堆叠行索引
@@ -443,6 +484,8 @@ export function useTaskStore() {
     resizingStartTaskId,
     resizeStartStartDate,
     resizeStartCurrentDate,
+    isDraggingAny,
+    dragPreviewDate,
     maxTasksPerRow,
     TASK_COLORS,
     

@@ -59,14 +59,14 @@
 
 .ohhh-calendar-wrapper {
   position: relative;
-  overflow: hidden;
-  height: calc(var(--calendar-rows) * var(--calendar-row-height));
-  transition: height var(--calendar-transition-duration) ease;
+  overflow: visible;
+  min-height: calc(var(--calendar-rows) * var(--calendar-row-height));
+  transition: min-height var(--calendar-transition-duration) ease;
 }
 .ohhh-calendar-days {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  position: absolute;
+  position: relative;
   inset: 0;
   width: 100%;
   transform: translate3d(var(--translate-distance), 0, 0);
@@ -100,6 +100,23 @@
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.is-selected .ohhh-calendar-day--inner-label {
   color: var(--calendar-days-selected-color);
+}
+
+// 拖拽预览日期的高亮样式
+.ohhh-calendar-day.is-drag-preview {
+  background: rgba(64, 158, 255, 0.15);
+  border: 2px dashed #409eff;
+  box-sizing: border-box;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    background: rgba(64, 158, 255, 0.15);
+  }
+  50% {
+    background: rgba(64, 158, 255, 0.25);
+  }
 }
 
 .ohhh-calendar-day--inner {

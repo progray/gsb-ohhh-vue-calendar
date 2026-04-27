@@ -55,7 +55,7 @@
 </template>
 
 <script setup>
-import { computed, inject } from 'vue'
+import { computed } from 'vue'
 import { isSameDay, isWeekend } from '../utils/index.js'
 import { useTaskStore } from '../hooks/useTaskStore.js'
 
@@ -80,22 +80,16 @@ const {
   isDragging,
   draggingTaskId,
   startDrag,
-  updateDrag,
   endDrag,
   isResizingEnd,
   resizingEndTaskId,
   startResizeEnd,
-  updateResizeEnd,
   endResizeEnd,
   isResizingStart,
   resizingStartTaskId,
   startResizeStart,
-  updateResizeStart,
   endResizeStart
 } = useTaskStore()
-
-// 注入日历容器的引用，用于计算拖拽位置
-const calendarContainer = inject('calendarContainer', null)
 
 // 计算任务条的颜色配置
 const colorConfig = computed(() => {
@@ -141,22 +135,15 @@ function handleMouseDown(event) {
   event.preventDefault()
   startDrag(props.task.id, props.currentDate)
   
-  // 绑定鼠标移动和鼠标抬起事件
-  const handleMouseMove = (e) => {
-    const date = getDateFromEvent(e)
-    if (date) {
-      updateDrag(date)
-    }
-  }
-  
+  // 绑定鼠标抬起事件
   const handleMouseUp = () => {
     endDrag()
-    document.removeEventListener('mousemove', handleMouseMove)
     document.removeEventListener('mouseup', handleMouseUp)
+    document.removeEventListener('mouseleave', handleMouseUp)
   }
   
-  document.addEventListener('mousemove', handleMouseMove)
   document.addEventListener('mouseup', handleMouseUp)
+  document.addEventListener('mouseleave', handleMouseUp)
 }
 
 // 处理触摸开始（开始拖拽）
@@ -166,23 +153,11 @@ function handleTouchStart(event) {
   event.preventDefault()
   startDrag(props.task.id, props.currentDate)
   
-  const touch = event.touches[0]
-  
-  const handleTouchMove = (e) => {
-    const touch = e.touches[0]
-    const date = getDateFromEvent(touch)
-    if (date) {
-      updateDrag(date)
-    }
-  }
-  
   const handleTouchEnd = () => {
     endDrag()
-    document.removeEventListener('touchmove', handleTouchMove)
     document.removeEventListener('touchend', handleTouchEnd)
   }
   
-  document.addEventListener('touchmove', handleTouchMove)
   document.addEventListener('touchend', handleTouchEnd)
 }
 
@@ -192,26 +167,17 @@ function handleResizeStartLeft(event) {
   event.stopPropagation()
   startResizeStart(props.task.id, props.currentDate)
   
-  const handleResizeMove = (e) => {
-    const date = getDateFromEvent(e)
-    if (date) {
-      updateResizeStart(date)
-    }
-  }
-  
   const handleResizeEnd = () => {
     endResizeStart()
-    document.removeEventListener('mousemove', handleResizeMove)
     document.removeEventListener('mouseup', handleResizeEnd)
-    document.removeEventListener('touchmove', handleResizeMove)
+    document.removeEventListener('mouseleave', handleResizeEnd)
     document.removeEventListener('touchend', handleResizeEnd)
   }
   
   if (event.type === 'mousedown') {
-    document.addEventListener('mousemove', handleResizeMove)
     document.addEventListener('mouseup', handleResizeEnd)
+    document.addEventListener('mouseleave', handleResizeEnd)
   } else {
-    document.addEventListener('touchmove', handleResizeMove)
     document.addEventListener('touchend', handleResizeEnd)
   }
 }
@@ -222,45 +188,19 @@ function handleResizeStartRight(event) {
   event.stopPropagation()
   startResizeEnd(props.task.id, props.currentDate)
   
-  const handleResizeMove = (e) => {
-    const date = getDateFromEvent(e)
-    if (date) {
-      updateResizeEnd(date)
-    }
-  }
-  
   const handleResizeEnd = () => {
     endResizeEnd()
-    document.removeEventListener('mousemove', handleResizeMove)
     document.removeEventListener('mouseup', handleResizeEnd)
-    document.removeEventListener('touchmove', handleResizeMove)
+    document.removeEventListener('mouseleave', handleResizeEnd)
     document.removeEventListener('touchend', handleResizeEnd)
   }
   
   if (event.type === 'mousedown') {
-    document.addEventListener('mousemove', handleResizeMove)
     document.addEventListener('mouseup', handleResizeEnd)
+    document.addEventListener('mouseleave', handleResizeEnd)
   } else {
-    document.addEventListener('touchmove', handleResizeMove)
     document.addEventListener('touchend', handleResizeEnd)
   }
-}
-
-// 从事件中获取日期
-function getDateFromEvent(event) {
-  if (!calendarContainer || !calendarContainer.value) return null
-  
-  const rect = calendarContainer.value.getBoundingClientRect()
-  const clientX = event.clientX || event.touches?.[0]?.clientX
-  const clientY = event.clientY || event.touches?.[0]?.clientY
-  
-  if (clientX === undefined || clientY === undefined) return null
-  
-  // 这里需要根据日历的布局来计算对应的日期
-  // 简化版本：我们需要知道每个日期格子的位置
-  // 实际实现中，可能需要更复杂的逻辑
-  
-  return props.currentDate
 }
 
 // 点击任务条时激活任务（显示呼吸闪烁效果）
