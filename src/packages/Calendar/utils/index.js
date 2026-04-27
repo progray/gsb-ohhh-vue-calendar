@@ -65,3 +65,46 @@ export function createWeekDates(date, index) {
   }
   return dates
 }
+
+// 格式化日期为 YYYY-MM-DD 字符串
+export function formatDate(date) {
+  if (!date) return ''
+  const d = new Date(date)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+// 获取星期几（0-6，0为周日）
+export function getDayOfWeek(date) {
+  return new Date(date).getDay()
+}
+
+// 判断是否为周末
+export function isWeekend(date) {
+  const day = getDayOfWeek(date)
+  return day === 0 || day === 6
+}
+
+// 计算两个日期之间的天数差
+export function getDaysBetween(startDate, endDate) {
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+  start.setHours(0, 0, 0, 0)
+  end.setHours(0, 0, 0, 0)
+  const diffTime = Math.abs(end - start)
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  return diffDays
+}
+
+// 检查日期是否在范围内
+export function isDateInRange(date, startDate, endDate) {
+  const d = new Date(date)
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+  d.setHours(0, 0, 0, 0)
+  start.setHours(0, 0, 0, 0)
+  end.setHours(0, 0, 0, 0)
+  return d >= start && d <= end
+}
