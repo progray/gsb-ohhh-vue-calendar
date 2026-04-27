@@ -5,6 +5,7 @@
   >
     <div class="worker-sidebar-toggle" @click="toggleSidebar">
       <span class="toggle-icon">{{ isOpen ? '◀' : '▶' }}</span>
+      <span v-if="!isOpen" class="toggle-label">打工人视图</span>
     </div>
 
     <div v-if="isOpen" class="worker-sidebar-content">
@@ -16,7 +17,7 @@
           type="date"
           v-model="retirementDateStr"
           class="sidebar-date-input"
-          @input="onDateChange"
+          @change="onDateChange"
         />
       </div>
 
@@ -59,7 +60,7 @@ const emit = defineEmits(['toggle', 'date-change'])
 const props = defineProps({
   initialOpen: {
     type: Boolean,
-    default: false
+    default: true
   },
   initialRetirementDate: {
     type: String,
@@ -84,15 +85,6 @@ function parseDate(dateStr) {
   if (!dateStr) return null
   const date = new Date(dateStr)
   return isNaN(date.getTime()) ? null : date
-}
-
-function isSameDay(date1, date2) {
-  if (!date1 || !date2) return false
-  return (
-    date1.getFullYear() === date2.getFullYear() &&
-    date1.getMonth() === date2.getMonth() &&
-    date1.getDate() === date2.getDate()
-  )
 }
 
 function isWeekend(date) {
@@ -182,10 +174,24 @@ watch(() => props.initialRetirementDate, (newVal) => {
   retirementDate.value = parseDate(newVal)
 })
 
+watch(retirementDateStr, (newVal) => {
+  retirementDate.value = parseDate(newVal)
+  if (isOpen.value) {
+    emit('date-change', {
+      retirementDate: retirementDate.value,
+      isCelebration: isCelebration.value
+    })
+  }
+})
+
 onMounted(() => {
   if (props.initialRetirementDate) {
     retirementDate.value = parseDate(props.initialRetirementDate)
   }
+  emit('date-change', {
+    retirementDate: retirementDate.value,
+    isCelebration: isCelebration.value
+  })
 })
 
 defineExpose({
@@ -202,98 +208,144 @@ defineExpose({
 .worker-sidebar {
   position: relative;
   width: 0;
-  transition: width 0.3s ease;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  overflow: hidden;
+  transition: width 0.3s ease, min-width 0.3s ease;
+  background: linear-gradient(180deg, #f8fafc 0%, #f0f5ff 100%);
+  overflow: visible;
+  min-width: 0;
+  flex-shrink: 0;
 }
 
 .worker-sidebar.is-open {
-  width: 280px;
-  min-width: 280px;
+  width: 260px;
+  min-width: 260px;
+  border-right: 1px solid #e2e8f0;
 }
 
 .worker-sidebar-toggle {
   position: absolute;
   top: 50%;
-  right: 0;
-  transform: translate(50%, -50%);
-  width: 40px;
-  height: 80px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 0 8px 8px 0;
+  transform: translateY(-50%);
+  z-index: 1000;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 100;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.worker-sidebar:not(.is-open) .worker-sidebar-toggle {
+  right: -48px;
+  background: linear-gradient(90deg, #409eff, #66b1ff);
+  border-radius: 0 8px 8px 0;
+  padding: 20px 8px;
+  box-shadow: 2px 0 12px rgba(64, 158, 255, 0.4);
+  width: 48px;
+  min-height: 80px;
+}
+
+.worker-sidebar.is-open .worker-sidebar-toggle {
+  right: 12px;
+  background: rgba(64, 158, 255, 0.1);
+  border-radius: 6px;
+  padding: 10px 12px;
 }
 
 .toggle-icon {
   color: #fff;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
+  line-height: 1;
+}
+
+.worker-sidebar.is-open .toggle-icon {
+  color: #409eff;
+}
+
+.toggle-label {
+  color: #fff;
+  font-size: 11px;
+  writing-mode: vertical-rl;
+  margin-top: 10px;
+  letter-spacing: 3px;
+  line-height: 1.5;
 }
 
 .worker-sidebar-content {
-  padding: 20px;
+  padding: 20px 16px;
   height: 100%;
   overflow-y: auto;
-  color: #fff;
+  color: #303133;
+  width: 260px;
+  box-sizing: border-box;
 }
 
 .sidebar-title {
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 24px;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 20px;
   text-align: center;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  color: #409eff;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .sidebar-section {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .sidebar-label {
   display: block;
-  font-size: 14px;
+  font-size: 13px;
   margin-bottom: 8px;
-  opacity: 0.9;
+  color: #606266;
+  font-weight: 500;
 }
 
 .sidebar-date-input {
   width: 100%;
-  padding: 12px 16px;
-  border: none;
-  border-radius: 8px;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
   font-size: 14px;
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
+  background: #fff;
+  color: #303133;
   cursor: pointer;
-  backdrop-filter: blur(10px);
+  box-sizing: border-box;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.sidebar-date-input:focus {
+  outline: none;
+  border-color: #409eff;
+  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.15);
 }
 
 .sidebar-date-input::-webkit-calendar-picker-indicator {
-  filter: invert(1);
   cursor: pointer;
+  opacity: 0.6;
 }
 
-.sidebar-date-input::placeholder {
-  color: rgba(255, 255, 255, 0.6);
+.sidebar-date-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
 }
 
 .sidebar-hint {
   text-align: center;
-  font-size: 14px;
-  opacity: 0.7;
+  font-size: 13px;
+  color: #909399;
   padding: 20px;
+  background: rgba(64, 158, 255, 0.05);
+  border-radius: 6px;
+  border: 1px dashed #d1e5ff;
 }
 
 .stats-card {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
-  padding: 20px;
-  backdrop-filter: blur(10px);
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .stats-item {
@@ -306,18 +358,18 @@ defineExpose({
 
 .stats-label {
   font-size: 12px;
-  opacity: 0.8;
+  color: #909399;
   margin-bottom: 4px;
 }
 
 .stats-value {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: bold;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  color: #409eff;
 }
 
 .stats-value.is-urgent {
-  color: #ffd700;
+  color: #f56c6c;
   animation: pulse 1s ease-in-out infinite;
 }
 
@@ -338,21 +390,22 @@ defineExpose({
 }
 
 .progress-percent {
-  font-size: 14px;
-  font-weight: bold;
+  font-size: 13px;
+  font-weight: 600;
+  color: #409eff;
 }
 
 .progress-bar {
-  height: 12px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
+  height: 10px;
+  background: #ebeef5;
+  border-radius: 5px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb);
-  border-radius: 6px;
+  background: linear-gradient(90deg, #409eff, #66b1ff);
+  border-radius: 5px;
   transition: width 0.3s ease;
 }
 </style>

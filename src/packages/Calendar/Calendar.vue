@@ -12,98 +12,109 @@
     />
 
     <div
-      class="ohhh-calendar-container"
-      :style="{
-        '--calendar-rows': renderRows,
-        '--calendar-transition-duration': duration,
-        '--translate-distance': transformDistance,
-        '--transition-duration': transitionDuration
-      }"
+      class="ohhh-calendar-main"
     >
-      <div v-if="showWorkerView && workerViewActive && retirementDateObj" class="worker-view-header">
-        <span class="worker-view-title">
-          🏃 打工人倒计时模式
-          <span v-if="isCelebration" class="celebration-badge">🎉 即将解脱！</span>
-        </span>
-      </div>
-
-      <div v-if="showToolbar" class="ohhh-calendar-toolbar">
-        <slot name="toolbar" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
-          <div v-html="icons.arrowDoubleLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-year')" />
-          <div v-html="icons.arrowLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-page')" />
-          <div class="ohhh-calendar-toolbar--text">{{ headerLabel }}</div>
-          <div v-html="icons.arrowRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-page')" />
-          <div v-html="icons.arrowDoubleRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-year')" />
-        </slot>
-      </div>
-
-      <div v-if="showWeekdays" class="ohhh-calendar-weekdays">
-        <div v-for="(day, index) in weekdays" :key="day" class="ohhh-calendar-weekdays--weekday">
-          <slot name="weekday" :weekday="day" :index="(index + weekStart) % 7">{{ day }}</slot>
+      <div
+        class="ohhh-calendar-container"
+        :class="{ 'celebration-border': isCelebration }"
+        :style="{
+          '--calendar-rows': renderRows,
+          '--calendar-transition-duration': duration,
+          '--translate-distance': transformDistance,
+          '--transition-duration': transitionDuration
+        }"
+      >
+        <div v-if="showWorkerView && workerViewActive && retirementDateObj" class="worker-view-header">
+          <span class="worker-view-title">
+            🏃 打工人倒计时模式
+            <span v-if="isCelebration" class="celebration-badge">🎉 即将解脱！</span>
+          </span>
         </div>
-      </div>
 
-      <div ref="swp" class="ohhh-calendar-wrapper">
-        <div
-          v-for="(item, index) in allRenderDates"
-          :key="index"
-          :style="{ left: 100 * (index - 1) + '%' }"
-          class="ohhh-calendar-days"
-          @transitionend="onTransitionEnd"
-        >
+        <div v-if="showToolbar" class="ohhh-calendar-toolbar">
+          <slot name="toolbar" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
+            <div v-html="icons.arrowDoubleLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-year')" />
+            <div v-html="icons.arrowLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-page')" />
+            <div class="ohhh-calendar-toolbar--text">{{ headerLabel }}</div>
+            <div v-html="icons.arrowRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-page')" />
+            <div v-html="icons.arrowDoubleRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-year')" />
+          </slot>
+        </div>
+
+        <div v-if="showWeekdays" class="ohhh-calendar-weekdays">
+          <div v-for="(day, index) in weekdays" :key="day" class="ohhh-calendar-weekdays--weekday">
+            <slot name="weekday" :weekday="day" :index="(index + weekStart) % 7">{{ day }}</slot>
+          </div>
+        </div>
+
+        <div ref="swp" class="ohhh-calendar-wrapper">
           <div
-            v-for="dateObj in item"
-            :key="dateObj.key"
-            class="ohhh-calendar-day"
-            :class="getDayClass(dateObj)"
-            @click="handleDayClick(dateObj)"
+            v-for="(item, index) in allRenderDates"
+            :key="index"
+            :style="{ left: 100 * (index - 1) + '%' }"
+            class="ohhh-calendar-days"
+            @transitionend="onTransitionEnd"
           >
-            <div class="ohhh-calendar-day--inner" :class="getInnerDayClass(dateObj)">
-              <div class="ohhh-calendar-day--inner-value">
-                <template v-if="workerViewActive && retirementDateObj">
-                  <template v-if="isHoliday(dateObj.date) || isWeekend(dateObj.date)">
-                    <span class="holiday-text">休</span>
-                  </template>
-                  <template v-else-if="isFutureWorkDay(dateObj.date)">
-                    <span class="countdown-text">剩 {{ getWorkDaysRemaining(dateObj.date) }} 天</span>
+            <div
+              v-for="(dateObj, dateIndex) in item"
+              :key="dateObj.key"
+              class="ohhh-calendar-day"
+              :class="getDayClass(dateObj)"
+              @click="handleDayClick($event, dateObj, dateIndex)"
+            >
+              <div class="ohhh-calendar-day--inner" :class="getInnerDayClass(dateObj)">
+                <div class="ohhh-calendar-day--inner-value">
+                  <template v-if="workerViewActive && retirementDateObj">
+                    <template v-if="isHoliday(dateObj.date) || isWeekend(dateObj.date)">
+                      <span class="holiday-text">休</span>
+                    </template>
+                    <template v-else-if="isFutureWorkDay(dateObj.date)">
+                      <span class="countdown-text">剩 {{ getWorkDaysRemaining(dateObj.date) }} 天</span>
+                    </template>
+                    <template v-else>
+                      {{ dateObj.fullDate.date }}
+                    </template>
                   </template>
                   <template v-else>
                     {{ dateObj.fullDate.date }}
                   </template>
-                </template>
-                <template v-else>
-                  {{ dateObj.fullDate.date }}
-                </template>
+                </div>
+                <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label'] && !workerViewActive">
+                  <slot name="day-label" :date="dateObj.date" />
+                </div>
               </div>
-              <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label'] && !workerViewActive">
-                <slot name="day-label" :date="dateObj.date" />
-              </div>
+              <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
             </div>
-            <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
           </div>
         </div>
-      </div>
 
-      <div v-if="showFooter" class="ohhh-calendar-footer">
-        <slot name="footer" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
-          <div
-            v-html="viewMode === 'week' ? icons.arrowDown : icons.arrowUp"
-            class="ohhh-calendar-footer--icon"
-            @click="toggleViewMode"
-          />
-        </slot>
+        <div v-if="showFooter" class="ohhh-calendar-footer">
+          <slot name="footer" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
+            <div
+              v-html="viewMode === 'week' ? icons.arrowDown : icons.arrowUp"
+              class="ohhh-calendar-footer--icon"
+              @click="toggleViewMode"
+            />
+          </slot>
+        </div>
       </div>
+    </div>
 
-      <div class="emoji-container">
+    <div class="emoji-overlay">
+      <transition-group name="emoji-fade">
         <div
           v-for="emoji in floatingEmojis"
           :key="emoji.id"
           class="floating-emoji"
-          :style="emoji.style"
+          :style="{
+            left: emoji.x + 'px',
+            bottom: '0px',
+            '--emoji-start-y': emoji.startY + 'px'
+          }"
         >
           💪
         </div>
-      </div>
+      </transition-group>
     </div>
   </div>
 </template>
@@ -184,6 +195,7 @@ const {
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
 
 const workerViewActive = ref(false)
+const sidebarIsOpen = ref(props.initialOpen)
 const retirementDateObj = ref(null)
 const isCelebration = ref(false)
 const floatingEmojis = ref([])
@@ -242,11 +254,11 @@ function isFutureWorkDay(date) {
   today.setHours(0, 0, 0, 0)
   const checkDate = new Date(date)
   checkDate.setHours(0, 0, 0, 0)
-  
+
   if (checkDate < today) return false
   if (checkDate > retirementDateObj.value) return false
   if (isWeekend(checkDate) || isHoliday(checkDate)) return false
-  
+
   return true
 }
 
@@ -269,9 +281,9 @@ function getWorkDaysRemaining(date) {
   today.setHours(0, 0, 0, 0)
   const targetDate = new Date(date)
   targetDate.setHours(0, 0, 0, 0)
-  
+
   if (targetDate > retirementDateObj.value) return 0
-  
+
   return countWorkDaysFromDate(today, targetDate)
 }
 
@@ -280,7 +292,7 @@ function getDayClass(dateObj) {
   if (isSameDay(dateObj.date, selected.value)) classes.push('is-selected')
   if (isSameDay(dateObj.date, new Date())) classes.push('is-today')
   if (!dateObj.current) classes.push('other-month')
-  
+
   if (workerViewActive.value && retirementDateObj.value) {
     if (isHoliday(dateObj.date) || isWeekend(dateObj.date)) {
       classes.push('is-holiday')
@@ -289,7 +301,7 @@ function getDayClass(dateObj) {
       classes.push('is-future-workday')
     }
   }
-  
+
   return classes
 }
 
@@ -351,42 +363,46 @@ function changeSelectedDate(date) {
   }
 }
 
-function handleDayClick(dateObj) {
+function handleDayClick(event, dateObj, dateIndex) {
   changeSelectedDate(dateObj.date)
   if (workerViewActive.value) {
-    spawnEmoji(dateObj)
+    spawnEmoji(event)
   }
 }
 
-function spawnEmoji(dateObj) {
+function spawnEmoji(event) {
   const id = ++emojiIdCounter
+  const rect = event.currentTarget.getBoundingClientRect()
+  const containerRect = event.currentTarget.closest('.ohhh-calendar-wrapper-container').getBoundingClientRect()
+
+  const x = rect.left - containerRect.left + rect.width / 2
+  const startY = containerRect.bottom - rect.top - rect.height / 2
+
   const emoji = reactive({
     id,
-    style: {
-      left: '50%',
-      bottom: '20%',
-      opacity: 1,
-      animation: 'floatUp 2s ease-out forwards'
-    }
+    x,
+    startY
   })
+
   floatingEmojis.value.push(emoji)
-  
+
   setTimeout(() => {
     const index = floatingEmojis.value.findIndex(e => e.id === id)
     if (index > -1) {
       floatingEmojis.value.splice(index, 1)
     }
-  }, 2000)
+  }, 2500)
 }
 
 function onSidebarToggle(isOpen) {
+  sidebarIsOpen.value = isOpen
   workerViewActive.value = isOpen && retirementDateObj.value !== null
 }
 
 function onRetirementDateChange({ retirementDate, isCelebration: celebration }) {
   retirementDateObj.value = retirementDate
   isCelebration.value = celebration
-  workerViewActive.value = sidebarRef.value?.isOpen && retirementDate !== null
+  workerViewActive.value = sidebarIsOpen.value && retirementDate !== null
 }
 
 function _getMarkerColor(date) {
@@ -405,16 +421,26 @@ defineExpose({
   display: flex;
   position: relative;
   min-height: 100%;
+  width: 100%;
+}
+
+.ohhh-calendar-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  transition: margin-left 0.3s ease;
 }
 
 .worker-view-header {
   padding: 10px 20px;
-  background: linear-gradient(90deg, #667eea, #764ba2);
+  background: linear-gradient(90deg, #409eff, #66b1ff);
   color: #fff;
   font-size: 14px;
   display: flex;
   justify-content: center;
   align-items: center;
+  border-radius: 6px 6px 0 0;
 }
 
 .worker-view-title {
@@ -424,8 +450,8 @@ defineExpose({
 }
 
 .celebration-badge {
-  background: rgba(255, 215, 0, 0.3);
-  padding: 2px 8px;
+  background: rgba(255, 215, 0, 0.4);
+  padding: 2px 10px;
   border-radius: 12px;
   font-size: 12px;
   animation: pulse 1s ease-in-out infinite;
@@ -433,7 +459,7 @@ defineExpose({
 
 @keyframes pulse {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
+  50% { transform: scale(1.08); }
 }
 
 .ohhh-calendar-day.is-holiday .ohhh-calendar-day--inner-value {
@@ -443,84 +469,119 @@ defineExpose({
 
 .ohhh-calendar-day.is-future-workday .ohhh-calendar-day--inner-value {
   font-size: 11px;
-  line-height: 1.2;
+  line-height: 1.3;
 }
 
 .holiday-text {
-  color: #2ecc71;
+  color: #67c23a;
+  font-weight: 600;
 }
 
 .countdown-text {
-  color: #e74c3c;
-  font-weight: bold;
+  color: #f56c6c;
+  font-weight: 600;
 }
 
 .holiday-inner {
-  background: rgba(46, 204, 113, 0.15) !important;
-  border: 1px solid rgba(46, 204, 113, 0.3);
+  background: rgba(103, 194, 58, 0.12) !important;
+  border: 1px solid rgba(103, 194, 58, 0.3);
 }
 
 .ohhh-calendar-day.is-holiday .ohhh-calendar-day--inner-value .holiday-text {
-  color: #27ae60;
+  color: #67c23a;
 }
 
-.celebration-mode .ohhh-calendar-container {
+.celebration-border {
   position: relative;
-}
-
-.celebration-mode .ohhh-calendar-container::before {
-  content: '';
-  position: absolute;
-  inset: -3px;
   border-radius: 8px;
+  padding: 3px;
   background: linear-gradient(
     90deg,
-    #ff0000,
-    #ff7f00,
-    #ffff00,
-    #00ff00,
-    #0000ff,
-    #4b0082,
-    #9400d3,
-    #ff0000
+    #ff6b6b,
+    #ffd93d,
+    #6bcb77,
+    #4d96ff,
+    #9b59b6,
+    #ff6b6b
   );
   background-size: 400% 400%;
-  animation: rainbow 3s ease infinite;
-  z-index: -1;
-  filter: blur(8px);
-  opacity: 0.8;
+  animation: rainbowBorder 3s linear infinite;
 }
 
-@keyframes rainbow {
+.celebration-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  padding: 3px;
+  background: linear-gradient(
+    90deg,
+    #ff6b6b,
+    #ffd93d,
+    #6bcb77,
+    #4d96ff,
+    #9b59b6,
+    #ff6b6b
+  );
+  background-size: 400% 400%;
+  animation: rainbowBorder 3s linear infinite;
+  filter: blur(10px);
+  opacity: 0.6;
+  z-index: -1;
+}
+
+.celebration-border > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes rainbowBorder {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
 
-.emoji-container {
-  position: absolute;
+.emoji-overlay {
+  position: fixed;
   inset: 0;
   pointer-events: none;
+  z-index: 9999;
   overflow: hidden;
-  z-index: 1000;
 }
 
 .floating-emoji {
   position: absolute;
-  font-size: 32px;
-  transform: translateX(-50%);
-  animation: floatUp 2s ease-out forwards;
+  font-size: 36px;
+  animation: emojiFloat 2.2s ease-out forwards;
+  transform-origin: center bottom;
 }
 
-@keyframes floatUp {
+@keyframes emojiFloat {
   0% {
-    transform: translateX(-50%) translateY(0);
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(-50%) translateY(-150px);
+    transform: translateY(0) scale(0.5);
     opacity: 0;
   }
+  10% {
+    transform: translateY(0) scale(1.2);
+    opacity: 1;
+  }
+  30% {
+    transform: translateY(-30px) scale(1);
+  }
+  100% {
+    transform: translateY(-200px) scale(0.8);
+    opacity: 0;
+  }
+}
+
+.emoji-fade-enter-active,
+.emoji-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.emoji-fade-enter-from,
+.emoji-fade-leave-to {
+  opacity: 0;
 }
 
 .worker-view-active .ohhh-calendar-day {
