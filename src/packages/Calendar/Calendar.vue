@@ -7,6 +7,10 @@
       '--translate-distance': transformDistance,
       '--transition-duration': transitionDuration
     }"
+    @mousemove="onMouseMove"
+    @mouseup="onMouseUp"
+    @mouseleave="onMouseUp"
+    ref="calendarContainer"
   >
     <!-- 顶部工具栏 -->
     <div v-if="showToolbar" class="ohhh-calendar-toolbar">
@@ -29,22 +33,28 @@
     <!-- 日历主体 -->
     <div ref="swp" class="ohhh-calendar-wrapper">
       <div
-        v-for="(item, index) in allRenderDates"
-        :key="index"
-        :style="{ left: 100 * (index - 1) + '%' }"
+        v-for="(item, pageIndex) in allRenderDates"
+        :key="pageIndex"
+        :style="{ left: 100 * (pageIndex - 1) + '%' }"
         class="ohhh-calendar-days"
         @transitionend="onTransitionEnd"
       >
         <div
-          v-for="dateObj in item"
+          v-for="(dateObj, index) in item"
           :key="dateObj.key"
           class="ohhh-calendar-day"
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'is-dragging-source': isDraggingSource(dateObj.date),
+            'is-dragging-target': isDraggingTarget(dateObj.date),
+            'is-drop-animating': isDropAnimating(dateObj.date)
           }"
-          @click="changeSelectedDate(dateObj.date)"
+          @click="onDayClick(dateObj.date, $event)"
+          @mouseenter="onDayMouseEnter(dateObj.date)"
+          @mouseleave="onDayMouseLeave(dateObj.date)"
+          :data-date-key="dateObj.key"
         >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
@@ -53,6 +63,33 @@
             </div>
           </div>
           <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
+          
+          <!-- 日记图标容器 -->
+          <div 
+            class="ohhh-calendar-day--diary-icons"
+            v-if="hasDiary(dateObj.date)"
+          >
+            <div 
+              v-for="(icon, iconIndex) in getDiaryIcons(dateObj.date)"
+              :key="iconIndex"
+              class="ohhh-calendar-day--diary-icon"
+              @mousedown="onDiaryIconMouseDown($event, dateObj.date)"
+              @click.stop
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+            </div>
+          </div>
+          
+          <!-- 搬运中提示 -->
+          <div class="ohhh-calendar-day--dragging-text" v-if="isDraggingSource(dateObj.date)">
+            搬运中...
+          </div>
         </div>
       </div>
     </div>
@@ -67,57 +104,157 @@
         />
       </slot>
     </div>
+
+    <!-- 日记录入弹窗 -->
+    <div 
+      v-if="showDiaryInput" 
+      class="ohhh-calendar-diary-modal"
+      @click="closeDiaryInput"
+    >
+      <div class="ohhh-calendar-diary-modal--content" @click.stop>
+        <div class="ohhh-calendar-diary-modal--title">
+          {{ formatDateForDisplay(selectedDiaryDate) }}
+        </div>
+        <textarea
+          ref="diaryInputRef"
+          v-model="diaryInputValue"
+          class="ohhh-calendar-diary-modal--textarea"
+          placeholder="请输入一句话（不超过100字）"
+          maxlength="100"
+          @input="onDiaryInputChange"
+        ></textarea>
+        <div class="ohhh-calendar-diary-modal--footer">
+          <span class="ohhh-calendar-diary-modal--char-count">
+            {{ diaryInputValue.length }}/100
+          </span>
+          <div class="ohhh-calendar-diary-modal--actions">
+            <button 
+              class="ohhh-calendar-diary-modal--btn ohhh-calendar-diary-modal--btn-cancel"
+              @click="closeDiaryInput"
+            >取消</button>
+            <button 
+              class="ohhh-calendar-diary-modal--btn ohhh-calendar-diary-modal--btn-save"
+              @click="saveDiary"
+              :disabled="!diaryInputValue.trim()"
+            >保存</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 覆盖/合并确认弹窗 -->
+    <div 
+      v-if="showMergeDialog" 
+      class="ohhh-calendar-diary-modal"
+    >
+      <div class="ohhh-calendar-diary-modal--content ohhh-calendar-merge-modal--content">
+        <div class="ohhh-calendar-diary-modal--title">
+          目标日期已存在内容
+        </div>
+        <div class="ohhh-calendar-merge-modal--description">
+          请选择操作方式
+        </div>
+        <div class="ohhh-calendar-merge-modal--options">
+          <button 
+            class="ohhh-calendar-merge-modal--option ohhh-calendar-merge-modal--option-overwrite"
+            @click="handleMergeAction('overwrite')"
+          >
+            <div class="ohhh-calendar-merge-modal--option-title">覆盖</div>
+            <div class="ohhh-calendar-merge-modal--option-desc">用新内容替换目标日期的内容</div>
+          </button>
+          <button 
+            class="ohhh-calendar-merge-modal--option ohhh-calendar-merge-modal--option-merge"
+            @click="handleMergeAction('merge')"
+          >
+            <div class="ohhh-calendar-merge-modal--option-title">合并</div>
+            <div class="ohhh-calendar-merge-modal--option-desc">将两个日期的内容合并显示</div>
+          </button>
+        </div>
+        <button 
+          class="ohhh-calendar-merge-modal--cancel"
+          @click="cancelMergeAction"
+        >取消</button>
+      </div>
+    </div>
+
+    <!-- 拖拽影子占位符 -->
+    <div 
+      v-if="isDragging" 
+      class="ohhh-calendar-drag-ghost"
+      :style="{
+        left: dragGhostPosition.x + 'px',
+        top: dragGhostPosition.y + 'px'
+      }"
+    >
+      <div class="ohhh-calendar-drag-ghost--icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+      </div>
+      <div class="ohhh-calendar-drag-ghost--text">{{ draggingDiaryContent }}</div>
+    </div>
+
+    <!-- 边缘检测区域（用于自动切换月份） -->
+    <div 
+      class="ohhh-calendar-edge-zone ohhh-calendar-edge-zone--left"
+      @mouseenter="onEdgeZoneMouseEnter('left')"
+      @mouseleave="onEdgeZoneMouseLeave"
+    ></div>
+    <div 
+      class="ohhh-calendar-edge-zone ohhh-calendar-edge-zone--right"
+      @mouseenter="onEdgeZoneMouseEnter('right')"
+      @mouseleave="onEdgeZoneMouseLeave"
+    ></div>
   </div>
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
 import { isSameDay, createWeekdays } from './utils'
 import { icons } from './utils/icons.js'
+import { useDiary } from './hooks/useDiary.js'
 
 const swipeRef = useTemplateRef('swp')
+const calendarContainer = useTemplateRef('calendarContainer')
+const diaryInputRef = useTemplateRef('diaryInputRef')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'diary-change', 'diary-drag'])
 
 const props = defineProps({
-  // 初始选中的日期
   initialSelectedDate: {
     type: Date,
     default: () => new Date()
   },
-  // 初始视图模式
   initialViewMode: {
     type: String,
-    default: 'month' // month or week
+    default: 'month'
   },
-  // 以周几作为每周的起始
   weekStart: {
     type: Number,
-    default: 0 // 0: Sunday, 1: Monday, etc.
+    default: 0
   },
-  // 标记的日期
   markerDates: {
     type: Array,
     default: () => []
   },
-  // 是否显示顶部工具栏
   showToolbar: {
     type: Boolean,
     default: true
   },
-  // 是否显示底部工具栏
   showFooter: {
     type: Boolean,
     default: true
   },
-  // 是否显示weekdays栏
   showWeekdays: {
     type: Boolean,
     default: true
   },
-  // 过渡动画时长
   duration: {
     type: String,
     default: '0.3s'
@@ -125,6 +262,15 @@ const props = defineProps({
 })
 
 const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration } = toRefs(props)
+
+const {
+  diaries,
+  getDiaryByDate,
+  addDiary,
+  removeDiary,
+  moveDiary,
+  hasDiary
+} = useDiary()
 
 const {
   selected,
@@ -143,11 +289,8 @@ const {
   toggleViewMode
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
 
-// 顶部工具栏标题
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
-// 星期栏
 const weekdays = createWeekdays(weekStart.value)
-// 标记日期
 const markerDateList = computed(() =>
   markerDates.value.map(item => ({
     date: new Date(typeof item === 'object' && item.date ? item.date : item),
@@ -155,31 +298,24 @@ const markerDateList = computed(() =>
   }))
 )
 
-// 监听滑动事件
 const { lengthX } = useSwipe(swipeRef, {
-  // 滑动阈值
   threshold: 0,
-  // 手指滑动过程中
   onSwipe: () => {
-    if (isInTransition.value) return
+    if (isInTransition.value || isDragging.value) return
     transformDistance.value = -lengthX.value + 'px'
   },
-  // 手指抬起滑动结束，开始滑动动画
   onSwipeEnd: (_, direction) => {
-    if (isInTransition.value) return
+    if (isInTransition.value || isDragging.value) return
     if (direction === 'left') {
       changePageTo('next-page')
     } else if (direction === 'right') {
       changePageTo('prev-page')
     } else {
-      // 如果方向不是左右，则将页面复位
       startTransitionAnimation(direction)
     }
   }
 })
 
-// 归一化参数
-// 支持 'prev-page', 'next-page', 'prev-year', 'next-year', 以及合法的日期
 function _normalize(param) {
   if (!param) {
     throw new Error('参数不能为空')
@@ -215,13 +351,11 @@ function _normalize(param) {
   throw new Error('日期不合法')
 }
 
-// 切换日历页面
 function changePageTo(param) {
   const targetDate = _normalize(param)
   switchPageToTargetDate(targetDate)
 }
 
-// 切换选中的日期
 function changeSelectedDate(date) {
   changePageTo(date)
   if (!isSameDay(new Date(date), selected.value)) {
@@ -230,17 +364,279 @@ function changeSelectedDate(date) {
   }
 }
 
-// 获取 marker 颜色
 function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
+// 日记录入相关状态
+const showDiaryInput = ref(false)
+const selectedDiaryDate = ref(null)
+const diaryInputValue = ref('')
+
+// 拖拽相关状态
+const isDragging = ref(false)
+const draggingDate = ref(null)
+const dragGhostPosition = ref({ x: 0, y: 0 })
+const draggingDiaryContent = ref('')
+const hoverDate = ref(null)
+
+// 合并确认弹窗状态
+const showMergeDialog = ref(false)
+const pendingMoveFrom = ref(null)
+const pendingMoveTo = ref(null)
+
+// 掉落动画相关
+const dropAnimatingDates = ref(new Set())
+
+// 边缘切换月份相关
+let edgeZoneTimer = null
+
+function onDayClick(date, event) {
+  if (isDragging.value) return
+  
+  changeSelectedDate(date)
+  
+  // 显示日记录入弹窗
+  openDiaryInput(date)
+}
+
+function openDiaryInput(date) {
+  selectedDiaryDate.value = date
+  const existingDiary = getDiaryByDate(date)
+  diaryInputValue.value = existingDiary ? existingDiary.content : ''
+  showDiaryInput.value = true
+  
+  nextTick(() => {
+    if (diaryInputRef.value) {
+      diaryInputRef.value.focus()
+    }
+  })
+}
+
+function closeDiaryInput() {
+  showDiaryInput.value = false
+  selectedDiaryDate.value = null
+  diaryInputValue.value = ''
+}
+
+function onDiaryInputChange() {
+  if (diaryInputValue.value.length > 100) {
+    diaryInputValue.value = diaryInputValue.value.slice(0, 100)
+  }
+}
+
+function saveDiary() {
+  if (!diaryInputValue.value.trim()) return
+  
+  const saved = addDiary(selectedDiaryDate.value, diaryInputValue.value)
+  if (saved) {
+    emit('diary-change', {
+      type: saved.createdAt.getTime() === saved.updatedAt.getTime() ? 'add' : 'update',
+      date: saved.date,
+      content: saved.content
+    })
+  }
+  closeDiaryInput()
+}
+
+function getDiaryIcons(date) {
+  const diary = getDiaryByDate(date)
+  if (!diary) return []
+  
+  // 如果是合并的内容（包含换行），显示多个图标
+  if (diary.content.includes('\n')) {
+    const lines = diary.content.split('\n').filter(l => l.trim())
+    return lines.map((line, index) => ({
+      content: line,
+      index
+    }))
+  }
+  
+  return [{ content: diary.content, index: 0 }]
+}
+
+function isDraggingSource(date) {
+  if (!isDragging.value || !draggingDate.value) return false
+  return isSameDay(date, draggingDate.value)
+}
+
+function isDraggingTarget(date) {
+  if (!isDragging.value || !hoverDate.value) return false
+  return isSameDay(date, hoverDate.value) && !isSameDay(date, draggingDate.value)
+}
+
+function isDropAnimating(date) {
+  return dropAnimatingDates.value.has(_dateToKey(date))
+}
+
+function _dateToKey(date) {
+  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+}
+
+function onDiaryIconMouseDown(event, date) {
+  event.preventDefault()
+  event.stopPropagation()
+  
+  const diary = getDiaryByDate(date)
+  if (!diary) return
+  
+  isDragging.value = true
+  draggingDate.value = date
+  draggingDiaryContent.value = diary.content.length > 20 ? diary.content.substring(0, 20) + '...' : diary.content
+  
+  // 初始位置
+  updateDragGhostPosition(event)
+}
+
+function updateDragGhostPosition(event) {
+  if (!isDragging.value) return
+  
+  const container = calendarContainer.value
+  if (!container) return
+  
+  const rect = container.getBoundingClientRect()
+  dragGhostPosition.value = {
+    x: event.clientX - rect.left + 15,
+    y: event.clientY - rect.top + 15
+  }
+}
+
+function onMouseMove(event) {
+  if (!isDragging.value) return
+  
+  updateDragGhostPosition(event)
+  
+  // 检测当前鼠标下的日期格子
+  const dayElement = document.elementFromPoint(event.clientX, event.clientY)
+  if (dayElement) {
+    const dayCell = dayElement.closest('.ohhh-calendar-day')
+    if (dayCell && dayCell.dataset.dateKey) {
+      const [year, month, day] = dayCell.dataset.dateKey.split('-').map(Number)
+      hoverDate.value = new Date(year, month - 1, day)
+    } else {
+      hoverDate.value = null
+    }
+  }
+}
+
+function onDayMouseEnter(date) {
+  if (!isDragging.value) return
+  hoverDate.value = date
+}
+
+function onDayMouseLeave(date) {
+  if (!isDragging.value) return
+}
+
+function onMouseUp() {
+  if (!isDragging.value) return
+  
+  if (hoverDate.value && draggingDate.value && !isSameDay(hoverDate.value, draggingDate.value)) {
+    // 检查目标日期是否已有内容
+    const targetHasDiary = hasDiary(hoverDate.value)
+    
+    if (targetHasDiary) {
+      // 显示合并确认弹窗
+      pendingMoveFrom.value = draggingDate.value
+      pendingMoveTo.value = hoverDate.value
+      showMergeDialog.value = true
+    } else {
+      // 直接移动
+      performMove(draggingDate.value, hoverDate.value, 'overwrite')
+    }
+  }
+  
+  isDragging.value = false
+  draggingDate.value = null
+  hoverDate.value = null
+}
+
+function performMove(fromDate, toDate, action) {
+  const result = moveDiary(fromDate, toDate, action)
+  
+  if (result) {
+    // 添加掉落动画
+    triggerDropAnimation(toDate)
+    
+    emit('diary-change', {
+      type: 'drag',
+      action: result,
+      fromDate: fromDate,
+      toDate: toDate
+    })
+  }
+  
+  pendingMoveFrom.value = null
+  pendingMoveTo.value = null
+}
+
+function handleMergeAction(action) {
+  showMergeDialog.value = false
+  
+  if (pendingMoveFrom.value && pendingMoveTo.value) {
+    performMove(pendingMoveFrom.value, pendingMoveTo.value, action)
+  }
+}
+
+function cancelMergeAction() {
+  showMergeDialog.value = false
+  pendingMoveFrom.value = null
+  pendingMoveTo.value = null
+}
+
+function triggerDropAnimation(date) {
+  const key = _dateToKey(date)
+  dropAnimatingDates.value.add(key)
+  
+  setTimeout(() => {
+    dropAnimatingDates.value.delete(key)
+  }, 600)
+}
+
+// 边缘切换月份
+function onEdgeZoneMouseEnter(direction) {
+  if (!isDragging.value || isInTransition.value) return
+  
+  // 开始计时器，悬停一段时间后自动切换
+  edgeZoneTimer = setTimeout(() => {
+    if (isDragging.value) {
+      if (direction === 'left') {
+        changePageTo('prev-page')
+      } else if (direction === 'right') {
+        changePageTo('next-page')
+      }
+      
+      // 继续计时器，支持连续切换
+      onEdgeZoneMouseEnter(direction)
+    }
+  }, 800)
+}
+
+function onEdgeZoneMouseLeave() {
+  if (edgeZoneTimer) {
+    clearTimeout(edgeZoneTimer)
+    edgeZoneTimer = null
+  }
+}
+
+function formatDateForDisplay(date) {
+  if (!date) return ''
+  const year = date.getFullYear()
+  const month = date.getMonth() + 1
+  const day = date.getDate()
+  return `${year}年${month}月${day}日`
+}
+
+onUnmounted(() => {
+  onEdgeZoneMouseLeave()
+})
+
 defineExpose({
-  // 切换周/月视图
   toggleViewMode,
-  // 切换日历页
   changePageTo,
-  // 切换选中日期
-  changeSelectedDate
+  changeSelectedDate,
+  getDiaryByDate,
+  addDiary,
+  removeDiary
 })
 </script>

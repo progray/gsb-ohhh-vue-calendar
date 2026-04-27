@@ -138,3 +138,414 @@
   width: var(--calendar-footer-icon-size);
   height: var(--calendar-footer-icon-size);
 }
+
+// 日记图标样式
+.ohhh-calendar-day {
+  position: relative;
+  user-select: none;
+}
+
+.ohhh-calendar-day--diary-icons {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  max-width: calc(100% - 16px);
+  justify-content: flex-end;
+}
+
+.ohhh-calendar-day--diary-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--calendar-theme-color);
+  border-radius: 3px;
+  color: #fff;
+  cursor: grab;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ohhh-calendar-day--diary-icon:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.ohhh-calendar-day--diary-icon:active {
+  cursor: grabbing;
+}
+
+// 拖拽源样式
+.ohhh-calendar-day.is-dragging-source {
+  opacity: 0.4;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.ohhh-calendar-day.is-dragging-source .ohhh-calendar-day--inner {
+  filter: grayscale(1);
+}
+
+.ohhh-calendar-day--dragging-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+  color: var(--calendar-text-color-level-3);
+  font-weight: 500;
+  pointer-events: none;
+}
+
+// 拖拽目标样式
+.ohhh-calendar-day.is-dragging-target {
+  background: var(--calendar-theme-color-light);
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 2px var(--calendar-theme-color);
+}
+
+// 掉落动画样式
+.ohhh-calendar-day.is-drop-animating {
+  animation: drop-bounce 0.6s ease-out;
+}
+
+.ohhh-calendar-day.is-drop-animating .ohhh-calendar-day--diary-icons {
+  animation: drop-scale 0.6s ease-out;
+}
+
+@keyframes drop-bounce {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(0.95);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.98);
+  }
+  85% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes drop-scale {
+  0% {
+    transform: scale(0) translateY(-20px);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2) translateY(5px);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(0.9) translateY(-2px);
+  }
+  85% {
+    transform: scale(1.05) translateY(1px);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+  }
+}
+
+// 拖拽影子占位符
+.ohhh-calendar-drag-ghost {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid var(--calendar-theme-color);
+  border-radius: 8px;
+  padding: 10px 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(4px);
+  opacity: 0.9;
+  animation: ghost-float 2s ease-in-out infinite;
+}
+
+.ohhh-calendar-drag-ghost--icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--calendar-theme-color);
+  border-radius: 4px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.ohhh-calendar-drag-ghost--text {
+  font-size: 14px;
+  color: var(--calendar-text-color-level-2);
+  white-space: nowrap;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@keyframes ghost-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+// 边缘检测区域
+.ohhh-calendar-edge-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40px;
+  z-index: 100;
+  pointer-events: all;
+  transition: background 0.3s ease;
+}
+
+.ohhh-calendar-edge-zone--left {
+  left: 0;
+}
+
+.ohhh-calendar-edge-zone--right {
+  right: 0;
+}
+
+.ohhh-calendar-edge-zone:hover {
+  background: linear-gradient(to right, rgba(64, 158, 255, 0.1), transparent);
+}
+
+.ohhh-calendar-edge-zone--right:hover {
+  background: linear-gradient(to left, rgba(64, 158, 255, 0.1), transparent);
+}
+
+// 弹窗样式
+.ohhh-calendar-diary-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: modal-fade-in 0.2s ease-out;
+}
+
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.ohhh-calendar-diary-modal--content {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  animation: modal-slide-up 0.3s ease-out;
+}
+
+@keyframes modal-slide-up {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.ohhh-calendar-diary-modal--title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--calendar-text-color-level-1);
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.ohhh-calendar-diary-modal--textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px;
+  border: 1px solid var(--calendar-text-color-level-5);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--calendar-text-color-level-1);
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.ohhh-calendar-diary-modal--textarea:focus {
+  border-color: var(--calendar-theme-color);
+  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.1);
+}
+
+.ohhh-calendar-diary-modal--textarea::placeholder {
+  color: var(--calendar-text-color-level-4);
+}
+
+.ohhh-calendar-diary-modal--footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.ohhh-calendar-diary-modal--char-count {
+  font-size: 12px;
+  color: var(--calendar-text-color-level-4);
+}
+
+.ohhh-calendar-diary-modal--actions {
+  display: flex;
+  gap: 12px;
+}
+
+.ohhh-calendar-diary-modal--btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  outline: none;
+}
+
+.ohhh-calendar-diary-modal--btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ohhh-calendar-diary-modal--btn-cancel {
+  background: var(--calendar-text-color-level-5);
+  color: #fff;
+}
+
+.ohhh-calendar-diary-modal--btn-cancel:hover {
+  background: var(--calendar-text-color-level-4);
+}
+
+.ohhh-calendar-diary-modal--btn-save {
+  background: var(--calendar-theme-color);
+  color: #fff;
+}
+
+.ohhh-calendar-diary-modal--btn-save:hover:not(:disabled) {
+  background: #3a8ee6;
+}
+
+// 合并确认弹窗样式
+.ohhh-calendar-merge-modal--content {
+  text-align: center;
+}
+
+.ohhh-calendar-merge-modal--description {
+  font-size: 14px;
+  color: var(--calendar-text-color-level-3);
+  margin-bottom: 24px;
+}
+
+.ohhh-calendar-merge-modal--options {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.ohhh-calendar-merge-modal--option {
+  flex: 1;
+  padding: 20px;
+  border: 2px solid var(--calendar-text-color-level-5);
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.ohhh-calendar-merge-modal--option:hover {
+  border-color: var(--calendar-theme-color);
+  background: rgba(64, 158, 255, 0.05);
+  transform: translateY(-2px);
+}
+
+.ohhh-calendar-merge-modal--option-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--calendar-text-color-level-1);
+  margin-bottom: 8px;
+}
+
+.ohhh-calendar-merge-modal--option-desc {
+  font-size: 12px;
+  color: var(--calendar-text-color-level-3);
+  line-height: 1.5;
+}
+
+.ohhh-calendar-merge-modal--option-overwrite:hover {
+  border-color: #ff6a6a;
+  background: rgba(255, 106, 106, 0.05);
+}
+
+.ohhh-calendar-merge-modal--option-overwrite:hover .ohhh-calendar-merge-modal--option-title {
+  color: #ff6a6a;
+}
+
+.ohhh-calendar-merge-modal--option-merge:hover {
+  border-color: #67c23a;
+  background: rgba(103, 194, 58, 0.05);
+}
+
+.ohhh-calendar-merge-modal--option-merge:hover .ohhh-calendar-merge-modal--option-title {
+  color: #67c23a;
+}
+
+.ohhh-calendar-merge-modal--cancel {
+  background: none;
+  border: none;
+  color: var(--calendar-text-color-level-4);
+  font-size: 14px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  padding: 8px 16px;
+}
+
+.ohhh-calendar-merge-modal--cancel:hover {
+  color: var(--calendar-text-color-level-2);
+}
+
+// 移动端适配变量
+.ohhh-calendar-container {
+  --calendar-diary-icon-size: 16px;
+  --calendar-modal-padding: 24px;
+  --calendar-modal-title-size: 18px;
+}
+
+// 确保容器是相对定位，用于边缘检测
+.ohhh-calendar-container {
+  position: relative;
+}
