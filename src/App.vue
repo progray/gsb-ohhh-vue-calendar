@@ -45,6 +45,10 @@
                 <div class="flower-center"></div>
               </div>
             </div>
+            <div class="plant-tooltip">
+              <div class="tooltip-state">{{ getPlantStateText(date) }}</div>
+              <div class="tooltip-days">连续打卡 {{ getConsecutiveDays(date) }} 天</div>
+            </div>
           </div>
           <div v-else class="plant-placeholder"></div>
         </div>
@@ -198,6 +202,23 @@ function getPlantClass(date) {
   }
 }
 
+// 获取植物状态文本
+function getPlantStateText(date) {
+  const state = getPlantState(date)
+  switch (state) {
+    case 'seedling':
+      return '🌱 幼苗'
+    case 'tree':
+      return '🌳 小树'
+    case 'flower':
+      return '🌸 开花'
+    case 'withered':
+      return '🥀 枯萎'
+    default:
+      return ''
+  }
+}
+
 // 处理日期点击
 function handleDateClick(date) {
   const dateStr = formatDate(date)
@@ -319,20 +340,61 @@ const containerStyle = computed(() => {
 }
 
 .plant-placeholder {
-  width: 28px;
-  height: 24px;
-  background: rgba(0, 255, 0, 0.3);
+  width: 40px;
+  height: 36px;
 }
 
 .plant-container {
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  width: 28px;
-  height: 24px;
+  width: 40px;
+  height: 36px;
   cursor: pointer;
   position: relative;
-  background: rgba(255, 0, 0, 0.3);
+}
+
+.plant-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  white-space: nowrap;
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  pointer-events: none;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.85);
+  }
+}
+
+.tooltip-state {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.tooltip-days {
+  font-size: 12px;
+  color: #ccc;
+}
+
+.plant-container:hover .plant-tooltip {
+  opacity: 1;
+  visibility: visible;
 }
 
 .plant {
@@ -346,11 +408,11 @@ const containerStyle = computed(() => {
 
 @keyframes plantGrowUp {
   0% {
-    transform: translateY(24px);
+    transform: translateY(36px);
     opacity: 0;
   }
   60% {
-    transform: translateY(-2px);
+    transform: translateY(-3px);
   }
   100% {
     transform: translateY(0);
@@ -359,15 +421,15 @@ const containerStyle = computed(() => {
 }
 
 .plant-stem {
-  width: 2px;
-  border-radius: 1px;
+  width: 4px;
+  border-radius: 2px;
   transition: all 0.3s ease;
 }
 
 .plant-leaves {
   position: relative;
-  width: 16px;
-  height: 12px;
+  width: 28px;
+  height: 20px;
   transition: all 0.3s ease;
 }
 
@@ -379,11 +441,11 @@ const containerStyle = computed(() => {
 
 .plant-flowers {
   position: absolute;
-  top: -1px;
+  top: -2px;
   left: 50%;
   transform: translateX(-50%);
-  width: 14px;
-  height: 14px;
+  width: 24px;
+  height: 24px;
   animation: flowerBloom 0.6s ease-out 0.3s forwards;
   opacity: 0;
 }
@@ -404,8 +466,8 @@ const containerStyle = computed(() => {
 
 .flower {
   position: absolute;
-  width: 5px;
-  height: 5px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
 }
 
@@ -414,36 +476,36 @@ const containerStyle = computed(() => {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: #ffd93d;
 }
 
 .plant-container.plant-seedling .plant-stem {
-  height: 8px;
+  height: 14px;
   background: linear-gradient(to top, #52b788, #74c69d);
 }
 
 .plant-container.plant-seedling .plant-leaves {
-  width: 12px;
-  height: 8px;
+  width: 22px;
+  height: 14px;
 }
 
 .plant-container.plant-seedling .leaf {
-  width: 5px;
-  height: 4px;
+  width: 10px;
+  height: 7px;
 }
 
 .plant-container.plant-seedling .leaf-1 {
-  top: 2px;
+  top: 3px;
   left: 0;
   background: #74c69d;
   transform: rotate(-30deg);
 }
 
 .plant-container.plant-seedling .leaf-2 {
-  top: 2px;
+  top: 3px;
   right: 0;
   background: #74c69d;
   transform: rotate(30deg) scaleX(-1);
@@ -455,76 +517,76 @@ const containerStyle = computed(() => {
 }
 
 .plant-container.plant-tree .plant-stem {
-  height: 10px;
+  height: 18px;
   background: linear-gradient(to top, #2d6a4f, #40916c, #52b788);
 }
 
 .plant-container.plant-tree .plant-leaves {
-  width: 14px;
-  height: 10px;
+  width: 26px;
+  height: 18px;
 }
 
 .plant-container.plant-tree .leaf {
-  width: 6px;
-  height: 5px;
+  width: 12px;
+  height: 9px;
 }
 
 .plant-container.plant-tree .leaf-1 {
-  top: 3px;
+  top: 5px;
   left: 0;
   background: #52b788;
   transform: rotate(-40deg);
 }
 
 .plant-container.plant-tree .leaf-2 {
-  top: 3px;
+  top: 5px;
   right: 0;
   background: #52b788;
   transform: rotate(40deg) scaleX(-1);
 }
 
 .plant-container.plant-tree .leaf-3 {
-  top: 0;
-  left: 2px;
+  top: 1px;
+  left: 3px;
   background: #74c69d;
   transform: rotate(-60deg);
-  width: 5px;
-  height: 3px;
+  width: 10px;
+  height: 7px;
 }
 
 .plant-container.plant-tree .leaf-4 {
-  top: 0;
-  right: 2px;
+  top: 1px;
+  right: 3px;
   background: #74c69d;
   transform: rotate(60deg) scaleX(-1);
-  width: 5px;
-  height: 3px;
+  width: 10px;
+  height: 7px;
 }
 
 .plant-container.plant-flower .plant-stem {
-  height: 11px;
+  height: 20px;
   background: linear-gradient(to top, #1b4332, #2d6a4f, #40916c);
 }
 
 .plant-container.plant-flower .plant-leaves {
-  width: 16px;
-  height: 12px;
+  width: 28px;
+  height: 20px;
 }
 
 .plant-container.plant-flower .leaf {
-  width: 7px;
-  height: 5px;
+  width: 13px;
+  height: 10px;
 }
 
 .plant-container.plant-flower .leaf-1 {
-  top: 4px;
+  top: 6px;
   left: 0;
   background: #40916c;
   transform: rotate(-45deg);
 }
 
 .plant-container.plant-flower .leaf-2 {
-  top: 4px;
+  top: 6px;
   right: 0;
   background: #40916c;
   transform: rotate(45deg) scaleX(-1);
@@ -532,20 +594,20 @@ const containerStyle = computed(() => {
 
 .plant-container.plant-flower .leaf-3 {
   top: 1px;
-  left: 2px;
+  left: 3px;
   background: #52b788;
   transform: rotate(-65deg);
-  width: 5px;
-  height: 4px;
+  width: 11px;
+  height: 8px;
 }
 
 .plant-container.plant-flower .leaf-4 {
   top: 1px;
-  right: 2px;
+  right: 3px;
   background: #52b788;
   transform: rotate(65deg) scaleX(-1);
-  width: 5px;
-  height: 4px;
+  width: 11px;
+  height: 8px;
 }
 
 .plant-container.plant-flower .flower-1 {
@@ -556,7 +618,7 @@ const containerStyle = computed(() => {
 }
 
 .plant-container.plant-flower .flower-2 {
-  top: 3px;
+  top: 4px;
   right: 0;
   background: linear-gradient(135deg, #ff6b9d, #ff8fab);
 }
@@ -574,7 +636,7 @@ const containerStyle = computed(() => {
 }
 
 .plant-container.plant-flower .flower-5 {
-  top: 3px;
+  top: 4px;
   left: 0;
   background: linear-gradient(135deg, #ff6b9d, #ff8fab);
 }
@@ -585,27 +647,27 @@ const containerStyle = computed(() => {
 }
 
 .plant-container.plant-withered .plant-stem {
-  height: 9px;
+  height: 16px;
   background: linear-gradient(to top, #8b7355, #a0896c, #b8a88a);
   transform: rotate(-8deg);
   transform-origin: bottom center;
 }
 
 .plant-container.plant-withered .plant-leaves {
-  width: 12px;
-  height: 9px;
+  width: 22px;
+  height: 16px;
   transform: rotate(-8deg);
   transform-origin: bottom center;
 }
 
 .plant-container.plant-withered .leaf {
-  width: 5px;
-  height: 3px;
+  width: 9px;
+  height: 6px;
   border-radius: 40% 0 40% 0;
 }
 
 .plant-container.plant-withered .leaf-1 {
-  top: 3px;
+  top: 4px;
   left: 0;
   background: #a0896c;
   transform: rotate(-20deg) scale(0.8);
@@ -613,7 +675,7 @@ const containerStyle = computed(() => {
 }
 
 .plant-container.plant-withered .leaf-2 {
-  top: 3px;
+  top: 4px;
   right: 0;
   background: #a0896c;
   transform: rotate(20deg) scaleX(-1) scale(0.8);
@@ -622,7 +684,7 @@ const containerStyle = computed(() => {
 
 .plant-container.plant-withered .leaf-3 {
   top: 0;
-  left: 2px;
+  left: 3px;
   background: #b8a88a;
   transform: rotate(-40deg) scale(0.6);
   opacity: 0.6;
@@ -630,7 +692,7 @@ const containerStyle = computed(() => {
 
 .plant-container.plant-withered .leaf-4 {
   top: 0;
-  right: 2px;
+  right: 3px;
   background: #b8a88a;
   transform: rotate(40deg) scaleX(-1) scale(0.6);
   opacity: 0.6;
@@ -668,16 +730,16 @@ const containerStyle = computed(() => {
   overflow: visible !important;
   position: relative;
   height: auto !important;
-  min-height: 50px !important;
+  min-height: 60px !important;
   border-radius: 8px !important;
-  padding: 4px 2px !important;
+  padding: 6px 4px !important;
   flex-direction: column !important;
   justify-content: flex-start !important;
 }
 
 .ohhh-calendar-day--inner-value {
   line-height: 1.2;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .ohhh-calendar-day--inner-label {
@@ -685,8 +747,8 @@ const containerStyle = computed(() => {
   justify-content: center;
   align-items: flex-end;
   width: 100%;
-  height: 24px;
-  min-height: 24px;
+  height: 36px;
+  min-height: 36px;
   flex-shrink: 0;
   margin-top: auto;
 }
