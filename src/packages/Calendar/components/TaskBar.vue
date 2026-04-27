@@ -7,12 +7,22 @@
       'starts-today': isStartDate,
       'ends-today': isEndDate,
       'is-dragging': isDragging && draggingTaskId === task.id,
-      'is-resizing': isResizing && resizingTaskId === task.id
+      'is-resizing-start': isResizingStart && resizingStartTaskId === task.id,
+      'is-resizing-end': isResizingEnd && resizingEndTaskId === task.id
     }"
     :style="taskBarStyle"
     @mousedown="handleMouseDown"
     @touchstart="handleTouchStart"
+    @click="handleClick"
   >
+    <!-- 左侧调整大小的手柄（开始日期） -->
+    <div 
+      class="task-bar--resize-handle task-bar--resize-handle-left" 
+      v-if="isStartDate"
+      @mousedown.stop="handleResizeStartLeft"
+      @touchstart.stop="handleResizeStartLeft"
+    />
+    
     <!-- 左侧图标 -->
     <div class="task-bar--icon" v-if="isStartDate">
       <svg v-if="!isWeekend(currentDate)" viewBox="0 0 24 24" width="16" height="16">
@@ -34,12 +44,12 @@
       {{ task.title }}
     </div>
     
-    <!-- 调整大小的手柄 -->
+    <!-- 右侧调整大小的手柄（结束日期） -->
     <div 
-      class="task-bar--resize-handle" 
+      class="task-bar--resize-handle task-bar--resize-handle-right" 
       v-if="isEndDate"
-      @mousedown.stop="handleResizeStart"
-      @touchstart.stop="handleResizeStart"
+      @mousedown.stop="handleResizeStartRight"
+      @touchstart.stop="handleResizeStartRight"
     />
   </div>
 </template>
@@ -72,11 +82,16 @@ const {
   startDrag,
   updateDrag,
   endDrag,
-  isResizing,
-  resizingTaskId,
-  startResize,
-  updateResize,
-  endResize
+  isResizingEnd,
+  resizingEndTaskId,
+  startResizeEnd,
+  updateResizeEnd,
+  endResizeEnd,
+  isResizingStart,
+  resizingStartTaskId,
+  startResizeStart,
+  updateResizeStart,
+  endResizeStart
 } = useTaskStore()
 
 // 注入日历容器的引用，用于计算拖拽位置
@@ -121,7 +136,7 @@ const taskBarStyle = computed(() => {
 // 处理鼠标按下（开始拖拽）
 function handleMouseDown(event) {
   // 如果不是左键点击，或者正在调整大小，则不处理
-  if (event.button !== 0 || isResizing.value) return
+  if (event.button !== 0 || isResizingEnd.value || isResizingStart.value) return
   
   event.preventDefault()
   startDrag(props.task.id, props.currentDate)
@@ -146,7 +161,7 @@ function handleMouseDown(event) {
 
 // 处理触摸开始（开始拖拽）
 function handleTouchStart(event) {
-  if (isResizing.value) return
+  if (isResizingEnd.value || isResizingStart.value) return
   
   event.preventDefault()
   startDrag(props.task.id, props.currentDate)
@@ -171,21 +186,51 @@ function handleTouchStart(event) {
   document.addEventListener('touchend', handleTouchEnd)
 }
 
-// 处理调整大小开始
-function handleResizeStart(event) {
+// 处理左侧调整大小开始（调整开始日期）
+function handleResizeStartLeft(event) {
   event.preventDefault()
   event.stopPropagation()
-  startResize(props.task.id, props.currentDate)
+  startResizeStart(props.task.id, props.currentDate)
   
   const handleResizeMove = (e) => {
     const date = getDateFromEvent(e)
     if (date) {
-      updateResize(date)
+      updateResizeStart(date)
     }
   }
   
   const handleResizeEnd = () => {
-    endResize()
+    endResizeStart()
+    document.removeEventListener('mousemove', handleResizeMove)
+    document.removeEventListener('mouseup', handleResizeEnd)
+    document.removeEventListener('touchmove', handleResizeMove)
+    document.removeEventListener('touchend', handleResizeEnd)
+  }
+  
+  if (event.type === 'mousedown') {
+    document.addEventListener('mousemove', handleResizeMove)
+    document.addEventListener('mouseup', handleResizeEnd)
+  } else {
+    document.addEventListener('touchmove', handleResizeMove)
+    document.addEventListener('touchend', handleResizeEnd)
+  }
+}
+
+// 处理右侧调整大小开始（调整结束日期）
+function handleResizeStartRight(event) {
+  event.preventDefault()
+  event.stopPropagation()
+  startResizeEnd(props.task.id, props.currentDate)
+  
+  const handleResizeMove = (e) => {
+    const date = getDateFromEvent(e)
+    if (date) {
+      updateResizeEnd(date)
+    }
+  }
+  
+  const handleResizeEnd = () => {
+    endResizeEnd()
     document.removeEventListener('mousemove', handleResizeMove)
     document.removeEventListener('mouseup', handleResizeEnd)
     document.removeEventListener('touchmove', handleResizeMove)
@@ -278,8 +323,13 @@ function handleClick() {
     cursor: grabbing;
   }
   
-  // 调整大小状态
-  &.is-resizing {
+  // 调整开始日期状态
+  &.is-resizing-start {
+    opacity: 0.7;
+  }
+  
+  // 调整结束日期状态
+  &.is-resizing-end {
     opacity: 0.7;
   }
 }
@@ -305,16 +355,28 @@ function handleClick() {
 
 .task-bar--resize-handle {
   position: absolute;
-  right: 0;
   top: 0;
   bottom: 0;
   width: 8px;
   cursor: ew-resize;
   background: transparent;
+  z-index: 10;
   
   &:hover {
     background: rgba(255, 255, 255, 0.2);
   }
+}
+
+.task-bar--resize-handle-left {
+  left: 0;
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+
+.task-bar--resize-handle-right {
+  right: 0;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
 }
 
 // 呼吸闪烁动画
