@@ -49,7 +49,8 @@
             'other-month': !dateObj.current,
             'is-dragging-source': isDraggingSource(dateObj.date),
             'is-dragging-target': isDraggingTarget(dateObj.date),
-            'is-drop-animating': isDropAnimating(dateObj.date)
+            'is-drop-animating': isDropAnimating(dateObj.date),
+            'has-many-icons': hasManyIcons(dateObj.date)
           }"
           @click="onDayClick(dateObj.date, $event)"
           @mouseenter="onDayMouseEnter(dateObj.date)"
@@ -64,25 +65,68 @@
           </div>
           <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
           
-          <!-- 日记图标容器 -->
+          <!-- 日记图标容器 - 堆叠显示 -->
           <div 
-            class="ohhh-calendar-day--diary-icons"
+            class="ohhh-calendar-day--diary-wrapper"
             v-if="hasDiary(dateObj.date)"
+            @mouseenter="onDiaryWrapperMouseEnter(dateObj.date, $event)"
+            @mouseleave="onDiaryWrapperMouseLeave(dateObj.date)"
           >
+            <!-- 堆叠显示的图标（默认状态） -->
             <div 
-              v-for="(icon, iconIndex) in getDiaryIcons(dateObj.date)"
-              :key="iconIndex"
-              class="ohhh-calendar-day--diary-icon"
-              @mousedown="onDiaryIconMouseDown($event, dateObj.date)"
-              @click.stop
+              class="ohhh-calendar-day--diary-icons ohhh-calendar-day--diary-icons-stacked"
+              v-if="!isExpanded(dateObj.key)"
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
-                <polyline points="10 9 9 9 8 9"></polyline>
-              </svg>
+              <div 
+                v-for="(item, itemIndex) in getDiaryItems(dateObj.date)"
+                :key="item.id"
+                class="ohhh-calendar-day--diary-icon ohhh-calendar-day--diary-icon-stacked"
+                :class="{
+                  'is-dragging-item': isDraggingItem(dateObj.date, item.id)
+                }"
+                :style="{
+                  zIndex: itemIndex + 1,
+                  marginLeft: itemIndex > 0 ? '-6px' : '0px'
+                }"
+                @mousedown="onDiaryItemMouseDown($event, dateObj.date, item.id, item.content)"
+                @click.stop
+                :title="item.content"
+              >
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+              </div>
+            </div>
+            
+            <!-- 展开显示的图标（鼠标悬停时，横向滚动） -->
+            <div 
+              class="ohhh-calendar-day--diary-icons ohhh-calendar-day--diary-icons-expanded"
+              v-if="isExpanded(dateObj.key)"
+              ref="expandedIconsRef"
+            >
+              <div 
+                v-for="(item, itemIndex) in getDiaryItems(dateObj.date)"
+                :key="item.id"
+                class="ohhh-calendar-day--diary-icon ohhh-calendar-day--diary-icon-expanded"
+                :class="{
+                  'is-dragging-item': isDraggingItem(dateObj.date, item.id)
+                }"
+                @mousedown="onDiaryItemMouseDown($event, dateObj.date, item.id, item.content)"
+                @click.stop
+                :title="item.content"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+              </div>
             </div>
           </div>
           
@@ -223,6 +267,7 @@ import { useDiary } from './hooks/useDiary.js'
 const swipeRef = useTemplateRef('swp')
 const calendarContainer = useTemplateRef('calendarContainer')
 const diaryInputRef = useTemplateRef('diaryInputRef')
+const expandedIconsRef = useTemplateRef('expandedIconsRef')
 
 const emit = defineEmits(['select-change', 'view-change', 'diary-change', 'diary-drag'])
 
@@ -266,10 +311,17 @@ const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration }
 const {
   diaries,
   getDiaryByDate,
+  getDiaryItems,
+  getDiaryItemById,
+  addDiaryItem,
+  removeDiaryItem,
+  moveDiaryItem,
+  updateDiaryItem,
   addDiary,
   removeDiary,
   moveDiary,
-  hasDiary
+  hasDiary,
+  hasDiaryItems
 } = useDiary()
 
 const {
@@ -376,14 +428,19 @@ const diaryInputValue = ref('')
 // 拖拽相关状态
 const isDragging = ref(false)
 const draggingDate = ref(null)
+const draggingItemId = ref(null)
 const dragGhostPosition = ref({ x: 0, y: 0 })
 const draggingDiaryContent = ref('')
 const hoverDate = ref(null)
+
+// 展开状态
+const expandedDateKeys = ref(new Set())
 
 // 合并确认弹窗状态
 const showMergeDialog = ref(false)
 const pendingMoveFrom = ref(null)
 const pendingMoveTo = ref(null)
+const pendingMoveItemId = ref(null)
 
 // 掉落动画相关
 const dropAnimatingDates = ref(new Set())
@@ -402,8 +459,9 @@ function onDayClick(date, event) {
 
 function openDiaryInput(date) {
   selectedDiaryDate.value = date
-  const existingDiary = getDiaryByDate(date)
-  diaryInputValue.value = existingDiary ? existingDiary.content : ''
+  const existingItems = getDiaryItems(date)
+  // 如果有多个条目，显示第一个供编辑
+  diaryInputValue.value = existingItems.length > 0 ? existingItems[0].content : ''
   showDiaryInput.value = true
   
   nextTick(() => {
@@ -428,36 +486,71 @@ function onDiaryInputChange() {
 function saveDiary() {
   if (!diaryInputValue.value.trim()) return
   
-  const saved = addDiary(selectedDiaryDate.value, diaryInputValue.value)
-  if (saved) {
-    emit('diary-change', {
-      type: saved.createdAt.getTime() === saved.updatedAt.getTime() ? 'add' : 'update',
-      date: saved.date,
-      content: saved.content
-    })
+  const existingItems = getDiaryItems(selectedDiaryDate.value)
+  
+  if (existingItems.length > 0) {
+    // 更新第一个条目
+    const updated = updateDiaryItem(selectedDiaryDate.value, existingItems[0].id, diaryInputValue.value)
+    if (updated) {
+      emit('diary-change', {
+        type: 'update',
+        date: selectedDiaryDate.value,
+        itemId: updated.id,
+        content: updated.content
+      })
+    }
+  } else {
+    // 添加新条目
+    const saved = addDiaryItem(selectedDiaryDate.value, diaryInputValue.value)
+    if (saved) {
+      emit('diary-change', {
+        type: 'add',
+        date: selectedDiaryDate.value,
+        itemId: saved.id,
+        content: saved.content
+      })
+    }
   }
+  
   closeDiaryInput()
 }
 
-function getDiaryIcons(date) {
-  const diary = getDiaryByDate(date)
-  if (!diary) return []
+function isExpanded(dateKey) {
+  return expandedDateKeys.value.has(dateKey)
+}
+
+function hasManyIcons(date) {
+  const items = getDiaryItems(date)
+  return items.length > 1
+}
+
+function onDiaryWrapperMouseEnter(date, event) {
+  if (isDragging.value) return
   
-  // 如果是合并的内容（包含换行），显示多个图标
-  if (diary.content.includes('\n')) {
-    const lines = diary.content.split('\n').filter(l => l.trim())
-    return lines.map((line, index) => ({
-      content: line,
-      index
-    }))
+  const dateKey = _dateToKey(date)
+  const items = getDiaryItems(date)
+  
+  // 只有当有多个图标时才展开
+  if (items.length > 1) {
+    expandedDateKeys.value.add(dateKey)
   }
+}
+
+function onDiaryWrapperMouseLeave(date) {
+  if (isDragging.value) return
   
-  return [{ content: diary.content, index: 0 }]
+  const dateKey = _dateToKey(date)
+  expandedDateKeys.value.delete(dateKey)
 }
 
 function isDraggingSource(date) {
   if (!isDragging.value || !draggingDate.value) return false
   return isSameDay(date, draggingDate.value)
+}
+
+function isDraggingItem(date, itemId) {
+  if (!isDragging.value || !draggingDate.value || !draggingItemId.value) return false
+  return isSameDay(date, draggingDate.value) && draggingItemId.value === itemId
 }
 
 function isDraggingTarget(date) {
@@ -473,16 +566,20 @@ function _dateToKey(date) {
   return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
 }
 
-function onDiaryIconMouseDown(event, date) {
+function onDiaryItemMouseDown(event, date, itemId, content) {
   event.preventDefault()
   event.stopPropagation()
   
-  const diary = getDiaryByDate(date)
-  if (!diary) return
+  const item = getDiaryItemById(date, itemId)
+  if (!item) return
   
   isDragging.value = true
   draggingDate.value = date
-  draggingDiaryContent.value = diary.content.length > 20 ? diary.content.substring(0, 20) + '...' : diary.content
+  draggingItemId.value = itemId
+  draggingDiaryContent.value = item.content.length > 20 ? item.content.substring(0, 20) + '...' : item.content
+  
+  // 收起所有展开的图标
+  expandedDateKeys.value.clear()
   
   // 初始位置
   updateDragGhostPosition(event)
@@ -531,28 +628,32 @@ function onDayMouseLeave(date) {
 function onMouseUp() {
   if (!isDragging.value) return
   
-  if (hoverDate.value && draggingDate.value && !isSameDay(hoverDate.value, draggingDate.value)) {
-    // 检查目标日期是否已有内容
-    const targetHasDiary = hasDiary(hoverDate.value)
+  if (hoverDate.value && draggingDate.value && draggingItemId.value && 
+      !isSameDay(hoverDate.value, draggingDate.value)) {
     
-    if (targetHasDiary) {
+    // 检查目标日期是否已有内容
+    const targetHasItems = hasDiaryItems(hoverDate.value)
+    
+    if (targetHasItems) {
       // 显示合并确认弹窗
       pendingMoveFrom.value = draggingDate.value
       pendingMoveTo.value = hoverDate.value
+      pendingMoveItemId.value = draggingItemId.value
       showMergeDialog.value = true
     } else {
-      // 直接移动
-      performMove(draggingDate.value, hoverDate.value, 'overwrite')
+      // 直接移动单个条目
+      performMoveItem(draggingDate.value, hoverDate.value, draggingItemId.value, 'overwrite')
     }
   }
   
   isDragging.value = false
   draggingDate.value = null
+  draggingItemId.value = null
   hoverDate.value = null
 }
 
-function performMove(fromDate, toDate, action) {
-  const result = moveDiary(fromDate, toDate, action)
+function performMoveItem(fromDate, toDate, itemId, action) {
+  const result = moveDiaryItem(fromDate, toDate, itemId, action)
   
   if (result) {
     // 添加掉落动画
@@ -562,19 +663,21 @@ function performMove(fromDate, toDate, action) {
       type: 'drag',
       action: result,
       fromDate: fromDate,
-      toDate: toDate
+      toDate: toDate,
+      itemId: itemId
     })
   }
   
   pendingMoveFrom.value = null
   pendingMoveTo.value = null
+  pendingMoveItemId.value = null
 }
 
 function handleMergeAction(action) {
   showMergeDialog.value = false
   
-  if (pendingMoveFrom.value && pendingMoveTo.value) {
-    performMove(pendingMoveFrom.value, pendingMoveTo.value, action)
+  if (pendingMoveFrom.value && pendingMoveTo.value && pendingMoveItemId.value) {
+    performMoveItem(pendingMoveFrom.value, pendingMoveTo.value, pendingMoveItemId.value, action)
   }
 }
 
@@ -582,6 +685,7 @@ function cancelMergeAction() {
   showMergeDialog.value = false
   pendingMoveFrom.value = null
   pendingMoveTo.value = null
+  pendingMoveItemId.value = null
 }
 
 function triggerDropAnimation(date) {
@@ -636,7 +740,9 @@ defineExpose({
   changePageTo,
   changeSelectedDate,
   getDiaryByDate,
-  addDiary,
-  removeDiary
+  getDiaryItems,
+  addDiaryItem,
+  removeDiaryItem,
+  moveDiaryItem
 })
 </script>
