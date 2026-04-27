@@ -138,3 +138,101 @@
   width: var(--calendar-footer-icon-size);
   height: var(--calendar-footer-icon-size);
 }
+
+.ohhh-calendar-mood-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.ohhh-calendar-mood-summary:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.ohhh-calendar-mood-summary--text {
+  font-size: 13px;
+  color: var(--calendar-weekdays-color);
+  font-weight: 500;
+}
+
+.ohhh-calendar-mood-summary--dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+}
+
+.ohhh-calendar-day {
+  position: relative;
+}
+
+.ohhh-calendar-day--mood-heart {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 10;
+}
+
+.ohhh-calendar-day:hover .ohhh-calendar-day--mood-heart,
+.ohhh-calendar-day--mood-heart.has-mood {
+  opacity: 1;
+}
+
+.ohhh-calendar-day--mood-heart:hover {
+  transform: scale(1.2);
+}
+
+.ohhh-calendar-day--mood-heart.is-dimmed {
+  opacity: 0.2 !important;
+}
+
+.ohhh-calendar-day--mood-heart.is-highlighted {
+  opacity: 1 !important;
+  transform: scale(1.1);
+}
+
+.ohhh-calendar-heart-icon {
+  width: 100%;
+  height: 100%;
+}
+
+.ohhh-calendar-heart-icon--empty {
+  color: rgba(78, 205, 196, 0.6);
+}
+
+.ohhh-calendar-day:hover .ohhh-calendar-heart-icon--empty {
+  color: rgba(78, 205, 196, 0.8);
+}
+
+.ohhh-calendar-heart-icon--filled {
+  color: var(--mood-color);
+}
+
+.ohhh-calendar-connections {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.ohhh-calendar-connection-line {
+  stroke-width: 1.5px;
+  stroke-linecap: round;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+}
