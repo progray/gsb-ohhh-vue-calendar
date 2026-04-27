@@ -1,6 +1,7 @@
 <template>
   <div
     class="ohhh-calendar-container"
+    :class="{ 'is-minimal': personalityMode === 'minimal', 'is-maximal': personalityMode === 'maximal' }"
     :style="{
       '--calendar-rows': renderRows,
       '--calendar-transition-duration': duration,
@@ -8,116 +9,121 @@
       '--transition-duration': transitionDuration
     }"
   >
-    <!-- 顶部工具栏 -->
-    <div v-if="showToolbar" class="ohhh-calendar-toolbar">
-      <slot name="toolbar" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
-        <div v-html="icons.arrowDoubleLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-year')" />
-        <div v-html="icons.arrowLeft" class="ohhh-calendar-toolbar--icon" @click="changePageTo('prev-page')" />
-        <div class="ohhh-calendar-toolbar--text">{{ headerLabel }}</div>
-        <div v-html="icons.arrowRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-page')" />
-        <div v-html="icons.arrowDoubleRight" class="ohhh-calendar-toolbar--icon" @click="changePageTo('next-year')" />
-      </slot>
-    </div>
-
-    <!-- 星期栏 -->
-    <div v-if="showWeekdays" class="ohhh-calendar-weekdays">
-      <div v-for="(day, index) in weekdays" :key="day" class="ohhh-calendar-weekdays--weekday">
-        <slot name="weekday" :weekday="day" :index="(index + weekStart) % 7">{{ day }}</slot>
+    <!-- 模式切换开关 -->
+    <div class="ohhh-calendar-mode-switch" @click="togglePersonalityMode">
+      <span class="mode-label minimal" :class="{ active: personalityMode === 'minimal' }">极简</span>
+      <div class="switch-track">
+        <div class="switch-thumb" :class="{ 'to-maximal': isFlipping && personalityMode === 'maximal', 'to-minimal': isFlipping && personalityMode === 'minimal' }"></div>
       </div>
+      <span class="mode-label maximal" :class="{ active: personalityMode === 'maximal' }">极繁</span>
     </div>
 
-    <!-- 日历主体 -->
-    <div ref="swp" class="ohhh-calendar-wrapper">
-      <div
-        v-for="(item, index) in allRenderDates"
-        :key="index"
-        :style="{ left: 100 * (index - 1) + '%' }"
-        class="ohhh-calendar-days"
-        @transitionend="onTransitionEnd"
-      >
-        <div
-          v-for="dateObj in item"
-          :key="dateObj.key"
-          class="ohhh-calendar-day"
-          :class="{
-            'is-selected': isSameDay(dateObj.date, selected),
-            'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
-          }"
-          @click="changeSelectedDate(dateObj.date)"
-        >
-          <div class="ohhh-calendar-day--inner">
-            <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
-            <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
-              <slot name="day-label" :date="dateObj.date" />
-            </div>
-          </div>
-          <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
-        </div>
-      </div>
-    </div>
-
-    <!-- 底部工具栏 -->
-    <div v-if="showFooter" class="ohhh-calendar-footer">
-      <slot name="footer" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
-        <div
-          v-html="viewMode === 'week' ? icons.arrowDown : icons.arrowUp"
-          class="ohhh-calendar-footer--icon"
-          @click="toggleViewMode"
+    <!-- 3D翻转容器 -->
+    <div class="ohhh-calendar-flip-container" :class="{ 'flipping': isFlipping, 'flipped': personalityMode === 'maximal' }">
+      <!-- 正面：极简模式 -->
+      <div class="ohhh-calendar-flip-face flip-front">
+        <MinimalModeView
+          :all-render-dates="allRenderDates"
+          :current-render-dates="currentRenderDates"
+          :clicked-dates="clickedDates"
+          :selected="selected"
+          :current-year="currentYear"
+          :current-month="currentMonth"
+          :show-weekdays="showWeekdays"
+          :show-toolbar="showToolbar"
+          :show-footer="showFooter"
+          :header-label="headerLabel"
+          :view-mode="viewMode"
+          :icons="icons"
+          :weekdays="weekdays"
+          :week-start="weekStart"
+          :transform-distance="transformDistance"
+          :transition-duration="transitionDuration"
+          :render-rows="renderRows"
+          :duration="duration"
+          @change-page-to="changePageTo"
+          @change-selected-date="handleMinimalModeDateClick"
+          @toggle-view-mode="toggleViewMode"
+          @transition-end="onTransitionEnd"
         />
-      </slot>
+      </div>
+
+      <!-- 反面：极繁模式 -->
+      <div class="ohhh-calendar-flip-face flip-back">
+        <MaximalModeView
+          :all-render-dates="allRenderDates"
+          :current-render-dates="currentRenderDates"
+          :selected="selected"
+          :current-year="currentYear"
+          :current-month="currentMonth"
+          :show-weekdays="showWeekdays"
+          :show-toolbar="showToolbar"
+          :show-footer="showFooter"
+          :header-label="headerLabel"
+          :view-mode="viewMode"
+          :icons="icons"
+          :weekdays="weekdays"
+          :week-start="weekStart"
+          :transform-distance="transformDistance"
+          :transition-duration="transitionDuration"
+          :render-rows="renderRows"
+          :duration="duration"
+          @change-page-to="changePageTo"
+          @change-selected-date="changeSelectedDate"
+          @toggle-view-mode="toggleViewMode"
+          @transition-end="onTransitionEnd"
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, ref, onMounted, onUnmounted } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
-import { isSameDay, createWeekdays } from './utils'
+import { isSameDay, createWeekdays, formatDateKey } from './utils'
 import { icons } from './utils/icons.js'
+import MinimalModeView from './components/MinimalModeView.vue'
+import MaximalModeView from './components/MaximalModeView.vue'
 
 const swipeRef = useTemplateRef('swp')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'mode-change'])
 
 const props = defineProps({
-  // 初始选中的日期
   initialSelectedDate: {
     type: Date,
     default: () => new Date()
   },
-  // 初始视图模式
   initialViewMode: {
     type: String,
-    default: 'month' // month or week
+    default: 'month'
   },
-  // 以周几作为每周的起始
+  initialPersonalityMode: {
+    type: String,
+    default: 'minimal'
+  },
   weekStart: {
     type: Number,
-    default: 0 // 0: Sunday, 1: Monday, etc.
+    default: 0
   },
-  // 标记的日期
   markerDates: {
     type: Array,
     default: () => []
   },
-  // 是否显示顶部工具栏
   showToolbar: {
     type: Boolean,
     default: true
   },
-  // 是否显示底部工具栏
   showFooter: {
     type: Boolean,
     default: true
   },
-  // 是否显示weekdays栏
   showWeekdays: {
     type: Boolean,
     default: true
   },
-  // 过渡动画时长
   duration: {
     type: String,
     default: '0.3s'
@@ -125,6 +131,10 @@ const props = defineProps({
 })
 
 const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration } = toRefs(props)
+
+const personalityMode = ref(props.initialPersonalityMode)
+const isFlipping = ref(false)
+const clickedDates = ref(new Set())
 
 const {
   selected,
@@ -143,11 +153,8 @@ const {
   toggleViewMode
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
 
-// 顶部工具栏标题
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
-// 星期栏
 const weekdays = createWeekdays(weekStart.value)
-// 标记日期
 const markerDateList = computed(() =>
   markerDates.value.map(item => ({
     date: new Date(typeof item === 'object' && item.date ? item.date : item),
@@ -155,31 +162,6 @@ const markerDateList = computed(() =>
   }))
 )
 
-// 监听滑动事件
-const { lengthX } = useSwipe(swipeRef, {
-  // 滑动阈值
-  threshold: 0,
-  // 手指滑动过程中
-  onSwipe: () => {
-    if (isInTransition.value) return
-    transformDistance.value = -lengthX.value + 'px'
-  },
-  // 手指抬起滑动结束，开始滑动动画
-  onSwipeEnd: (_, direction) => {
-    if (isInTransition.value) return
-    if (direction === 'left') {
-      changePageTo('next-page')
-    } else if (direction === 'right') {
-      changePageTo('prev-page')
-    } else {
-      // 如果方向不是左右，则将页面复位
-      startTransitionAnimation(direction)
-    }
-  }
-})
-
-// 归一化参数
-// 支持 'prev-page', 'next-page', 'prev-year', 'next-year', 以及合法的日期
 function _normalize(param) {
   if (!param) {
     throw new Error('参数不能为空')
@@ -215,13 +197,11 @@ function _normalize(param) {
   throw new Error('日期不合法')
 }
 
-// 切换日历页面
 function changePageTo(param) {
   const targetDate = _normalize(param)
   switchPageToTargetDate(targetDate)
 }
 
-// 切换选中的日期
 function changeSelectedDate(date) {
   changePageTo(date)
   if (!isSameDay(new Date(date), selected.value)) {
@@ -230,17 +210,168 @@ function changeSelectedDate(date) {
   }
 }
 
-// 获取 marker 颜色
+function handleMinimalModeDateClick(date) {
+  const dateKey = formatDateKey(date)
+  clickedDates.value.add(dateKey)
+  changeSelectedDate(date)
+}
+
+function togglePersonalityMode() {
+  if (isFlipping.value) return
+  isFlipping.value = true
+  personalityMode.value = personalityMode.value === 'minimal' ? 'maximal' : 'minimal'
+  emit('mode-change', personalityMode.value)
+  setTimeout(() => {
+    isFlipping.value = false
+  }, 800)
+}
+
 function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
 defineExpose({
-  // 切换周/月视图
   toggleViewMode,
-  // 切换日历页
   changePageTo,
-  // 切换选中日期
-  changeSelectedDate
+  changeSelectedDate,
+  togglePersonalityMode,
+  personalityMode
 })
 </script>
+
+<style lang="scss">
+@use './style/variable.scss';
+
+.ohhh-calendar-container {
+  -webkit-tap-highlight-color: transparent;
+  background: var(--calendar-background);
+  font-family:
+    Open Sans,
+    -apple-system,
+    BlinkMacSystemFont,
+    Helvetica Neue,
+    Helvetica,
+    Segoe UI,
+    Arial,
+    Roboto,
+    PingFang SC,
+    miui,
+    Hiragino Sans GB,
+    Microsoft Yahei,
+    sans-serif;
+  position: relative;
+  perspective: 1500px;
+  overflow: visible;
+
+  &.is-minimal {
+    --calendar-minimal-bg: #0a0a1a;
+    --calendar-minimal-grid-color: rgba(255, 255, 255, 0.03);
+    --calendar-minimal-text-color: rgba(255, 255, 255, 0.1);
+    --calendar-glow-dot-color: #00d4ff;
+    --calendar-glow-dot-glow: 0 0 10px #00d4ff, 0 0 20px #00d4ff, 0 0 30px rgba(0, 212, 255, 0.5);
+  }
+
+  &.is-maximal {
+    --calendar-maximal-bg: #1a1a2e;
+    --calendar-maximal-border-color: #4a4a6a;
+    --calendar-maximal-border-width: 3px;
+    --calendar-maximal-text-color: #e0e0e0;
+    --calendar-progress-bg: #2a2a4a;
+    --calendar-progress-fill: #ff6b6b;
+    --calendar-percent-color: #ffd93d;
+  }
+}
+
+.ohhh-calendar-mode-switch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  user-select: none;
+  z-index: 100;
+  position: relative;
+}
+
+.mode-label {
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &.minimal {
+    color: rgba(255, 255, 255, 0.4);
+    &.active {
+      color: #00d4ff;
+      text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+    }
+  }
+
+  &.maximal {
+    color: rgba(255, 255, 255, 0.4);
+    &.active {
+      color: #ff6b6b;
+      text-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+    }
+  }
+}
+
+.switch-track {
+  width: 50px;
+  height: 26px;
+  background: linear-gradient(135deg, #2a2a4a 0%, #1a1a2e 100%);
+  border-radius: 13px;
+  position: relative;
+  cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.switch-thumb {
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+  border-radius: 50%;
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  box-shadow: 0 2px 8px rgba(0, 212, 255, 0.5);
+
+  &.to-maximal {
+    left: 25px;
+    background: linear-gradient(135deg, #ff6b6b 0%, #cc5555 100%);
+    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.5);
+  }
+}
+
+.ohhh-calendar-flip-container {
+  position: relative;
+  width: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  &.flipped {
+    transform: rotateY(180deg);
+  }
+}
+
+.ohhh-calendar-flip-face {
+  width: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  position: relative;
+}
+
+.flip-front {
+  z-index: 2;
+}
+
+.flip-back {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: rotateY(180deg);
+  z-index: 1;
+}
+</style>
