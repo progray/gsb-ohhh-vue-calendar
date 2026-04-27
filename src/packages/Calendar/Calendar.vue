@@ -301,19 +301,11 @@ function _getMarkerColor(date) {
 function onDayClick(dateObj, event) {
   if (activeMarbleId.value || isDragMoving.value) return
   
-  const dayElement = event.currentTarget
-  const rect = dayElement.getBoundingClientRect()
-  const x = (event.clientX - rect.left) / rect.width
-  const y = (event.clientY - rect.top) / rect.height
-  
-  const existingMarble = marbles.value.find(m => {
-    if (!isSameDay(m.date, dateObj.date)) return false
-    const dx = Math.abs(m.x - x)
-    const dy = Math.abs(m.y - y)
-    return dx < 0.08 && dy < 0.08
-  })
+  const existingMarble = marbles.value.find(m => isSameDay(m.date, dateObj.date))
   
   if (!existingMarble) {
+    const x = 0.75
+    const y = 0.45
     const marble = createMarble(dateObj.date, x, y)
     emit('marble-create', marble)
   }
@@ -394,16 +386,28 @@ function handleMarbleMove(clientX, clientY) {
     const dayElement = findDayElementAtPosition(clientX, clientY)
     
     if (dayElement) {
-      const rect = dayElement.getBoundingClientRect()
-      const x = Math.max(0.1, Math.min(0.9, (clientX - rect.left) / rect.width))
-      const y = Math.max(0.1, Math.min(0.9, (clientY - rect.top) / rect.height))
-      
       const dateFromElement = getDateFromDayElement(dayElement)
-      if (dateFromElement && !isSameDay(marble.date, dateFromElement)) {
-        updateMarbleDate(activeMarbleId.value, dateFromElement)
-      }
       
-      updateMarblePosition(activeMarbleId.value, x, y)
+      if (dateFromElement) {
+        if (isSameDay(marble.date, dateFromElement)) {
+          const rect = dayElement.getBoundingClientRect()
+          const x = Math.max(0.1, Math.min(0.9, (clientX - rect.left) / rect.width))
+          const y = Math.max(0.1, Math.min(0.9, (clientY - rect.top) / rect.height))
+          updateMarblePosition(activeMarbleId.value, x, y)
+        } else {
+          const hasExistingMarble = marbles.value.some(m => 
+            m.id !== marble.id && isSameDay(m.date, dateFromElement)
+          )
+          
+          if (!hasExistingMarble) {
+            updateMarbleDate(activeMarbleId.value, dateFromElement)
+            const rect = dayElement.getBoundingClientRect()
+            const x = Math.max(0.1, Math.min(0.9, (clientX - rect.left) / rect.width))
+            const y = Math.max(0.1, Math.min(0.9, (clientY - rect.top) / rect.height))
+            updateMarblePosition(activeMarbleId.value, x, y)
+          }
+        }
+      }
     }
   }
 }
@@ -451,6 +455,7 @@ function handleMarbleEnd(clientX, clientY) {
         removeMarble(activeMarbleId.value)
         emit('marble-remove', marbleData)
       } else {
+        updateMarblePosition(activeMarbleId.value, 0.75, 0.45)
         emit('marble-move', marble)
       }
     }
@@ -491,16 +496,30 @@ function getDateFromDayElement(element) {
   if (!element) return null
   
   const parent = element.parentElement
-  if (!parent) return null
+  if (!parent || !parent.classList.contains('ohhh-calendar-days')) return null
+  
+  if (!swipeRef.value) return null
+  
+  const daysContainers = swipeRef.value.querySelectorAll('.ohhh-calendar-days')
+  let pageIndex = -1
+  
+  for (let i = 0; i < daysContainers.length; i++) {
+    if (daysContainers[i] === parent) {
+      pageIndex = i
+      break
+    }
+  }
+  
+  if (pageIndex === -1 || pageIndex >= allRenderDates.value.length) return null
   
   const dateElements = Array.from(parent.querySelectorAll('.ohhh-calendar-day'))
   const index = dateElements.indexOf(element)
+  
   if (index === -1) return null
   
-  for (const dates of allRenderDates.value) {
-    if (dates[index]) {
-      return dates[index].date
-    }
+  const dates = allRenderDates.value[pageIndex]
+  if (dates && dates[index]) {
+    return dates[index].date
   }
   
   return null
@@ -572,18 +591,23 @@ function clientToSvgY(clientY) {
 function findDayElementForDate(date) {
   if (!swipeRef.value) return null
   
-  const dayElements = swipeRef.value.querySelectorAll('.ohhh-calendar-day')
-  for (const el of dayElements) {
-    const parent = el.parentElement
-    const dateElements = Array.from(parent.querySelectorAll('.ohhh-calendar-day'))
-    const index = dateElements.indexOf(el)
+  const daysContainers = swipeRef.value.querySelectorAll('.ohhh-calendar-days')
+  
+  for (let pageIndex = 0; pageIndex < allRenderDates.value.length; pageIndex++) {
+    const dates = allRenderDates.value[pageIndex]
+    const container = daysContainers[pageIndex]
     
-    for (const dates of allRenderDates.value) {
-      if (dates[index] && isSameDay(dates[index].date, date)) {
-        return el
+    if (!container || !dates) continue
+    
+    const dayElements = container.querySelectorAll('.ohhh-calendar-day')
+    
+    for (let i = 0; i < dates.length; i++) {
+      if (dates[i] && isSameDay(dates[i].date, date)) {
+        return dayElements[i] || null
       }
     }
   }
+  
   return null
 }
 
