@@ -42,15 +42,28 @@
           :class="{
             'is-selected': isSameDay(dateObj.date, selected),
             'is-today': isSameDay(dateObj.date, new Date()),
-            'other-month': !dateObj.current
+            'other-month': !dateObj.current,
+            'is-past': _isPastDate(dateObj.date) && !isSameDay(dateObj.date, new Date()),
+            'has-capsule': _hasCapsule(dateObj.date)
           }"
-          @click="changeSelectedDate(dateObj.date)"
+          @click="handleDateClick(dateObj.date)"
         >
           <div class="ohhh-calendar-day--inner">
             <div class="ohhh-calendar-day--inner-value">{{ dateObj.fullDate.date }}</div>
             <div class="ohhh-calendar-day--inner-label" v-if="$slots['day-label']">
               <slot name="day-label" :date="dateObj.date" />
             </div>
+          </div>
+          <div class="ohhh-calendar-day--capsule" v-if="_hasCapsule(dateObj.date)">
+            <div
+              v-html="icons[_getCapsuleIcon(dateObj.date)]"
+              class="ohhh-calendar-day--capsule-icon"
+              :class="{
+                'is-locked': _getCapsuleStatus(dateObj.date) === CapsuleStatus.LOCKED,
+                'is-unlocked': _getCapsuleStatus(dateObj.date) === CapsuleStatus.UNLOCKED,
+                'is-expired': _getCapsuleStatus(dateObj.date) === CapsuleStatus.EXPIRED
+              }"
+            ></div>
           </div>
           <div class="ohhh-calendar-day--marker" :style="{ background: _getMarkerColor(dateObj.date) }" />
         </div>
@@ -61,70 +74,105 @@
     <div v-if="showFooter" class="ohhh-calendar-footer">
       <slot name="footer" :year="currentYear" :month="currentMonth" :viewMode="viewMode">
         <div
+          class="ohhh-calendar-footer--clear-expired"
+          v-if="showClearExpired && expiredCapsules.length > 0"
+          @click="handleClearExpired"
+        >
+          清除过期胶囊 ({{ expiredCapsules.length }})
+        </div>
+        <div
           v-html="viewMode === 'week' ? icons.arrowDown : icons.arrowUp"
           class="ohhh-calendar-footer--icon"
           @click="toggleViewMode"
         />
       </slot>
     </div>
+
+    <!-- 时光胶囊编辑弹窗 -->
+    <TimeCapsuleEditModal
+      :visible="isEditModalOpen"
+      :date="selectedDate"
+      :capsule="selectedCapsule"
+      :is-past="_isPastDate(selectedDate)"
+      @close="closeEditModal"
+      @save="handleSaveCapsule"
+      @delete="handleDeleteCapsule"
+    />
+
+    <!-- 时光胶囊倒计时弹窗 -->
+    <TimeCapsuleCountdown
+      :visible="isCountdownModalOpen"
+      :date="selectedDate"
+      @close="closeCountdownModal"
+    />
+
+    <!-- 时光胶囊刮刮乐弹窗 -->
+    <TimeCapsuleScratch
+      :visible="isScratchModalOpen"
+      :date="selectedDate"
+      :capsule="selectedCapsule"
+      :is-today="_isToday(selectedDate)"
+      @close="closeScratchModal"
+      @progress-update="handleProgressUpdate"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed, useTemplateRef, toRefs } from 'vue'
+import { computed, useTemplateRef, toRefs, onMounted } from 'vue'
 import { useSwipe } from '@vueuse/core'
 import { useCalendar } from './hooks/useCalendar.js'
+import { useTimeCapsule } from './hooks/useTimeCapsule.js'
 import { isSameDay, createWeekdays } from './utils'
 import { icons } from './utils/icons.js'
+import TimeCapsuleEditModal from './components/TimeCapsuleEditModal.vue'
+import TimeCapsuleCountdown from './components/TimeCapsuleCountdown.vue'
+import TimeCapsuleScratch from './components/TimeCapsuleScratch.vue'
 
 const swipeRef = useTemplateRef('swp')
 
-const emit = defineEmits(['select-change', 'view-change'])
+const emit = defineEmits(['select-change', 'view-change', 'capsule-save', 'capsule-delete'])
 
 const props = defineProps({
-  // 初始选中的日期
   initialSelectedDate: {
     type: Date,
     default: () => new Date()
   },
-  // 初始视图模式
   initialViewMode: {
     type: String,
-    default: 'month' // month or week
+    default: 'month'
   },
-  // 以周几作为每周的起始
   weekStart: {
     type: Number,
-    default: 0 // 0: Sunday, 1: Monday, etc.
+    default: 0
   },
-  // 标记的日期
   markerDates: {
     type: Array,
     default: () => []
   },
-  // 是否显示顶部工具栏
   showToolbar: {
     type: Boolean,
     default: true
   },
-  // 是否显示底部工具栏
   showFooter: {
     type: Boolean,
     default: true
   },
-  // 是否显示weekdays栏
   showWeekdays: {
     type: Boolean,
     default: true
   },
-  // 过渡动画时长
+  showClearExpired: {
+    type: Boolean,
+    default: true
+  },
   duration: {
     type: String,
     default: '0.3s'
   }
 })
 
-const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration } = toRefs(props)
+const { initialSelectedDate, initialViewMode, weekStart, markerDates, duration, showClearExpired } = toRefs(props)
 
 const {
   selected,
@@ -143,11 +191,38 @@ const {
   toggleViewMode
 } = useCalendar({ initialSelectedDate, initialViewMode, weekStart, duration }, emit)
 
-// 顶部工具栏标题
+const {
+  selectedDate,
+  selectedCapsule,
+  isEditModalOpen,
+  isCountdownModalOpen,
+  isScratchModalOpen,
+  datesWithCapsules,
+  expiredCapsules,
+  refreshCapsules,
+  getCapsuleForDate,
+  hasCapsuleForDate,
+  getCapsuleStatusForDate,
+  saveNewCapsule,
+  deleteExistingCapsule,
+  clearAllExpired,
+  updateProgress,
+  openEditModal,
+  closeEditModal,
+  closeCountdownModal,
+  closeScratchModal,
+  isPastDate: _isPastDate,
+  isFutureDate: _isFutureDate,
+  isToday: _isToday,
+  CapsuleStatus
+} = useTimeCapsule()
+
+onMounted(() => {
+  refreshCapsules()
+})
+
 const headerLabel = computed(() => `${currentYear.value}年${currentMonth.value + 1}月`)
-// 星期栏
 const weekdays = createWeekdays(weekStart.value)
-// 标记日期
 const markerDateList = computed(() =>
   markerDates.value.map(item => ({
     date: new Date(typeof item === 'object' && item.date ? item.date : item),
@@ -155,16 +230,12 @@ const markerDateList = computed(() =>
   }))
 )
 
-// 监听滑动事件
 const { lengthX } = useSwipe(swipeRef, {
-  // 滑动阈值
   threshold: 0,
-  // 手指滑动过程中
   onSwipe: () => {
     if (isInTransition.value) return
     transformDistance.value = -lengthX.value + 'px'
   },
-  // 手指抬起滑动结束，开始滑动动画
   onSwipeEnd: (_, direction) => {
     if (isInTransition.value) return
     if (direction === 'left') {
@@ -172,14 +243,11 @@ const { lengthX } = useSwipe(swipeRef, {
     } else if (direction === 'right') {
       changePageTo('prev-page')
     } else {
-      // 如果方向不是左右，则将页面复位
       startTransitionAnimation(direction)
     }
   }
 })
 
-// 归一化参数
-// 支持 'prev-page', 'next-page', 'prev-year', 'next-year', 以及合法的日期
 function _normalize(param) {
   if (!param) {
     throw new Error('参数不能为空')
@@ -215,13 +283,11 @@ function _normalize(param) {
   throw new Error('日期不合法')
 }
 
-// 切换日历页面
 function changePageTo(param) {
   const targetDate = _normalize(param)
   switchPageToTargetDate(targetDate)
 }
 
-// 切换选中的日期
 function changeSelectedDate(date) {
   changePageTo(date)
   if (!isSameDay(new Date(date), selected.value)) {
@@ -230,17 +296,80 @@ function changeSelectedDate(date) {
   }
 }
 
-// 获取 marker 颜色
+function handleDateClick(date) {
+  changeSelectedDate(date)
+  
+  const capsule = getCapsuleForDate(date)
+  const status = getCapsuleStatusForDate(date)
+  
+  selectedDate.value = date
+  selectedCapsule.value = capsule
+  
+  if (capsule) {
+    if (status === CapsuleStatus.LOCKED) {
+      isCountdownModalOpen.value = true
+    } else {
+      isScratchModalOpen.value = true
+    }
+  } else {
+    isEditModalOpen.value = true
+  }
+}
+
+function handleSaveCapsule({ date, content }) {
+  try {
+    const saved = saveNewCapsule(date, content)
+    emit('capsule-save', saved)
+    closeEditModal()
+  } catch (e) {
+    console.error('保存胶囊失败:', e)
+  }
+}
+
+function handleDeleteCapsule(date) {
+  const result = deleteExistingCapsule(date)
+  if (result) {
+    emit('capsule-delete', date)
+  }
+  closeEditModal()
+}
+
+function handleClearExpired() {
+  const count = clearAllExpired()
+  console.log(`已清除 ${count} 个过期胶囊`)
+}
+
+function handleProgressUpdate({ date, progress }) {
+  updateProgress(date, progress)
+}
+
 function _getMarkerColor(date) {
   return markerDateList.value.find(d => isSameDay(d.date, date))?.color
 }
 
+function _hasCapsule(date) {
+  return hasCapsuleForDate(date)
+}
+
+function _getCapsuleStatus(date) {
+  return getCapsuleStatusForDate(date)
+}
+
+function _getCapsuleIcon(date) {
+  const status = _getCapsuleStatus(date)
+  if (status === CapsuleStatus.LOCKED) {
+    return 'capsuleLocked'
+  }
+  return 'capsuleUnlocked'
+}
+
 defineExpose({
-  // 切换周/月视图
   toggleViewMode,
-  // 切换日历页
   changePageTo,
-  // 切换选中日期
-  changeSelectedDate
+  changeSelectedDate,
+  refreshCapsules,
+  clearAllExpired,
+  getCapsuleForDate,
+  hasCapsuleForDate
 })
 </script>

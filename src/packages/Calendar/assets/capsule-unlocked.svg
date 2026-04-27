@@ -1,0 +1,19 @@
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow-unlocked">
+      <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect x="4" y="10" width="16" height="10" rx="2" fill="#10B981" filter="url(#glow-unlocked)"/>
+  <rect x="8" y="10" width="8" height="3" rx="1" fill="#34D399"/>
+  <path d="M8 10V7C8 4.79086 9.79086 3 12 3" stroke="#FCD34D" stroke-width="2" stroke-linecap="round" stroke-dasharray="2 2"/>
+  <path d="M12 3L14.5 1.5L16 3L14.5 4.5L12 3Z" fill="#FCD34D"/>
+  <circle cx="12" cy="14" r="1.5" fill="#FDE68A"/>
+  <circle cx="19" cy="5" r="1" fill="#FCD34D"/>
+  <circle cx="5" cy="5" r="0.8" fill="#FCD34D"/>
+  <circle cx="12" cy="1.5" r="0.6" fill="#FCD34D"/>
+</svg>
