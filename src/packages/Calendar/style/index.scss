@@ -75,10 +75,13 @@
 .ohhh-calendar-day {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
-  height: var(--calendar-row-height);
+  height: var(--day-total-height, var(--calendar-row-height));
+  min-height: var(--calendar-row-height);
   cursor: pointer;
+  position: relative;
+  overflow: visible;
 }
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-value,
 .ohhh-calendar-day.other-month .ohhh-calendar-day--inner-label {
@@ -124,6 +127,26 @@
   width: var(--calendar-days-marker-size);
   height: var(--calendar-days-marker-size);
   border-radius: 50%;
+}
+
+// 日期头部样式
+.ohhh-calendar-day--header {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 4px 0;
+  width: 100%;
+  z-index: 1;
+}
+
+// 任务容器样式
+.ohhh-calendar-day--tasks {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: visible;
 }
 
 .ohhh-calendar-footer {
